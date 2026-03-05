@@ -74,7 +74,9 @@ jobs:
             - Entry: src/index.ts
             - Config: src/config/, env vars, Google Sheet watchlist
             - Run: `npm run start`; needs FINNHUB_API_KEY, TELEGRAM_*, GOOGLE_SHEET_ID
-            - Standards: src/utils/logger (no console.log), escapeHtml for Telegram HTML
+            - Standards: Read docs/standards-for-ci.md in the repo. Enforce those rules.
+              That file is derived from Maestro vault; do not create a second standards doc.
+            - PR body: Include a short summary — what changed, why, and how to verify.
           jules_api_key: ${{ secrets.JULES_API_KEY }}
           starting_branch: ${{ github.event.workflow_run.head_branch }}
           include_last_commit: true
