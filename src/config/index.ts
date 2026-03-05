@@ -117,6 +117,7 @@ export interface TickerConfig {
 // Internal cache set by fetchAndCacheWatchlist(); must be called before loadWatchlist()
 let tickerCache: TickerConfig[] | null = null;
 let invalidTickersCache: string[] = [];
+let indexSkippedCache: string[] = [];
 let sectorMap: Map<string, string> | null = null;
 
 function buildSectorMap(tickers: TickerConfig[]): Map<string, string> {
@@ -152,6 +153,21 @@ export async function fetchWatchlistCsv(sheetId: string): Promise<string> {
 export interface ParseWatchlistResult {
     tickers: TickerConfig[];
     invalidSkipped: string[];
+    /** Indices skipped – system does not support indices (no volume/RVOL). Not sent to Jules. */
+    indexSkipped: string[];
+}
+
+/** Known index symbols (Yahoo ^, TASE indices). RVOL not applicable – no volume. */
+const KNOWN_INDEX_SYMBOLS = new Set([
+    'TABANKS5.TA', 'TA25.TA', 'TA35.TA', 'TA125.TA', 'TA50.TA', 'TA75.TA', 'TA90.TA', 'TA100.TA',
+].map((s) => s.toUpperCase()));
+
+/** Detect if symbol is an index (not supported – no volume for RVOL). Skip and report, do not trigger Jules. */
+export function isIndex(symbol: string): boolean {
+    const s = symbol.trim();
+    if (!s) return false;
+    if (s.startsWith('^')) return true; // Yahoo index convention (^TNX, ^GSPC)
+    return KNOWN_INDEX_SYMBOLS.has(s.toUpperCase());
 }
 
 /**
@@ -159,6 +175,7 @@ export interface ParseWatchlistResult {
  * - First row: treated as header if it looks like "Symbol" / "Sector" (case-insensitive), then skipped
  * - Column A: symbol (required); empty rows skipped
  * - Column B: sector (optional); default "Other" if empty
+ * - Indices: detected and skipped (reported in Telegram, not sent to Jules)
  */
 export function parseWatchlistCsv(csv: string): ParseWatchlistResult {
     const lines = csv.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
@@ -181,11 +198,17 @@ export function parseWatchlistCsv(csv: string): ParseWatchlistResult {
     const startIndex = rows.length > 0 && isHeaderRow(rows[0]) ? 1 : 0;
     const tickers: TickerConfig[] = [];
     const invalidSkipped: string[] = [];
+    const indexSkipped: string[] = [];
 
     for (let i = startIndex; i < rows.length; i++) {
         const cells = rows[i];
         const symbol = (cells[0] || '').trim();
         if (!symbol) continue;
+        if (isIndex(symbol)) {
+            indexSkipped.push(symbol);
+            logger.info(`Index skipped (not supported): "${symbol}"`);
+            continue;
+        }
         if (!validateTicker(symbol)) {
             invalidSkipped.push(symbol);
             logger.warn(`Invalid ticker format skipped: "${symbol}"`);
@@ -199,7 +222,7 @@ export function parseWatchlistCsv(csv: string): ParseWatchlistResult {
         throw new Error('Watchlist sheet has no valid ticker rows (Column A = symbol).');
     }
 
-    return { tickers, invalidSkipped };
+    return { tickers, invalidSkipped, indexSkipped };
 }
 
 /**
@@ -212,15 +235,21 @@ export async function fetchAndCacheWatchlist(): Promise<void> {
         throw new Error('GOOGLE_SHEET_ID is required. Set it to your Google Sheet ID (from the sheet URL).');
     }
     const csv = await fetchWatchlistCsv(sheetId);
-    const { tickers, invalidSkipped } = parseWatchlistCsv(csv);
+    const { tickers, invalidSkipped, indexSkipped } = parseWatchlistCsv(csv);
     tickerCache = tickers;
     invalidTickersCache = invalidSkipped;
+    indexSkippedCache = indexSkipped;
     sectorMap = null; // invalidate so next getTickers rebuilds
 }
 
 /** Tickers skipped during watchlist parse (invalid format). Call after fetchAndCacheWatchlist(). */
 export function getInvalidTickersFromWatchlist(): string[] {
     return [...invalidTickersCache];
+}
+
+/** Indices skipped (not supported). Not sent to Jules. Call after fetchAndCacheWatchlist(). */
+export function getIndexSkippedFromWatchlist(): string[] {
+    return [...indexSkippedCache];
 }
 
 function getTickers(): TickerConfig[] {

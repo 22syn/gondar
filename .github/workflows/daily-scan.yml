@@ -20,6 +20,8 @@ jobs:
   scan:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write  # needed to commit .jules-last-issues.json for dedup
 
     steps:
       - name: Checkout repository
@@ -43,6 +45,7 @@ jobs:
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
           TWELVE_DATA_API_KEY: ${{ secrets.TWELVE_DATA_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           ENABLE_LLM_SUMMARY: 'true'
           LLM_PROVIDER: 'gemini'
           MIN_RVOL: '2.0'
@@ -106,6 +109,15 @@ jobs:
           starting_branch: main
           include_last_commit: true
           include_commit_log: true
+
+      - name: Persist Jules issues for dedup (one fix attempt)
+        if: success() && hashFiles('.scan-issues.json') != '' && hashFiles('.jules-last-issues.json') != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .jules-last-issues.json
+          git diff --staged --quiet || git commit -m "chore: persist Jules issues for dedup"
+          git push || echo "Push skipped (may already be up to date)"
       
       - name: Notify Telegram on failure
         if: failure()

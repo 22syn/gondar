@@ -240,6 +240,44 @@ function callLlm(prompt: string, systemPrompt: string = SYSTEM_PROMPT): Promise<
     return callOpenAI(prompt, systemPrompt);
 }
 
+/** Ticker classification from LLM: INDEX/BOND = not supported (no volume); rest = potentially fixable */
+export type TickerType = 'STOCK' | 'INDEX' | 'ETF' | 'BOND' | 'OTHER';
+
+const TICKER_CLASSIFY_PROMPT = `You are a financial data expert. Classify each ticker symbol as exactly one of: STOCK, INDEX, ETF, BOND, OTHER.
+- STOCK: individual equity (e.g. AAPL, ALMA.TA)
+- INDEX: market index (e.g. ^TNX, ^GSPC, TABANKS5.TA, TA25)
+- ETF: exchange-traded fund (e.g. SPY, QQQ)
+- BOND: bond yield or bond index (e.g. ^TNX, ^IRX)
+- OTHER: unknown or mixed
+
+Reply with exactly one line per ticker in format: SYMBOL: TYPE
+No other text. Case-sensitive symbols.`;
+
+/**
+ * Classify tickers as STOCK/INDEX/ETF/BOND/OTHER using Groq.
+ * INDEX and BOND are not supported (no volume for RVOL); do not trigger Jules for them.
+ */
+export async function classifyTickersWithGroq(tickers: string[]): Promise<Map<string, TickerType>> {
+    const apiKey = config.groqApiKey;
+    if (!apiKey || tickers.length === 0) return new Map();
+
+    const list = tickers.join('\n');
+    const prompt = `Classify these ticker symbols:\n${list}`;
+    const text = await callGroq(prompt, TICKER_CLASSIFY_PROMPT);
+    if (!text) return new Map();
+
+    const result = new Map<string, TickerType>();
+    const validTypes: TickerType[] = ['STOCK', 'INDEX', 'ETF', 'BOND', 'OTHER'];
+    for (const line of text.split('\n')) {
+        const m = line.match(/^(.+?):\s*(STOCK|INDEX|ETF|BOND|OTHER)$/i);
+        if (!m) continue;
+        const sym = m[1].trim();
+        const type = validTypes.find((t) => t === m[2].toUpperCase()) ?? 'OTHER';
+        result.set(sym, type);
+    }
+    return result;
+}
+
 /**
  * Format RAW stock data for LLM – so it can CALCULATE the params itself.
  * Same conditions as code, but LLM does the math.

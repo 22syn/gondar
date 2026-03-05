@@ -3,7 +3,15 @@
  * Tests parseWatchlistCsv and fetchAndCacheWatchlist with mocked fetch
  */
 
-import { parseWatchlistCsv, fetchWatchlistCsv, fetchAndCacheWatchlist, loadWatchlist, getSectorForTicker } from '../src/config/index';
+import {
+    parseWatchlistCsv,
+    fetchWatchlistCsv,
+    fetchAndCacheWatchlist,
+    loadWatchlist,
+    getSectorForTicker,
+    isIndex,
+    getIndexSkippedFromWatchlist,
+} from '../src/config/index';
 
 // Mock global fetch
 const mockFetch = jest.fn();
@@ -71,6 +79,34 @@ describe('parseWatchlistCsv', () => {
         expect(result.tickers[0].symbol).toBe('AAPL');
         expect(result.tickers[1].symbol).toBe('META');
         expect(result.invalidSkipped).toEqual(['../../etc']);
+    });
+
+    it('skips indices and returns them in indexSkipped (not invalidSkipped)', () => {
+        const csv = 'Symbol,Sector\nAAPL,Tech\n^TNX,Treasury\nTABANKS5.TA,Banks\nMETA,Tech';
+        const result = parseWatchlistCsv(csv);
+        expect(result.tickers).toHaveLength(2);
+        expect(result.tickers[0].symbol).toBe('AAPL');
+        expect(result.tickers[1].symbol).toBe('META');
+        expect(result.indexSkipped).toContain('^TNX');
+        expect(result.indexSkipped).toContain('TABANKS5.TA');
+        expect(result.indexSkipped).toHaveLength(2);
+        expect(result.invalidSkipped).not.toContain('^TNX');
+        expect(result.invalidSkipped).not.toContain('TABANKS5.TA');
+    });
+});
+
+describe('isIndex', () => {
+    it('returns true for Yahoo index prefix ^', () => {
+        expect(isIndex('^TNX')).toBe(true);
+        expect(isIndex('^GSPC')).toBe(true);
+    });
+    it('returns true for known TASE indices', () => {
+        expect(isIndex('TABANKS5.TA')).toBe(true);
+        expect(isIndex('TA25.TA')).toBe(true);
+    });
+    it('returns false for stocks', () => {
+        expect(isIndex('AAPL')).toBe(false);
+        expect(isIndex('ALMA.TA')).toBe(false);
     });
 });
 
@@ -147,6 +183,24 @@ describe('fetchAndCacheWatchlist', () => {
         expect(mod.getSectorForTicker('T50')).toBe('Sector0');
         expect(mod.getSectorForTicker('UNKNOWN')).toBe('Other');
         expect(mod.getSectorForTicker('t50')).toBe('Sector0'); // case insensitive
+        process.env[envKey] = envBefore;
+        jest.resetModules();
+    });
+
+    it('caches indexSkipped; getIndexSkippedFromWatchlist returns them', async () => {
+        const envBefore = process.env[envKey];
+        process.env[envKey] = VALID_SHEET_ID;
+        jest.resetModules();
+        mockFetch.mockResolvedValueOnce({
+            ok: true,
+            text: () => Promise.resolve('Symbol,Sector\nAAPL,Tech\n^TNX,Bonds\nTABANKS5.TA,Banks'),
+        });
+        const mod = await import('../src/config/index.js');
+        await mod.fetchAndCacheWatchlist();
+        expect(mod.loadWatchlist()).toEqual(['AAPL']);
+        expect(mod.getIndexSkippedFromWatchlist()).toContain('^TNX');
+        expect(mod.getIndexSkippedFromWatchlist()).toContain('TABANKS5.TA');
+        expect(mod.getIndexSkippedFromWatchlist()).toHaveLength(2);
         process.env[envKey] = envBefore;
         jest.resetModules();
     });

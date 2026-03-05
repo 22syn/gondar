@@ -115,25 +115,17 @@ describe('Telegram Formatter', () => {
             expect(report).toContain('🔴 -3.33%');
         });
 
-        it('should include failed tickers section when provided', () => {
+        it('should not include failed tickers in report body (they appear in run-issues header only)', () => {
             const report = formatDailyReport('2026-02-01', mockSignals, [], ['BAD.TA', 'MISSING']);
 
-            expect(report).toContain('Could not check (fetch error)');
-            expect(report).toContain('BAD.TA');
-            expect(report).toContain('MISSING');
+            expect(report).not.toContain('Could not check');
+            expect(report).not.toContain('BAD.TA');
         });
 
-        it('should include failed tickers in empty-signals report', () => {
+        it('should not include failed tickers in empty-signals report body', () => {
             const report = formatDailyReport('2026-02-01', [], [], ['ERR1']);
 
             expect(report).toContain('No high-volume signals detected today');
-            expect(report).toContain('Could not check (fetch error)');
-            expect(report).toContain('ERR1');
-        });
-
-        it('should not add failed section when failedTickers is empty', () => {
-            const report = formatDailyReport('2026-02-01', mockSignals, []);
-
             expect(report).not.toContain('Could not check');
         });
     });

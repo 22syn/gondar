@@ -3,7 +3,8 @@
  * Orchestrates the daily stock volume scan and reporting
  */
 
-import { loadWatchlist, validateConfig, config, getSectorForTicker, fetchAndCacheWatchlist, getInvalidTickersFromWatchlist } from './config/index.js';
+import { loadWatchlist, validateConfig, config, getSectorForTicker, fetchAndCacheWatchlist, getInvalidTickersFromWatchlist, getIndexSkippedFromWatchlist } from './config/index.js';
+import { classifyTickersWithGroq } from './services/llmSummary.js';
 import { fetchAllStocks } from './services/marketData.js';
 import { calculateRVOL } from './services/rvolCalculator.js';
 import { enrichWithNews } from './services/newsService.js';
@@ -140,25 +141,90 @@ async function main(): Promise<void> {
             };
         });
 
-        // 8. Send report
+        // 8. Classify problematic tickers (invalid + failed) with Groq – INDEX/BOND excluded from Jules
         const today = new Date().toISOString().split('T')[0];
         const invalidTickers = getInvalidTickersFromWatchlist();
-        await sendDailyReport(today, finalSignals, volumeWithoutPrice, failedTickers, {
+        let indexTickers = [...getIndexSkippedFromWatchlist()];
+        const combined = [...new Set([...invalidTickers, ...failedTickers])];
+
+        if (combined.length > 0 && config.groqApiKey) {
+            logger.info(`🔍 Classifying ${combined.length} problematic tickers with Groq...`);
+            const classified = await classifyTickersWithGroq(combined);
+            for (const [sym, type] of classified) {
+                if (type === 'INDEX' || type === 'BOND') {
+                    if (!indexTickers.includes(sym)) indexTickers.push(sym);
+                }
+            }
+        }
+
+        const llmIndicesSet = new Set(indexTickers);
+        const fixableInvalid = invalidTickers.filter((t) => !llmIndicesSet.has(t));
+        const fixableFailed = failedTickers.filter((t) => !llmIndicesSet.has(t));
+
+        const totalInSheet = tickers.length + invalidTickers.length + getIndexSkippedFromWatchlist().length;
+        const notAnalyzed = fixableInvalid.length + indexTickers.length + fixableFailed.length;
+        await sendDailyReport(today, finalSignals, volumeWithoutPrice, fixableFailed, {
             watchlistCount: tickers.length,
-            invalidTickers,
+            invalidTickers: fixableInvalid,
+            indexTickers,
+            watchlistStats: {
+                totalInSheet,
+                analyzed: stocks.length,
+                notAnalyzed,
+                reasonInvalid: fixableInvalid.length,
+                reasonIndex: indexTickers.length,
+                reasonFetchFailed: fixableFailed.length,
+            },
         });
 
-        // 9. Write run-issues file for Jules (CI auto-fix when invalid tickers or fetch failures)
-        if (invalidTickers.length > 0 || failedTickers.length > 0) {
-            const issuesFile = process.env.SCAN_ISSUES_FILE || '.scan-issues.json';
-            const payload = {
-                date: today,
-                invalidTickers,
-                failedTickers,
-                summary: `Invalid format: ${invalidTickers.length} | Fetch failed: ${failedTickers.length}`,
-            };
-            fs.writeFileSync(issuesFile, JSON.stringify(payload, null, 2), 'utf-8');
-            logger.info(`📝 Wrote ${issuesFile} for Jules auto-fix`);
+        // 9. Write run-issues for Jules – only fixable tickers; skip if same issues as last Jules run (one fix attempt)
+        const hasFixable = fixableInvalid.length > 0 || fixableFailed.length > 0;
+        if (hasFixable) {
+            const issuesHash = [...fixableInvalid, ...fixableFailed].sort().join('|');
+            const lastPath = path.join(__dirname, '..', '.jules-last-issues.json');
+            let skipJules = false;
+            if (fs.existsSync(lastPath)) {
+                try {
+                    const last = JSON.parse(fs.readFileSync(lastPath, 'utf-8')) as {
+                        hash?: string;
+                        invalidTickers?: string[];
+                        failedTickers?: string[];
+                    };
+                    const lastHash = [...(last.invalidTickers ?? []), ...(last.failedTickers ?? [])].sort().join('|');
+                    if (lastHash === issuesHash) {
+                        skipJules = true;
+                        logger.info(
+                            '⏭️ Same issues as last Jules run – skipping .scan-issues.json (one fix attempt)'
+                        );
+                    }
+                } catch {
+                    // ignore
+                }
+            }
+
+            if (!skipJules) {
+                const issuesFile = process.env.SCAN_ISSUES_FILE || '.scan-issues.json';
+                const payload = {
+                    date: today,
+                    invalidTickers: fixableInvalid,
+                    failedTickers: fixableFailed,
+                    summary: `Invalid format: ${fixableInvalid.length} | Fetch failed: ${fixableFailed.length}`,
+                };
+                fs.writeFileSync(issuesFile, JSON.stringify(payload, null, 2), 'utf-8');
+                logger.info(`📝 Wrote ${issuesFile} for Jules auto-fix`);
+
+                const lastPayload = {
+                    hash: issuesHash,
+                    invalidTickers: fixableInvalid,
+                    failedTickers: fixableFailed,
+                    date: today,
+                };
+                fs.writeFileSync(
+                    path.join(__dirname, '..', '.jules-last-issues.json'),
+                    JSON.stringify(lastPayload, null, 2),
+                    'utf-8'
+                );
+            }
         }
 
         // 10. Log completion
