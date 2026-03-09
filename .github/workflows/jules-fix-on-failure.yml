@@ -12,11 +12,13 @@ on:
     branches: [main]
 
 jobs:
-  # 1. Daily scan failed → invoke Jules
+  # 1. Daily scan failed → invoke Jules (only for scheduled runs, not re-runs)
+  # Skip workflow_dispatch to avoid infinite loop: fix fails → re-run → fails again → invoke again
   invoke-jules:
     if: |
       github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'failure'
+      github.event.workflow_run.conclusion == 'failure' &&
+      github.event.workflow_run.event == 'schedule'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -74,7 +76,7 @@ jobs:
             - Entry: src/index.ts
             - Config: src/config/, env vars, Google Sheet watchlist
             - Run: `npm run start`; needs FINNHUB_API_KEY, TELEGRAM_*, GOOGLE_SHEET_ID
-            - Standards: src/utils/logger (no console.log), escapeHtml for Telegram HTML
+            - Standards: docs/standards-for-ci.md (vault export)
           jules_api_key: ${{ secrets.JULES_API_KEY }}
           starting_branch: ${{ github.event.workflow_run.head_branch }}
           include_last_commit: true
