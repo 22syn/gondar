@@ -24,57 +24,34 @@ function toRVOLResult(s: StockData): RVOLResult {
 }
 
 describe('buildStoredScanResult', () => {
-    it('adds setupType "full" when stock has nearSMA21, nearAth, inConsolidationWindow', () => {
-        const fullStock: StockData = {
+    it('adds tags when stock has tags', () => {
+        const taggedStock: StockData = {
             ...baseStock,
-            nearSMA21: true,
-            nearAth: true,
-            inConsolidationWindow: true,
+            tags: ['SMA21 Touch', 'Pullback 15%'],
         };
-        const result = buildStoredScanResult('2026-03-08', [toRVOLResult(fullStock)], []);
+        const result = buildStoredScanResult('2026-03-08', [toRVOLResult(taggedStock)], []);
         expect(result.date).toBe('2026-03-08');
         expect(result.signals).toHaveLength(1);
-        expect(result.signals[0].setupType).toBe('full');
+        expect(result.signals[0].tags).toEqual(['SMA21 Touch', 'Pullback 15%']);
         expect(result.signals[0].source).toBe('topSignals');
         expect(result.signals[0].ticker).toBe('AAPL');
         expect(result.signals[0].lastPrice).toBe(100);
         expect(result.signals[0].rvol).toBe(2);
     });
 
-    it('adds setupType "close" when stock has nearSMA21Close, nearAthClose, inConsolidationClose', () => {
-        const closeStock: StockData = {
-            ...baseStock,
-            ticker: 'MSFT',
-            nearSMA21: false,
-            nearAth: false,
-            inConsolidationWindow: false,
-            nearSMA21Close: true,
-            nearAthClose: true,
-            inConsolidationClose: true,
-        };
-        const result = buildStoredScanResult('2026-03-08', [], [closeStock]);
-        expect(result.signals).toHaveLength(1);
-        expect(result.signals[0].setupType).toBe('close');
-        expect(result.signals[0].source).toBe('volumeWithoutPrice');
-        expect(result.signals[0].ticker).toBe('MSFT');
-    });
-
-    it('adds setupType "none" when missing setup conditions', () => {
+    it('adds empty tags when stock has no tags', () => {
         const noneStock: StockData = {
             ...baseStock,
             ticker: 'GOOG',
-            nearSMA21: false,
-            nearAth: false,
-            inConsolidationWindow: false,
         };
         const result = buildStoredScanResult('2026-03-08', [toRVOLResult(noneStock)], []);
         expect(result.signals).toHaveLength(1);
-        expect(result.signals[0].setupType).toBe('none');
+        expect(result.signals[0].tags).toEqual([]);
     });
 
     it('sets source "topSignals" for finalSignals and "volumeWithoutPrice" for volumeWithoutPrice', () => {
         const stock: StockData = { ...baseStock, ticker: 'A' };
-        const silentStock: StockData = { ...baseStock, ticker: 'B' };
+        const silentStock: StockData = { ...baseStock, ticker: 'B', tags: ['1M Breakout'] };
         const result = buildStoredScanResult('2026-03-08', [toRVOLResult(stock)], [silentStock]);
         expect(result.signals).toHaveLength(2);
         expect(result.signals[0].source).toBe('topSignals');
@@ -90,7 +67,7 @@ describe('writeScanResults', () => {
         const stored = {
             date: '2026-03-08',
             signals: [
-                { ticker: 'AAPL', lastPrice: 100, rvol: 2, setupType: 'full' as const, source: 'topSignals' as const },
+                { ticker: 'AAPL', lastPrice: 100, rvol: 2, tags: ['SMA21 Touch'], source: 'topSignals' as const },
             ],
         };
         writeScanResults(stored, outDir);
@@ -104,7 +81,7 @@ describe('writeScanResults', () => {
             ticker: 'AAPL',
             lastPrice: 100,
             rvol: 2,
-            setupType: 'full',
+            tags: ['SMA21 Touch'],
             source: 'topSignals',
         });
         fs.rmSync(outDir, { recursive: true, force: true });

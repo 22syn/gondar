@@ -6,7 +6,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import type { RVOLResult, StockData, StoredSignal, StoredScanResult } from '../types/index.js';
-import { isFullSetup, isCloseSetup } from './setup.js';
 
 export function buildStoredScanResult(
     date: string,
@@ -17,7 +16,7 @@ export function buildStoredScanResult(
         ticker: s.ticker,
         lastPrice: s.lastPrice,
         rvol: s.rvol,
-        setupType: isFullSetup(s) ? 'full' : isCloseSetup(s) ? 'close' : 'none',
+        tags: s.tags ?? [],
         source,
     });
     const fromTop = finalSignals.map((s) => toSignal(s, 'topSignals'));

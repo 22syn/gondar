@@ -8,7 +8,7 @@ import { config } from '../config/index.js';
 import logger from '../utils/logger.js';
 import { formatRVOL } from '../utils/formatters.js';
 import pLimit from 'p-limit';
-import { calculateSMA, calculateRSI, calculate52wHighAndConsolidation, isNearSMA } from '../utils/technicalAnalysis.js';
+import { calculateSMA, calculateRSI, calculate52wHighAndConsolidation, computeNewlogicTags } from '../utils/technicalAnalysis.js';
 
 /**
  * Direct fetch from Yahoo Finance chart API
@@ -62,9 +62,24 @@ async function fetchFromYahooChart(ticker: string, isFallback = false, attempt =
         const meta = result.meta;
         const indicators = result.indicators?.quote?.[0];
 
-        // Get volumes and closes (filter out nulls)
+        // Get volumes, closes, highs, lows (filter nulls; align by index)
+        const rawCloses = indicators?.close ?? [];
+        const rawHighs = indicators?.high ?? [];
+        const rawLows = indicators?.low ?? [];
         const volumes = indicators?.volume?.filter((v: number | null) => v !== null && v > 0) || [];
-        const closes = indicators?.close?.filter((c: number | null) => c !== null && c > 0) || [];
+        const closes: number[] = [];
+        const highs: number[] = [];
+        const lows: number[] = [];
+        for (let i = 0; i < rawCloses.length; i++) {
+            const c = rawCloses[i];
+            if (c != null && c > 0) {
+                closes.push(c);
+                const h = rawHighs[i];
+                const l = rawLows[i];
+                highs.push(h != null && h > 0 ? h : c);
+                lows.push(l != null && l > 0 ? l : c);
+            }
+        }
 
         const isIndex = ticker.startsWith('^');
 
@@ -103,30 +118,10 @@ async function fetchFromYahooChart(ticker: string, isFallback = false, attempt =
 
         const lastPrice = meta.regularMarketPrice || currentClose || 0;
 
-        // 52-week high and consolidation (pre-breakout indicators)
+        // 52-week high and consolidation
         const athData = calculate52wHighAndConsolidation(closes);
-        let ath: number | undefined;
-        let pctFromAth: number | undefined;
-        let monthsInConsolidation: number | undefined;
-        let nearAth: boolean | undefined;
-        let inConsolidationWindow: boolean | undefined;
-
-        let nearAthClose: boolean | undefined;
-        let inConsolidationClose: boolean | undefined;
-        if (athData) {
-            ath = athData.ath;
-            pctFromAth = athData.pctFromAth;
-            monthsInConsolidation = athData.monthsInConsolidation;
-            const absPct = Math.abs(athData.pctFromAth);
-            nearAth = absPct <= config.athThresholdPct;
-            nearAthClose = absPct > config.athThresholdPct && absPct <= config.athCloseThresholdPct;
-            inConsolidationWindow =
-                athData.monthsInConsolidation >= config.consolidationMinMonths &&
-                athData.monthsInConsolidation <= config.consolidationMaxMonths;
-            inConsolidationClose = !inConsolidationWindow &&
-                athData.monthsInConsolidation >= config.consolidationCloseMinMonths &&
-                athData.monthsInConsolidation < config.consolidationMinMonths;
-        }
+        const ath = athData?.ath;
+        const pctFromAth = athData?.pctFromAth;
 
         let finalSma21 = sma21;
         let finalRsi = rsi;
@@ -137,10 +132,15 @@ async function fetchFromYahooChart(ticker: string, isFallback = false, attempt =
             if (fetched.sma21 != null) finalSma21 = fetched.sma21;
         }
 
-        const nearSMA21 = finalSma21 ? isNearSMA(lastPrice, finalSma21, config.sma21TouchThresholdPct) : undefined;
-        const nearSMA21Close = finalSma21 && !nearSMA21
-            ? isNearSMA(lastPrice, finalSma21, config.sma21CloseThresholdPct)
-            : undefined;
+        const lastDayLow = lows.length > 0 ? lows[lows.length - 1] : undefined;
+        const lastDayHigh = highs.length > 0 ? highs[highs.length - 1] : undefined;
+        const tags = computeNewlogicTags({
+            sma21: finalSma21,
+            lastDayLow,
+            lastDayHigh,
+            pctFromAth,
+            closes,
+        });
 
         return {
             ticker,
@@ -156,13 +156,10 @@ async function fetchFromYahooChart(ticker: string, isFallback = false, attempt =
             ath,
             athSource: '52w',
             pctFromAth,
-            monthsInConsolidation,
-            nearSMA21,
-            nearAth,
-            inConsolidationWindow,
-            nearSMA21Close,
-            nearAthClose,
-            inConsolidationClose,
+            monthsInConsolidation: athData?.monthsInConsolidation,
+            lastDayLow,
+            lastDayHigh,
+            tags,
         };
     } catch (error) {
         if (attempt === 1) {
@@ -260,12 +257,11 @@ async function fetchFromTwelveData(ticker: string, attempt = 1): Promise<StockDa
 
         const ath = high52w;
         const pctFromAth = ath != null && ath > 0 ? ((lastPrice - ath) / ath) * 100 : undefined;
-        const absPct = pctFromAth != null ? Math.abs(pctFromAth) : Infinity;
-        const nearAth = pctFromAth != null && absPct <= config.athThresholdPct;
-        const nearAthClose = pctFromAth != null && absPct > config.athThresholdPct && absPct <= config.athCloseThresholdPct;
-
-        const nearSMA21 = sma21 ? isNearSMA(lastPrice, sma21, config.sma21TouchThresholdPct) : undefined;
-        const nearSMA21Close = sma21 && !nearSMA21 ? isNearSMA(lastPrice, sma21, config.sma21CloseThresholdPct) : undefined;
+        const tags = computeNewlogicTags({
+            sma21,
+            pctFromAth,
+            closes: [], // Twelve Data quote has no history; only Pullback 15% can apply
+        });
 
         return {
             ticker,
@@ -279,10 +275,7 @@ async function fetchFromTwelveData(ticker: string, attempt = 1): Promise<StockDa
             ath,
             athSource: '52w',
             pctFromAth,
-            nearSMA21,
-            nearAth,
-            nearAthClose,
-            nearSMA21Close,
+            tags,
         };
     } catch (error) {
         if (attempt === 1) {

@@ -9,7 +9,7 @@ import pLimit from 'p-limit';
 import { config } from '../config/index.js';
 import logger from '../utils/logger.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
-import { isFullSetup, isCloseSetup } from '../utils/setup.js';
+import { formatTagsForDisplay } from '../utils/tags.js';
 import { formatRVOL, formatPriceChange } from '../utils/formatters.js';
 import type { StockData } from '../types/index.js';
 
@@ -18,7 +18,7 @@ const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const PERPLEXITY_API_URL = 'https://api.perplexity.ai/chat/completions';
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 const SYSTEM_PROMPT =
-    'You are a concise market analyst. The Data table below is produced by the system. You MUST interpret it correctly: 🎯 = full setup, 👀 = close setup. Only refer to tickers and facts that appear in the table. Reply in plain text only, no markdown.';
+    'You are a concise market analyst. The Data table below is produced by the system. Tags: SMA21 Touch, Pullback 15%, 1M Breakout. Only refer to tickers and facts that appear in the table. Reply in plain text only, no markdown.';
 
 const SINGLE_STOCK_PROMPT =
     'You are a market analyst. You CALCULATE setup params from raw data using given formulas. Output in the exact format requested.';
@@ -34,32 +34,24 @@ export interface LlmScope {
  * SMA21, High, Base – same thresholds and values as formatSetupIndicator.
  */
 function buildPrompt(stocks: StockData[], date: string, scope?: LlmScope): string {
-    const {
-        sma21TouchThresholdPct,
-        athThresholdPct,
-        consolidationMinMonths,
-        consolidationMaxMonths,
-    } = config;
-
     const signalRows = stocks.map(formatStockForLlm);
     const dataTable =
         stocks.length > 0 ? signalRows.join('\n') : "(No high-RVOL stocks in today's scan)";
 
+    const taggedCount = stocks.filter((s) => (s.tags?.length ?? 0) > 0).length;
     const scopeLine =
         scope?.watchlistCount != null
-            ? `\nScan scope: ${scope.watchlistCount} tickers. This table has ${stocks.length} stocks. ✓=met, ~=close. ${scope.setupCount ?? 0} have setup (🎯/👀).\n`
-            : `\n${stocks.length} high-RVOL stocks.\n`;
+            ? `\nScan scope: ${scope.watchlistCount} tickers. This table has ${stocks.length} stocks. ${taggedCount} have tags.\n`
+            : `\n${stocks.length} high-RVOL stocks. ${taggedCount} with tags.\n`;
 
-    return `You are a concise market analyst. Data below from Smart Volume Radar (${date}) – SAME parameters the code uses. Each row: SMA21%, High (52w), Base (mo). ✓ met, ~ close, ✗ far. 🎯 full setup, 👀 close setup.${scopeLine}
-
-SETUP (same as code): Full 🎯 = SMA21 ≤${sma21TouchThresholdPct}%, High ≤${athThresholdPct}%, Base ${consolidationMinMonths}–${consolidationMaxMonths}mo.
+    return `You are a concise market analyst. Data below from Smart Volume Radar (${date}). Tags: SMA21 Touch, Pullback 15%, 1M Breakout.${scopeLine}
 
 Data (code output):
 ---
 ${dataTable}
 ---
 
-Analyst commentary based on these exact params. Mention 🎯 and 👀 tickers. 2–3 sentences max. Plain text.`;
+Analyst commentary. Mention tagged tickers. 2–3 sentences max. Plain text.`;
 }
 
 /** OpenAI-style response shape (OpenAI + Perplexity) */
@@ -302,122 +294,66 @@ RVOL: ${formatRVOL(stock.rvol)} | Price chg: ${formatPriceChange(stock.priceChan
  * Format stock with pre-calculated params (for batch summary mode).
  */
 function formatStockForLlm(stock: StockData): string {
-    const {
-        sma21TouchThresholdPct,
-        athThresholdPct,
-        consolidationMinMonths,
-        consolidationMaxMonths,
-        consolidationCloseMinMonths,
-    } = config;
-
     const rsi = stock.rsi != null ? stock.rsi.toFixed(0) : '—';
-
-    let sma21Line = 'SMA21: —';
-    if (stock.sma21 != null && stock.sma21 > 0) {
-        const pctFromSMA = (Math.abs(stock.lastPrice - stock.sma21) / stock.sma21) * 100;
-        const met = pctFromSMA <= sma21TouchThresholdPct;
-        sma21Line = `SMA21: ${pctFromSMA.toFixed(1)}% ${met ? '✓' : '~'} (req ≤${sma21TouchThresholdPct}%)`;
-    }
-
-    let highLine = 'High: —';
-    if (stock.pctFromAth != null) {
-        const absPct = Math.abs(stock.pctFromAth);
-        const met = absPct <= athThresholdPct;
-        highLine = `High: ${stock.pctFromAth.toFixed(0)}% from 52w ${met ? '✓' : '~'} (req ≤${athThresholdPct}%)`;
-    }
-
-    let baseLine = 'Base: —';
-    if (stock.monthsInConsolidation != null) {
-        const mo = Math.round(stock.monthsInConsolidation);
-        const met =
-            stock.monthsInConsolidation >= consolidationMinMonths &&
-            stock.monthsInConsolidation <= consolidationMaxMonths;
-        const close =
-            stock.monthsInConsolidation >= consolidationCloseMinMonths &&
-            stock.monthsInConsolidation < consolidationMinMonths;
-        baseLine = `Base: ${mo}mo ${met ? '✓' : close ? '~' : '✗'} (req ${consolidationMinMonths}–${consolidationMaxMonths}mo)`;
-    }
-
-    const setup = isFullSetup(stock) ? '🎯' : isCloseSetup(stock) ? '👀' : '—';
-
-    return `${stock.ticker} | RVOL ${formatRVOL(stock.rvol)} | Price ${formatPriceChange(stock.priceChange)} | RSI ${rsi} | ${sma21Line} | ${highLine} | ${baseLine} | Setup ${setup}`;
+    const tags = formatTagsForDisplay(stock);
+    return `${stock.ticker} | RVOL ${formatRVOL(stock.rvol)} | Price ${formatPriceChange(stock.priceChange)} | RSI ${rsi} | ${tags || '—'}`;
 }
 
-function getCodeSetup(stock: StockData): '🎯' | '👀' | '—' {
-    return isFullSetup(stock) ? '🎯' : isCloseSetup(stock) ? '👀' : '—';
+function getCodeTags(stock: StockData): string {
+    return formatTagsForDisplay(stock) || '—';
 }
 
-function buildSingleStockPrompt(rawData: string, codeSetup: string, date: string): string {
-    const {
-        sma21TouchThresholdPct,
-        sma21CloseThresholdPct,
-        athThresholdPct,
-        athCloseThresholdPct,
-        consolidationMinMonths,
-        consolidationMaxMonths,
-        consolidationCloseMinMonths,
-    } = config;
-
-    return `You are a market analyst. Below is RAW data for one stock. You must CALCULATE the setup params yourself using the SAME conditions as our code.
-
-CONDITIONS (identical to code):
-1. SMA21: |Price-SMA21|/SMA21 × 100 = distance %. ✓ if ≤${sma21TouchThresholdPct}%, ~ if ${sma21TouchThresholdPct}–${sma21CloseThresholdPct}%, ✗ otherwise
-2. High: |(Price-52wHigh)/52wHigh| × 100 = distance %. ✓ if ≤${athThresholdPct}%, ~ if ${athThresholdPct}–${athCloseThresholdPct}%, ✗ otherwise
-3. Base: months given. ✓ if ${consolidationMinMonths}–${consolidationMaxMonths}mo, ~ if ${consolidationCloseMinMonths}–${consolidationMinMonths}mo, ✗ otherwise
-
-Setup verdict: 🎯 = all ✓, 👀 = all ~ (or mix ✓~), — = any ✗
+function buildSingleStockPrompt(rawData: string, codeTags: string, date: string): string {
+    return `You are a market analyst. Below is RAW data for one stock. Evaluate tags: SMA21 Touch (Low≤SMA21≤High), Pullback 15% (pctFromAth≤-15%), 1M Breakout (21d range break).
 
 RAW DATA (${date}):
 ${rawData}
 
-CODE RESULT (for you to verify): ${codeSetup}
+CODE RESULT (tags): ${codeTags}
 
-Reply in EXACT format:
-SMA21: X.X% [✓/~/✗] | High: X% [✓/~/✗] | Base: Xmo [✓/~/✗] | My: [🎯/👀/—] | Match: [yes/no] | Analysis: one short sentence`;
+Reply: Tags: [list any that apply or "—"] | Match: [yes/no] | Analysis: one short sentence`;
 }
 
 /** Per-stock analysis result */
 export interface PerStockAnalysis {
     ticker: string;
-    codeSetup: '🎯' | '👀' | '—';
+    codeTags: string;
     analysis: string | null;
 }
 
-/** Parsed LLM reply: verdict (🎯/👀/—), match (code vs LLM), and optional reason */
+/** Parsed LLM reply: match (code vs LLM) and optional reason */
 export interface ParsedLlmReply {
-    llmVerdict: '🎯' | '👀' | '—';
     match: boolean;
     reason?: string;
 }
 
-const LLM_REPLY_REGEX = /My:\s*([🎯👀—])\s*\|?\s*Match:\s*(yes|no)\s*\|?\s*Analysis:\s*(.+)/iu;
+const LLM_REPLY_REGEX = /Match:\s*(yes|no)\s*\|?\s*Analysis:\s*(.+)/iu;
 
 /**
- * Parse LLM reply to extract verdict, match, and reason. Falls back gracefully if format varies.
+ * Parse LLM reply to extract match and reason. Falls back gracefully if format varies.
  */
 export function parseLlmReply(raw: string): ParsedLlmReply | null {
     const m = raw.match(LLM_REPLY_REGEX);
     if (!m) return null;
-    const llmVerdict = (m[1] === '🎯' ? '🎯' : m[1] === '👀' ? '👀' : '—') as '🎯' | '👀' | '—';
-    const match = m[2].toLowerCase() === 'yes';
-    const reason = m[3]?.trim().slice(0, 80); // truncate long analysis
-    return { llmVerdict, match, reason };
+    const match = m[1].toLowerCase() === 'yes';
+    const reason = m[2]?.trim().slice(0, 80);
+    return { match, reason };
 }
 
 /**
- * Format per-stock analysis for display: clear comparison of Code vs LLM.
+ * Format per-stock analysis for display: Code tags vs LLM.
  */
 export function formatCodeVsLlmLine(
     ticker: string,
-    codeSetup: '🎯' | '👀' | '—',
+    codeTags: string,
     parsed: ParsedLlmReply | null,
     _rawAnalysis: string | null
 ): string {
     if (!parsed) {
-        return `• <b>${escapeHtml(ticker)}</b> | קוד ${codeSetup} | <i>(לא ניתן לפרסר תשובת LLM)</i>`;
+        return `• <b>${escapeHtml(ticker)}</b> | קוד: ${escapeHtml(codeTags)} | <i>(לא ניתן לפרסר תשובת LLM)</i>`;
     }
     const matchStr = parsed.match ? '✓ תואמים' : '✗ חוסר התאמה';
-    const base = `• <b>${escapeHtml(ticker)}</b> | קוד ${codeSetup} | LLM ${parsed.llmVerdict} | ${matchStr}`;
+    const base = `• <b>${escapeHtml(ticker)}</b> | קוד: ${escapeHtml(codeTags)} | ${matchStr}`;
     if (!parsed.match && parsed.reason) {
         return `${base}\n  <i>${escapeHtml(parsed.reason)}</i>`;
     }
@@ -448,10 +384,10 @@ export async function getPerStockAnalyses(stocks: StockData[], date: string): Pr
     const tasks = stocks.map((stock) =>
         limit(async () => {
             const rawData = formatRawStockForLlm(stock);
-            const codeSetup = getCodeSetup(stock);
-            const prompt = buildSingleStockPrompt(rawData, codeSetup, date);
+            const codeTags = getCodeTags(stock);
+            const prompt = buildSingleStockPrompt(rawData, codeTags, date);
             const analysis = await callLlm(prompt, SINGLE_STOCK_PROMPT);
-            return { ticker: stock.ticker, codeSetup, analysis };
+            return { ticker: stock.ticker, codeTags, analysis };
         })
     );
 

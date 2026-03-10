@@ -122,9 +122,7 @@ async function main(): Promise<void> {
         if (new Date(date) < cutoff) continue;
         const data = JSON.parse(fs.readFileSync(filePath, 'utf-8')) as StoredScanResult;
         for (const s of data.signals) {
-            if (s.setupType === 'full') {
-                fullSignals.push({ ticker: s.ticker, date, priceThen: s.lastPrice });
-            }
+            fullSignals.push({ ticker: s.ticker, date, priceThen: s.lastPrice });
         }
     }
 

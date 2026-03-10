@@ -3,6 +3,9 @@
  * Core interfaces for stock data, news, and RVOL results
  */
 
+/** Newlogic tags: independent signals per stock */
+export type NewlogicTag = 'SMA21 Touch' | 'Pullback 15%' | '1M Breakout';
+
 /**
  * Raw stock data from market API
  */
@@ -18,7 +21,7 @@ export interface StockData {
     sma21?: number;
     rsi?: number;
     sector?: string;
-    /** All-time high from available price history */
+    /** All-time high (52w) from price history */
     ath?: number;
     /** Source of high: 5y = Yahoo 5-year history, 52w = Twelve Data 52-week high */
     athSource?: '5y' | '52w';
@@ -26,18 +29,12 @@ export interface StockData {
     pctFromAth?: number;
     /** Months since ATH was reached (approx consolidation duration) */
     monthsInConsolidation?: number;
-    /** Price within threshold of SMA21 */
-    nearSMA21?: boolean;
-    /** Within 20% of ATH */
-    nearAth?: boolean;
-    /** Consolidation duration in 6mo–3y window */
-    inConsolidationWindow?: boolean;
-    /** Close to SMA21 (within wider band, e.g. 3–5%) */
-    nearSMA21Close?: boolean;
-    /** Close to ATH (e.g. 20–25% from high) */
-    nearAthClose?: boolean;
-    /** Close to consolidation window (e.g. 4–6mo) */
-    inConsolidationClose?: boolean;
+    /** Last trading day low (for SMA21 Touch) — Yahoo only */
+    lastDayLow?: number;
+    /** Last trading day high (for SMA21 Touch) — Yahoo only */
+    lastDayHigh?: number;
+    /** Newlogic tags: SMA21 Touch, Pullback 15%, 1M Breakout */
+    tags?: NewlogicTag[];
 }
 
 /**
@@ -79,12 +76,12 @@ export interface ScanResults {
     executionTimeMs: number;
 }
 
-/** Per-stock entry for stored results (evaluate uses setupType) */
+/** Per-stock entry for stored results */
 export interface StoredSignal {
     ticker: string;
     lastPrice: number;
     rvol: number;
-    setupType: 'full' | 'close' | 'none';
+    tags: NewlogicTag[];
     source: 'topSignals' | 'volumeWithoutPrice';
 }
 

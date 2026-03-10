@@ -58,6 +58,44 @@ export function isNearSMA(price: number, sma: number, thresholdPct: number): boo
     return pctDiff <= thresholdPct;
 }
 
+import type { NewlogicTag } from '../types/index.js';
+
+/** ~21 trading days = 1 month consolidation window */
+const CONSOLIDATION_DAYS_1M = 21;
+
+/**
+ * Compute Newlogic tags from raw inputs.
+ * - SMA21 Touch: Low ≤ SMA21 ≤ High (intraday touch)
+ * - Pullback 15%: pctFromAth ≤ -15 (52w high)
+ * - 1M Breakout: consolidated ~1 month, then lastClose > rangeHigh
+ */
+export function computeNewlogicTags(params: {
+    sma21?: number;
+    lastDayLow?: number;
+    lastDayHigh?: number;
+    pctFromAth?: number;
+    closes: number[];
+}): NewlogicTag[] {
+    const tags: NewlogicTag[] = [];
+    const { sma21, lastDayLow, lastDayHigh, pctFromAth, closes } = params;
+
+    if (sma21 != null && sma21 > 0 && lastDayLow != null && lastDayHigh != null) {
+        if (lastDayLow <= sma21 && sma21 <= lastDayHigh) tags.push('SMA21 Touch');
+    }
+
+    if (pctFromAth != null && pctFromAth <= -15) tags.push('Pullback 15%');
+
+    if (closes.length >= CONSOLIDATION_DAYS_1M + 1) {
+        const lookback = closes.slice(-CONSOLIDATION_DAYS_1M - 1);
+        const rangeCloses = lookback.slice(0, -1);
+        const lastClose = lookback[lookback.length - 1];
+        const rangeHigh = Math.max(...rangeCloses);
+        if (lastClose > rangeHigh) tags.push('1M Breakout');
+    }
+
+    return tags;
+}
+
 /**
  * Calculate Relative Strength Index (RSI) using Wilder's Smoothing
  * Matches TradingView and standard charting platforms.
