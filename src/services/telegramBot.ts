@@ -7,69 +7,11 @@ import { RVOLResult, StockData, TelegramApiError } from '../types/index.js';
 import { config } from '../config/index.js';
 import logger from '../utils/logger.js';
 import { escapeHtml } from '../utils/escapeHtml.js';
-import { isFullSetup, isCloseSetup } from '../utils/setup.js';
+import { formatTagsForDisplay, hasAllThreeTags } from '../utils/tags.js';
 import { formatRVOL, formatPriceChange } from '../utils/formatters.js';
 import { getReportSummary, getPerStockAnalyses, parseLlmReply, formatCodeVsLlmLine } from './llmSummary.js';
 
 const TELEGRAM_MAX_LENGTH = 4096;
-
-/**
- * Format setup indicator with clear status: met ✓, close ~, or far ✗
- * Shows actual value and how close/far from threshold when relevant
- */
-function formatSetupIndicator(
-    stock: StockData,
-    athThreshold: number,
-    athCloseThreshold: number,
-    smaTouch: number,
-    smaClose: number,
-    baseMin: number,
-    baseMax: number,
-    baseCloseMin: number
-): string[] {
-    const lines: string[] = [];
-
-    // SMA21
-    if (stock.sma21 != null && stock.sma21 > 0) {
-        const pctFromSMA = Math.abs(stock.lastPrice - stock.sma21) / stock.sma21 * 100;
-        const met = pctFromSMA <= smaTouch;
-        const close = !met && pctFromSMA <= smaClose;
-        let detail = `${pctFromSMA.toFixed(1)}%`;
-        if (met) detail += ` ✓ (req ≤${smaTouch}%)`;
-        else if (close) detail += ` ~ (${(pctFromSMA - smaTouch).toFixed(1)}% over ${smaTouch}%, under ${smaClose}% close)`;
-        else detail += ` ✗ (${(pctFromSMA - smaTouch).toFixed(1)}% over ${smaTouch}% threshold)`;
-        lines.push(`<b>SMA21</b> ${detail}`);
-    }
-
-    // High (52-week; 5y removed as not relevant)
-    if (stock.pctFromAth != null) {
-        const absPct = Math.abs(stock.pctFromAth);
-        const highLabel = '52w';
-        const met = absPct <= athThreshold;
-        const close = absPct > athThreshold && absPct <= athCloseThreshold;
-        let detail = `${stock.pctFromAth.toFixed(0)}% from ${highLabel}`;
-        if (met) detail += ` ✓ (req ≤${athThreshold}%)`;
-        else if (close) detail += ` ~ (${(absPct - athThreshold).toFixed(0)}% over ${athThreshold}%, under ${athCloseThreshold}% close)`;
-        else detail += ` ✗ (${(absPct - athThreshold).toFixed(0)}% over ${athThreshold}% threshold)`;
-        lines.push(`<b>High</b> ${detail}`);
-    }
-
-    // Base (months in consolidation)
-    if (stock.monthsInConsolidation != null) {
-        const mo = stock.monthsInConsolidation;
-        const moRounded = Math.round(mo);
-        const met = mo >= baseMin && mo <= baseMax;
-        const close = mo >= baseCloseMin && mo < baseMin;
-        let detail = `${moRounded}mo base`;
-        if (met) detail += ` ✓ (req ${baseMin}–${baseMax}mo)`;
-        else if (close) detail += ` ~ (${(baseMin - mo).toFixed(1)}mo short of ${baseMin}mo, above ${baseCloseMin}mo)`;
-        else if (mo < baseCloseMin) detail += ` ✗ (${(baseCloseMin - mo).toFixed(1)}mo short of ${baseCloseMin}mo threshold)`;
-        else detail += ` ✗ (${(mo - baseMax).toFixed(1)}mo over ${baseMax}mo)`;
-        lines.push(`<b>Base</b> ${detail}`);
-    }
-
-    return lines;
-}
 
 /**
  * Truncate string to max length with ellipsis
@@ -124,7 +66,7 @@ export async function sendTelegramMessage(message: string): Promise<void> {
 }
 
 function formatReportHeader(date: string, bullish: number, bearish: number): string {
-    return `🛰 <b>SMART VOLUME RADAR</b>\n📅 <code>${date}</code>\n🎭 Sentiment: ${bullish} 🟢 | ${bearish} 🔴\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    return `🛰 <b>SMART VOLUME RADAR</b>\n📅 <code>${date}</code>\n🎭 Sentiment: ${bullish} 🟢 | ${bearish} 🔴\n<i>🟢 כניסה ירוקה (RVOL+מחיר) | 🔵 כניסה כחולה (3 תגיות)</i>\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 }
 
 function buildStockUrls(stock: RVOLResult): { tvUrl: string; yahooUrl: string; newsUrl: string; newsLabel: string } {
@@ -148,10 +90,15 @@ function formatSingleStockBlock(stock: RVOLResult): string {
     if (stock.rvol > 4) statusEmoji = '⚡️';
     else if (stock.rvol > 2) statusEmoji = '🔥';
 
+    const isGreen =
+        stock.rvol >= config.minRVOL && Math.abs(stock.priceChange) >= config.priceChangeThreshold;
+    const isBlue = hasAllThreeTags(stock);
+    const entryBadge = isGreen ? '🟢 ' : isBlue ? '🔵 ' : '';
+
     const trendColor = stock.priceChange >= 0 ? '🟢' : '🔴';
     const { tvUrl, yahooUrl, newsUrl, newsLabel } = buildStockUrls(stock);
 
-    let block = `${statusEmoji} <b><a href="${tvUrl}">${escapeHtml(stock.ticker)}</a></b>\n`;
+    let block = `${entryBadge}${statusEmoji} <b><a href="${tvUrl}">${escapeHtml(stock.ticker)}</a></b>\n`;
     block += `├ 📊 <b>RVOL</b> ${formatRVOL(stock.rvol)}\n`;
     block += `├ <b>Price</b> ${trendColor} ${formatPriceChange(stock.priceChange)}\n`;
 
@@ -164,20 +111,9 @@ function formatSingleStockBlock(stock: RVOLResult): string {
         block += `├ ${trend}\n`;
     }
 
-    const setupLines = formatSetupIndicator(
-        stock,
-        config.athThresholdPct,
-        config.athCloseThresholdPct,
-        config.sma21TouchThresholdPct,
-        config.sma21CloseThresholdPct,
-        config.consolidationMinMonths,
-        config.consolidationMaxMonths,
-        config.consolidationCloseMinMonths
-    );
-    if (setupLines.length > 0) {
-        const setupEmoji = isFullSetup(stock) ? ' 🎯' : isCloseSetup(stock) ? ' 👀' : '';
-        block += `├ 🎯 Setup${setupEmoji}\n`;
-        for (const line of setupLines) block += `│   ${line}\n`;
+    const tagStr = formatTagsForDisplay(stock);
+    if (tagStr) {
+        block += `├ 🏷 ${escapeHtml(tagStr)}\n`;
     }
 
     block += `├ ⛓ <a href="${tvUrl}">TV</a>  <a href="${yahooUrl}">YF</a>  <a href="${newsUrl}">${newsLabel}</a>\n`;
@@ -202,10 +138,10 @@ function formatVolumeWithoutPriceSection(volumeWithoutPrice: StockData[]): strin
     const items = volumeWithoutPrice
         .sort((a, b) => b.rvol - a.rvol)
         .slice(0, 5)
-        .map(
-            (s) =>
-                `• <b>${escapeHtml(s.ticker)}</b> (${formatRVOL(s.rvol)})${isFullSetup(s) ? ' 🎯' : isCloseSetup(s) ? ' 👀' : ''}`
-        )
+        .map((s) => {
+            const tags = formatTagsForDisplay(s);
+            return `• <b>${escapeHtml(s.ticker)}</b> (${formatRVOL(s.rvol)})${tags ? ` 🏷 ${escapeHtml(tags)}` : ''}`;
+        })
         .join('\n');
     return `━━━━━━━━━━━━━━━━━━━━━━\n👀 <b>SILENT ACTIVITY WATCHLIST</b>\n<i>(High RVOL, low price change - potential breakouts)</i>\n${items}`;
 }
@@ -297,69 +233,59 @@ export function formatLegend(): string {
 • <b>pctFromAth</b> = (price − ATH) ÷ ATH × 100
 • <b>monthsInConsolidation</b> = days since ATH touch ÷ 21
 
-<b>Setup symbols:</b>
-✓ = met condition | ~ = close | 🎯 = full setup | 👀 = close to setup`;
+<b>Tags:</b> SMA21 Touch, Pullback 15%, 1M Breakout`;
 }
 
 /** Shared row format: TICKER | RVOL X.XXx | Price ±X.XX% | RSI XX | Setup (code + LLM use same structure) */
-const STOCK_ROW_FORMAT = 'TICKER | RVOL X.XXx | Price ±X.XX% | RSI XX | Setup';
+const STOCK_ROW_FORMAT = 'TICKER | RVOL X.XXx | Price ±X.XX% | RSI XX | Tags';
 
 /**
  * Format one stock row in the shared structure (used by both code and LLM).
  */
-function formatStockRow(stock: StockData, setupEmoji: '🎯' | '👀' | '—'): string {
+function formatStockRow(stock: StockData, tagsDisplay: string): string {
     const rsi = stock.rsi != null ? stock.rsi.toFixed(0) : '—';
-    return `${stock.ticker} | RVOL ${formatRVOL(stock.rvol)} | Price ${formatPriceChange(stock.priceChange)} | RSI ${rsi} | ${setupEmoji}`;
+    return `${stock.ticker} | RVOL ${formatRVOL(stock.rvol)} | Price ${formatPriceChange(stock.priceChange)} | RSI ${rsi} | ${tagsDisplay || '—'}`;
 }
 
 /**
  * Get the StockData[] list for LLM (same stocks as getAllSignalRows).
- * Used so LLM receives the exact params the code calculated.
  */
 export function getStocksForLlm(topSignals: RVOLResult[], volumeWithoutPrice: StockData[]): StockData[] {
-    const hasSetup = (s: StockData): boolean => isFullSetup(s) || isCloseSetup(s);
-    const setupFromSilent = volumeWithoutPrice.filter(hasSetup);
+    const hasTags = (s: StockData): boolean => (s.tags?.length ?? 0) > 0;
+    const taggedFromSilent = volumeWithoutPrice.filter(hasTags);
     const topSilent = [...volumeWithoutPrice].sort((a, b) => b.rvol - a.rvol).slice(0, 10);
-    return [...topSignals, ...setupFromSilent, ...topSilent]
+    return [...topSignals, ...taggedFromSilent, ...topSilent]
         .filter((s, i, arr) => arr.findIndex((x) => x.ticker === s.ticker) === i)
         .sort((a, b) => b.rvol - a.rvol);
 }
 
 /**
  * Get ALL high-RVOL signal rows for LLM (every stock we report on).
- * Includes 🎯 full setup, 👀 close setup, — no setup. LLM sees complete picture.
- * Ensures ALL setup stocks (🎯/👀) are included + topSignals + top 10 silent.
  */
 export function getAllSignalRows(topSignals: RVOLResult[], volumeWithoutPrice: StockData[]): string[] {
     const stocks = getStocksForLlm(topSignals, volumeWithoutPrice);
-    return stocks.map((s) => {
-        const emoji: '🎯' | '👀' | '—' = isFullSetup(s) ? '🎯' : isCloseSetup(s) ? '👀' : '—';
-        return formatStockRow(s, emoji);
-    });
+    return stocks.map((s) => formatStockRow(s, formatTagsForDisplay(s)));
 }
 
 /**
- * Get setup stock rows from code (setup stocks only – for compact Data display).
+ * Get tagged stock rows from code (stocks with at least one tag).
  */
 export function getSetupRowsFromData(topSignals: RVOLResult[], volumeWithoutPrice: StockData[]): string[] {
     const seen = new Set<string>();
     const rows: string[] = [];
     for (const s of [...topSignals, ...volumeWithoutPrice]) {
         if (seen.has(s.ticker)) continue;
-        if (isFullSetup(s)) {
+        const tags = formatTagsForDisplay(s);
+        if (tags) {
             seen.add(s.ticker);
-            rows.push(formatStockRow(s, '🎯'));
-        } else if (isCloseSetup(s)) {
-            seen.add(s.ticker);
-            rows.push(formatStockRow(s, '👀'));
+            rows.push(formatStockRow(s, tags));
         }
     }
     return rows;
 }
 
 /**
- * Format setup stocks from code data – full structure for comparison with LLM.
- * Same params and format as LLM output: ticker, RVOL, price, RSI, setup.
+ * Format tagged stocks from code data – for comparison with LLM.
  */
 function formatSetupReference(topSignals: RVOLResult[], volumeWithoutPrice: StockData[]): string {
     const rows = getSetupRowsFromData(topSignals, volumeWithoutPrice);
@@ -464,10 +390,22 @@ async function buildLlmSummaryMessage(
     let summary: string | null = null;
     if (config.llmPerStock) {
         const analyses = await getPerStockAnalyses(stocksForLlm, date);
-        const lines = analyses
+        const withParsed = analyses
             .filter((a) => a.analysis)
-            .map((a) => formatCodeVsLlmLine(a.ticker, a.codeSetup, parseLlmReply(a.analysis ?? ''), a.analysis));
-        summary = lines.length > 0 ? lines.join('\n') : null;
+            .map((a) => ({ a, parsed: parseLlmReply(a.analysis ?? '') }));
+        const mismatches = withParsed.filter(({ parsed }) => parsed && !parsed.match);
+        const lines =
+            mismatches.length > 0
+                ? mismatches.map(({ a, parsed }) =>
+                      formatCodeVsLlmLine(a.ticker, a.codeTags, parsed, a.analysis)
+                  )
+                : [];
+        summary =
+            lines.length > 0
+                ? lines.join('\n')
+                : withParsed.length > 0
+                  ? '<i>✓ כל התוצאות תואמות לקוד</i>'
+                  : null;
     } else {
         summary = await getReportSummary(stocksForLlm, date, {
             watchlistCount: scope?.watchlistCount,
@@ -488,7 +426,8 @@ async function buildLlmSummaryMessage(
             ? `\n<i>✅ נסרקו ${scope.watchlistCount} מניות מ-Sheets | ל-LLM נשלחו ${allSignalRows.length}${rvolNote}: ${tickersSent}</i>\n\n`
             : `\n<i>✅ ל-LLM נשלחו ${allSignalRows.length}${rvolNote} מניות: ${tickersSent}</i>\n\n`;
     const modeLabel = config.llmPerStock ? ' (כל מניה: LLM מחשב בעצמו, אותו תנאים)' : '';
-    const explanation = '<i>קוד = חישוב המערכת | LLM = חישוב עצמאי (אותם תנאים) | תואמים/חוסר התאמה = השוואה</i>\n\n';
+    const explanation =
+        '<i>מוצג רק כאשר יש חוסר התאמה בין קוד ל-LLM (אותם תנאים)</i>\n\n';
 
     return `${llmDataHeader}${explanation}${scopeLine}${setupRef}🤖 <b>ניתוח LLM${modeLabel}:</b>\n\n${safeSummary}\n\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 }

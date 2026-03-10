@@ -5,7 +5,7 @@
 
 import { StockData, RVOLConfig } from '../types/index.js';
 import logger from '../utils/logger.js';
-import { isFullSetup, isCloseSetup } from '../utils/setup.js';
+import { getTagCount, hasAllThreeTags } from '../utils/tags.js';
 
 export { formatRVOL, formatPriceChange } from '../utils/formatters.js';
 
@@ -19,7 +19,11 @@ export interface RVOLCalcResult {
 
 /**
  * Calculate RVOL and filter/rank stocks
- * Boosts stocks in consolidation setup (near SMA21, near ATH, 6mo-3y base)
+ *
+ * Two entry paths (stock enters report if either is met):
+ * - Green: RVOL >= minRVOL AND |priceChange| >= priceChangeThreshold (e.g. 2%)
+ * - Blue: has ALL three tags — SMA21 Touch, Pullback 15%, 1M Breakout (enters even without green)
+ *
  * @param stocks - Array of stock data
  * @param config - RVOL configuration
  * @returns Top signals and volume-without-price stocks
@@ -27,31 +31,35 @@ export interface RVOLCalcResult {
 export function calculateRVOL(stocks: StockData[], rvolConfig: RVOLConfig): RVOLCalcResult {
     const { minRVOL, topN, priceChangeThreshold } = rvolConfig;
 
-    // Filter stocks with RVOL >= threshold
-    const highRVOL = stocks.filter((s) => s.rvol >= minRVOL);
+    // Green path: RVOL >= 2 AND price change >= 2%
+    const green = stocks.filter(
+        (s) => s.rvol >= minRVOL && Math.abs(s.priceChange) >= priceChangeThreshold
+    );
+    logger.info(
+        `Found ${green.length} green-path stocks (RVOL ≥ ${minRVOL} AND |priceChange| ≥ ${priceChangeThreshold}%)`
+    );
 
-    logger.info(`Found ${highRVOL.length} stocks with RVOL >= ${minRVOL}`);
-
-    // Sort by RVOL descending, with consolidation setup as tie-breaker (full > close > none)
-    highRVOL.sort((a, b) => {
-        const rvolDiff = b.rvol - a.rvol;
-        if (Math.abs(rvolDiff) >= 0.5) return rvolDiff > 0 ? 1 : -1; // RVOL dominates
-        const boostA = isFullSetup(a) ? 2 : isCloseSetup(a) ? 1 : 0;
-        const boostB = isFullSetup(b) ? 2 : isCloseSetup(b) ? 1 : 0;
-        return boostB - boostA || rvolDiff;
-    });
-
-    const fullCount = highRVOL.filter(isFullSetup).length;
-    const closeCount = highRVOL.filter(isCloseSetup).length;
-    if (fullCount > 0 || closeCount > 0) {
-        logger.info(`Identified ${fullCount} full + ${closeCount} close consolidation setup(s)`);
+    // Blue path: all three tags — enters even without green
+    const blueOnly = stocks.filter((s) => hasAllThreeTags(s) && !green.some((g) => g.ticker === s.ticker));
+    if (blueOnly.length > 0) {
+        logger.info(`Identified ${blueOnly.length} blue-path stocks (all 3 tags, without green)`);
     }
 
-    // Top N signals
-    const topSignals = highRVOL.slice(0, topN);
+    // Sort green by RVOL descending, tag count as tie-breaker
+    green.sort((a, b) => {
+        const rvolDiff = b.rvol - a.rvol;
+        if (Math.abs(rvolDiff) >= 0.5) return rvolDiff > 0 ? 1 : -1;
+        return getTagCount(b) - getTagCount(a) || rvolDiff;
+    });
 
-    // Volume without Price (high volume, low price change = silent accumulation/distribution)
-    // This is a subset of highRVOL stocks where price didn't move much despite high volume
+    // Top signals: top N from green + all blue-only
+    const topByGreen = green.slice(0, topN);
+    const topTickers = new Set(topByGreen.map((s) => s.ticker));
+    const blueToAdd = blueOnly.filter((s) => !topTickers.has(s.ticker));
+    const topSignals = [...topByGreen, ...blueToAdd];
+
+    // Volume without Price: high RVOL but low price change (silent accumulation)
+    const highRVOL = stocks.filter((s) => s.rvol >= minRVOL);
     const volumeWithoutPrice = highRVOL.filter(
         (s) => Math.abs(s.priceChange) < priceChangeThreshold
     );

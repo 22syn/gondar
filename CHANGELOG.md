@@ -3,6 +3,14 @@
 ## Unreleased
 
 ### Added
+- **Newlogic tags:** Replaced Setup (🎯/👀) with independent tags: SMA21 Touch, Pullback 15%, 1M Breakout. Tags shown per stock; Silent Activity and Top Signals both receive tags.
+
+### Changed
+- **Report logic:** Entry has two paths: (1) Green: RVOL ≥ 2 AND |priceChange| ≥ 2%; (2) Blue: all three tags (SMA21 Touch, Pullback 15%, 1M Breakout). Stock enters if green OR blue.
+- **Weekly report:** Now lists all signals (no tag filter).
+- **Removed:** `setup.ts`, Full/Close Setup; `StoredSignal` uses `tags` array instead of `setupType`.
+
+### Added 
 - **Signal results persistence & weekly setup evaluation:** Save scan results as artifacts, evaluate full setup (🎯) performance, send summary to Telegram on Sundays
 - **Jules run-issues auto-fix:** When daily scan has invalid tickers or fetch failures, writes `.scan-issues.json` and invokes Jules to fix (extend TICKER_REGEX, improve fetch). Jules opens `fix/daily-scan-run-issues-*` PR; merge triggers re-run via existing verify-and-merge flow
 - **Run issues in Telegram:** Invalid tickers and failed-fetch list appear at top of first message for visibility

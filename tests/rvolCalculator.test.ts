@@ -48,21 +48,22 @@ describe('RVOL Calculator', () => {
     ];
 
     describe('calculateRVOL', () => {
-        it('should filter stocks with RVOL >= minRVOL', () => {
+        it('should filter green path: RVOL >= minRVOL AND |priceChange| >= threshold', () => {
             const result = calculateRVOL(mockStocks, {
                 minRVOL: 2.0,
                 topN: 15,
                 priceChangeThreshold: 2,
             });
 
-            expect(result.topSignals).toHaveLength(3);
-            expect(result.topSignals.map(s => s.ticker)).toContain('AAPL');
-            expect(result.topSignals.map(s => s.ticker)).toContain('MSFT');
-            expect(result.topSignals.map(s => s.ticker)).toContain('NVDA');
-            expect(result.topSignals.map(s => s.ticker)).not.toContain('GOOGL');
+            // Green = RVOL≥2 and |priceChange|≥2% → AAPL (5.25%), NVDA (6.25%). MSFT has 0.3% so excluded.
+            expect(result.topSignals).toHaveLength(2);
+            expect(result.topSignals.map((s) => s.ticker)).toContain('AAPL');
+            expect(result.topSignals.map((s) => s.ticker)).toContain('NVDA');
+            expect(result.topSignals.map((s) => s.ticker)).not.toContain('MSFT');
+            expect(result.topSignals.map((s) => s.ticker)).not.toContain('GOOGL');
         });
 
-        it('should sort by RVOL descending', () => {
+        it('should sort green by RVOL descending', () => {
             const result = calculateRVOL(mockStocks, {
                 minRVOL: 2.0,
                 topN: 15,
@@ -71,20 +72,19 @@ describe('RVOL Calculator', () => {
 
             expect(result.topSignals[0].ticker).toBe('NVDA'); // 5.0x
             expect(result.topSignals[1].ticker).toBe('AAPL'); // 3.5x
-            expect(result.topSignals[2].ticker).toBe('MSFT'); // 2.1x
         });
 
-        it('should respect topN limit', () => {
+        it('should respect topN limit for green', () => {
             const result = calculateRVOL(mockStocks, {
                 minRVOL: 2.0,
-                topN: 2,
+                topN: 1,
                 priceChangeThreshold: 2,
             });
 
-            expect(result.topSignals).toHaveLength(2);
+            expect(result.topSignals).toHaveLength(1);
         });
 
-        it('should identify volume without price stocks', () => {
+        it('should identify volume without price stocks (high RVOL, low price change)', () => {
             const result = calculateRVOL(mockStocks, {
                 minRVOL: 2.0,
                 topN: 15,
@@ -104,6 +104,39 @@ describe('RVOL Calculator', () => {
 
             expect(result.topSignals).toHaveLength(0);
             expect(result.volumeWithoutPrice).toHaveLength(0);
+        });
+
+        it('should include blue-path stocks (all 3 tags) in topSignals even without green', () => {
+            const stocksWithAllTags = mockStocks.map((s) =>
+                s.ticker === 'GOOGL'
+                    ? {
+                          ...s,
+                          tags: ['SMA21 Touch', 'Pullback 15%', '1M Breakout'] as const,
+                      }
+                    : s
+            );
+            const result = calculateRVOL(stocksWithAllTags, {
+                minRVOL: 2.0,
+                topN: 15,
+                priceChangeThreshold: 2,
+            });
+
+            expect(result.topSignals.map((s) => s.ticker)).toContain('GOOGL');
+            expect(result.topSignals).toHaveLength(3); // AAPL, NVDA (green) + GOOGL (blue)
+        });
+
+        it('should not include stock with only one tag in blue path', () => {
+            const stocksWithOneTag = mockStocks.map((s) =>
+                s.ticker === 'GOOGL' ? { ...s, tags: ['SMA21 Touch' as const] } : s
+            );
+            const result = calculateRVOL(stocksWithOneTag, {
+                minRVOL: 2.0,
+                topN: 15,
+                priceChangeThreshold: 2,
+            });
+
+            expect(result.topSignals.map((s) => s.ticker)).not.toContain('GOOGL');
+            expect(result.topSignals).toHaveLength(2); // AAPL, NVDA only
         });
     });
 
