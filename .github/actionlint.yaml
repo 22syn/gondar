@@ -1,0 +1,5 @@
+# actionlint config — ignore "Unable to resolve action" when offline / no API access
+paths:
+  .github/workflows/**/*.{yml,yaml}:
+    ignore:
+      - 'Unable to resolve action .+'
