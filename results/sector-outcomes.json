@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-05-30T11:20:44.905Z",
-  "sourceFile": "precision-analysis-2026-05-30.json",
+  "generatedAt": "2026-06-03T08:38:59.438Z",
+  "sourceFile": "precision-analysis-2026-06-03.json",
   "config": {
     "SECTOR_BLACKLIST_RATE": 0.2,
     "SECTOR_BLACKLIST_MIN_N": 25,
@@ -10,73 +10,136 @@
   },
   "perSector": {
     "Semiconductor": {
-      "alerts": 602,
-      "winRate": 0.6644518272425249,
-      "medianPeak21d": 0.18305355075582685,
-      "medianForwardNow": 0.14790457829767156,
-      "blacklisted": false
-    },
-    "consumer basic": {
-      "alerts": 51,
-      "winRate": 0.29411764705882354,
-      "medianPeak21d": 0.04048484848484857,
-      "medianForwardNow": 0.04881720430107528,
-      "blacklisted": false
-    },
-    "Cleantech": {
-      "alerts": 164,
-      "winRate": 0.5060975609756098,
-      "medianPeak21d": 0.10275689223057638,
-      "medianForwardNow": 0.18251142203556925,
-      "blacklisted": false
-    },
-    "OIL": {
-      "alerts": 271,
-      "winRate": 0.5166051660516605,
-      "medianPeak21d": 0.10235122523005846,
-      "medianForwardNow": -0.039178448771687524,
-      "blacklisted": false
-    },
-    "Others": {
-      "alerts": 10,
-      "winRate": 0.8,
-      "medianPeak21d": 0.16336636592666998,
-      "medianForwardNow": 0.33498355714359995,
-      "blacklisted": false
-    },
-    "Defense": {
-      "alerts": 13,
-      "winRate": 0.07692307692307693,
-      "medianPeak21d": 0.05319148936170204,
-      "medianForwardNow": 0.06068601583113464,
-      "blacklisted": false
-    },
-    "Data Centers": {
-      "alerts": 29,
-      "winRate": 0.10344827586206896,
-      "medianPeak21d": 0.032685787596372196,
-      "medianForwardNow": 0.02354142650562485,
-      "blacklisted": false
-    },
-    "infrastructures": {
-      "alerts": 31,
-      "winRate": 0.3225806451612903,
-      "medianPeak21d": 0.04280155642023353,
-      "medianForwardNow": 0.0374234520299388,
+      "alerts": 1312,
+      "winRate": 0.6166158536585366,
+      "medianPeak21d": 0.13694003503938434,
+      "medianForwardNow": 0.40804212068256573,
       "blacklisted": false
     },
     "AI - Chain": {
+      "alerts": 268,
+      "winRate": 0.7052238805970149,
+      "medianPeak21d": 0.19497083389886338,
+      "medianForwardNow": 0.4770433583313274,
+      "blacklisted": false
+    },
+    "Banks": {
+      "alerts": 444,
+      "winRate": 0.1463963963963964,
+      "medianPeak21d": 0.046071130062243615,
+      "medianForwardNow": -0.0007262330101229786,
+      "blacklisted": false
+    },
+    "Finance": {
       "alerts": 175,
-      "winRate": 0.7942857142857143,
-      "medianPeak21d": 0.22650212236994083,
-      "medianForwardNow": 0.2530931112797876,
+      "winRate": 0.44,
+      "medianPeak21d": 0.08848484848484839,
+      "medianForwardNow": 0.031435349940688084,
+      "blacklisted": false
+    },
+    "Cleantech": {
+      "alerts": 355,
+      "winRate": 0.5577464788732395,
+      "medianPeak21d": 0.12223612849395082,
+      "medianForwardNow": 0.2485437485778217,
+      "blacklisted": false
+    },
+    "Aerospace & Defense": {
+      "alerts": 572,
+      "winRate": 0.3758741258741259,
+      "medianPeak21d": 0.0671497285560343,
+      "medianForwardNow": -0.08254111110615425,
+      "blacklisted": true
+    },
+    "OIL": {
+      "alerts": 530,
+      "winRate": 0.4962264150943396,
+      "medianPeak21d": 0.09958289885297189,
+      "medianForwardNow": 0.03905161058343487,
+      "blacklisted": false
+    },
+    "Industrials & Transportation": {
+      "alerts": 44,
+      "winRate": 0.45454545454545453,
+      "medianPeak21d": 0.0776138185893347,
+      "medianForwardNow": -0.0024489757591739103,
+      "blacklisted": false
+    },
+    "Telco": {
+      "alerts": 46,
+      "winRate": 0.17391304347826086,
+      "medianPeak21d": 0.02941176470588225,
+      "medianForwardNow": -0.05211035133223296,
+      "blacklisted": true
+    },
+    "real estate": {
+      "alerts": 148,
+      "winRate": 0.3108108108108108,
+      "medianPeak21d": 0.0541965415436525,
+      "medianForwardNow": -0.0875270735125494,
+      "blacklisted": true
+    },
+    "Defense": {
+      "alerts": 104,
+      "winRate": 0.6346153846153846,
+      "medianPeak21d": 0.14116874589625739,
+      "medianForwardNow": -0.06523437499999996,
+      "blacklisted": true
+    },
+    "Others": {
+      "alerts": 77,
+      "winRate": 0.4935064935064935,
+      "medianPeak21d": 0.09870450339296721,
+      "medianForwardNow": -0.08194675540765395,
+      "blacklisted": true
+    },
+    "infrastructures": {
+      "alerts": 92,
+      "winRate": 0.34782608695652173,
+      "medianPeak21d": 0.04719101123595504,
+      "medianForwardNow": 0.09966459032103492,
+      "blacklisted": false
+    },
+    "residence": {
+      "alerts": 71,
+      "winRate": 0.16901408450704225,
+      "medianPeak21d": 0.03169014084507049,
+      "medianForwardNow": -0.17242178447276946,
+      "blacklisted": true
+    },
+    "consumer basic": {
+      "alerts": 218,
+      "winRate": 0.1559633027522936,
+      "medianPeak21d": 0.04516296334893921,
+      "medianForwardNow": 0.0034373010821133754,
       "blacklisted": false
     },
     "Other": {
-      "alerts": 18,
-      "winRate": 0.5555555555555556,
-      "medianPeak21d": 0.17412143437008187,
-      "medianForwardNow": -0.052547982009160665,
+      "alerts": 27,
+      "winRate": 0.48148148148148145,
+      "medianPeak21d": 0.08582349419205237,
+      "medianForwardNow": 0.04197155765039673,
+      "blacklisted": false
+    },
+    "Retail & Consumer": {
+      "alerts": 21,
+      "winRate": 0.3333333333333333,
+      "medianPeak21d": 0.06534195026757272,
+      "medianForwardNow": -0.1539958240425492,
+      "blacklisted": false
+    },
+    "Data Centers": {
+      "alerts": 46,
+      "winRate": 0.043478260869565216,
+      "medianPeak21d": 0.020047137257067194,
+      "medianForwardNow": -0.006793001328939785,
+      "blacklisted": true
+    },
+    "Software": {
+      "alerts": 6,
+      "winRate": 0.3333333333333333,
+      "medianPeak21d": 0.06670456310862627,
+      "medianForwardNow": 0.05498949235018391,
       "blacklisted": false
     }
   }
