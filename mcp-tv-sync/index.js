@@ -20,7 +20,7 @@ const { TOOL_DEFINITIONS, TOOL_SPECS } = require('./src/tools.js');
 const radar = require('./src/radarData.js');
 
 const REPO_DIR = path.resolve(__dirname, '..');
-const STATE_PATH = path.join(os.homedir(), 'telegram-mcp', 'data', 'tv-state.json');
+const STATE_PATH = path.join(os.homedir(), 'Documents', 'Claude', 'Projects', 'smart-volume-radar', 'tools', 'tg-radar', 'data', 'tv-state.json');
 const TIMEOUT_MS = Number(process.env.TV_SYNC_TIMEOUT_MS) || 35 * 60 * 1000;
 const MAX_OUTPUT_TAIL = 4000;
 const MAX_BUFFER = 1_000_000;

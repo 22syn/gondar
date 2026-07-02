@@ -113,7 +113,7 @@ function historyPathFor(watchlistName: string): string {
 
 // First-seen tracking — records the EARLIEST date each ticker appeared as a
 // target for a given watchlist. Used as the "signal date" by the downstream
-// watchlist health-check (telegram-mcp/watchlist-health.js). Distinct from the
+// watchlist health-check (tools/tg-radar/watchlist-health.js). Distinct from the
 // last-seen history used for staleness pruning.
 function firstSeenPathFor(watchlistName: string): string {
     const safe = watchlistName.replace(/[^a-zA-Z0-9-]/g, '_');
@@ -140,7 +140,7 @@ function recordFirstSeen(watchlistName: string, symbols: string[]): Record<strin
 }
 
 // Accumulated snapshot of what is actually in each TV list after the sync run.
-// Written to ~/telegram-mcp/data/tv-state.json for the health-check.
+// Written to smart-volume-radar/tools/tg-radar/data/tv-state.json for the health-check.
 const STATE_SNAPSHOT: Record<string, Array<{ ticker: string; signalDate: string; exchange?: string }>> = {};
 
 function exchangeOf(rawTarget: string): string | undefined {
@@ -167,7 +167,7 @@ function saveExchangeRegistry(reg: Record<string, string>): void {
     fs.writeFileSync(EXCHANGE_REGISTRY_PATH, JSON.stringify(reg, null, 2));
 }
 
-// Prune queue — written by the watchlist health-check (telegram-mcp/
+// Prune queue — written by the watchlist health-check (tools/tg-radar/
 // watchlist-health.js) with tickers that broke down (≥8% below signal entry).
 // We consume it here: any queued ticker that is currently in TV and is NOT in
 // today's fresh target (i.e. the radar did not re-flag it) gets removed.
@@ -1145,7 +1145,7 @@ async function main() {
         if (!SINGLE_LIST_MODE && Object.keys(STATE_SNAPSHOT).length > 0) {
             const tvStatePath = IS_CI
                 ? path.join(process.env.GITHUB_WORKSPACE ?? process.cwd(), 'results', 'tv-state.json')
-                : path.join(os.homedir(), 'telegram-mcp', 'data', 'tv-state.json');
+                : path.join(os.homedir(), 'Documents', 'Claude', 'Projects', 'smart-volume-radar', 'tools', 'tg-radar', 'data', 'tv-state.json');
             try {
                 fs.mkdirSync(path.dirname(tvStatePath), { recursive: true });
                 fs.writeFileSync(
