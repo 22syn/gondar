@@ -1,7 +1,8 @@
 /**
  * Merge symbols into the radar universe Google Sheet (columns Symbol | Sector) via the
- * Sheets API. **Additive only** — appends symbols not already present, never deletes or
- * overwrites existing rows (the sheet is the curated, multi-sector source of truth). The
+ * Sheets API. Appends symbols not already present and refreshes the Sector column so each
+ * symbol matches the name of the source watchlist it belongs to today. Never deletes rows;
+ * symbols that appear in no source watchlist keep their existing sector untouched. The
  * scan pipeline keeps reading this same sheet through its public CSV export.
  *
  * Auth: a service account, from GOOGLE_SHEETS_CREDENTIALS (path to JSON) or
@@ -18,8 +19,17 @@ export interface UniverseRow {
     sector: string;
 }
 
+export interface SectorUpdate {
+    /** 1-based row number in the sheet. */
+    rowNumber: number;
+    symbol: string;
+    from: string;
+    to: string;
+}
+
 export interface MergeResult {
     added: UniverseRow[];
+    updated: SectorUpdate[];
     alreadyPresent: number;
 }
 
@@ -72,8 +82,37 @@ export function existingSymbolSet(colA: string[][]): Set<string> {
 }
 
 /**
- * Append only the symbols not already in the first tab. Never clears or deletes.
- * Returns which rows were added and how many were skipped as already present.
+ * Pure: plan Sector-column rewrites so every sheet row whose symbol appears in `rows`
+ * carries that row's sector (the source watchlist name). Rows for symbols not in `rows`
+ * are left alone, an empty desired sector never overwrites anything, and duplicate sheet
+ * rows for the same symbol are all updated.
+ */
+export function planSectorUpdates(grid: string[][], rows: UniverseRow[]): SectorUpdate[] {
+    const desired = new Map<string, string>();
+    for (const r of rows) {
+        const sector = r.sector.trim();
+        if (!sector) continue;
+        const key = r.symbol.toUpperCase();
+        if (!desired.has(key)) desired.set(key, sector);
+    }
+
+    const updates: SectorUpdate[] = [];
+    for (let i = 0; i < grid.length; i++) {
+        const symbol = (grid[i]?.[0] ?? '').trim();
+        if (!symbol) continue;
+        if (i === 0 && symbol.toLowerCase() === 'symbol') continue; // header
+        const to = desired.get(symbol.toUpperCase());
+        if (!to) continue;
+        const from = (grid[i]?.[1] ?? '').trim();
+        if (from === to) continue;
+        updates.push({ rowNumber: i + 1, symbol, from, to });
+    }
+    return updates;
+}
+
+/**
+ * Append the symbols not already in the first tab and align the Sector column of existing
+ * rows to the current source watchlists. Never clears or deletes rows.
  */
 export async function mergeUniverseSheet(sheetId: string, rows: UniverseRow[]): Promise<MergeResult> {
     const api = await client();
@@ -83,15 +122,29 @@ export async function mergeUniverseSheet(sheetId: string, rows: UniverseRow[]): 
 
     const existingRes = await api.spreadsheets.values.get({
         spreadsheetId: sheetId,
-        range: `'${firstTab}'!A:A`,
+        range: `'${firstTab}'!A:B`,
     });
-    const colA = (existingRes.data.values ?? []) as string[][];
-    const existing = existingSymbolSet(colA);
-    const sheetEmpty = colA.length === 0;
+    const grid = (existingRes.data.values ?? []) as string[][];
+    const existing = existingSymbolSet(grid);
+    const sheetEmpty = grid.length === 0;
+
+    const updated = planSectorUpdates(grid, rows);
+    if (updated.length > 0) {
+        await api.spreadsheets.values.batchUpdate({
+            spreadsheetId: sheetId,
+            requestBody: {
+                valueInputOption: 'RAW',
+                data: updated.map((u) => ({
+                    range: `'${firstTab}'!B${u.rowNumber}`,
+                    values: [[u.to]],
+                })),
+            },
+        });
+    }
 
     const added = selectNewRows(existing, rows);
     if (added.length === 0) {
-        return { added: [], alreadyPresent: rows.length };
+        return { added: [], updated, alreadyPresent: rows.length };
     }
 
     const values = added.map((r) => [r.symbol, r.sector]);
@@ -104,5 +157,5 @@ export async function mergeUniverseSheet(sheetId: string, rows: UniverseRow[]): 
         insertDataOption: 'INSERT_ROWS',
         requestBody: { values },
     });
-    return { added, alreadyPresent: rows.length - added.length };
+    return { added, updated, alreadyPresent: rows.length - added.length };
 }
