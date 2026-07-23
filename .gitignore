@@ -62,3 +62,4 @@ results/*
 results/finnhub-cache/
 .claude/worktrees/
 .fuse_hidden*
+graphify-out/
