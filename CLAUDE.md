@@ -1,4 +1,5 @@
 # CLAUDE.md — smart-volume-radar-engine
+> 📋 **Active plan (2026-07-23):** [docs/plans/2026-07-23-graph-audit-followup.md](docs/plans/2026-07-23-graph-audit-followup.md) — graph-audit follow-up; review before structural changes.
 
 **Purpose**
 Automated stock volume monitoring system. Calculates Relative Volume (RVOL = today's volume / 63-day average), detects signals (RVOL ≥ 2.0, configurable), enriches with news + technical context (RSI, SMA, pre-breakout setup), and delivers daily intelligence reports to Telegram. Runs daily via GitHub Actions.
