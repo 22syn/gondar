@@ -37,14 +37,29 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install chromium --with-deps
 
-      # Restore persisted state (ticker history, exchange registry).
-      # On first run ever this step is a no-op (artifact doesn't exist yet).
+      # download-artifact@v4 only looks inside the CURRENT run by default — the
+      # tv-sync-state artifact was uploaded by a PREVIOUS run, so cross-run access
+      # needs an explicit run-id. Find the last successful tv-sync run first.
+      - name: Find previous successful run
+        id: find-run
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          RUN_ID=$(gh run list --workflow=tv-sync.yml --status=success --limit 1 \
+            --json databaseId -q '.[0].databaseId // empty' --repo "${{ github.repository }}")
+          echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
+
+      # Restore persisted state (ticker history, exchange registry) from that run.
+      # On first run ever, run_id is empty and this step is skipped (no-op).
       - name: Restore TV sync state
+        if: steps.find-run.outputs.run_id != ''
         uses: actions/download-artifact@v4
         with:
           name: tv-sync-state
           path: /home/runner/.cache/svr-tv-sync/
-        continue-on-error: true
+          run-id: ${{ steps.find-run.outputs.run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true   # artifact may have expired (90-day retention)
 
       # Decode the TV_COOKIES secret (base64 JSON) and write to temp file.
       - name: Prepare TradingView cookies
