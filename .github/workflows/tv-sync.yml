@@ -39,14 +39,17 @@ jobs:
 
       # download-artifact@v4 only looks inside the CURRENT run by default — the
       # tv-sync-state artifact was uploaded by a PREVIOUS run, so cross-run access
-      # needs an explicit run-id. Find the last successful tv-sync run first.
-      - name: Find previous successful run
+      # needs an explicit run-id. Query the artifacts API directly for the latest
+      # non-expired "tv-sync-state" artifact (sorted newest-first) and use its
+      # owning run — this doesn't care which workflow produced it, so a one-off
+      # bootstrap/seed run's artifact is picked up exactly like a normal one.
+      - name: Find latest tv-sync-state artifact
         id: find-run
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          RUN_ID=$(gh run list --workflow=tv-sync.yml --status=success --limit 1 \
-            --json databaseId -q '.[0].databaseId // empty' --repo "${{ github.repository }}")
+          RUN_ID=$(gh api "repos/${{ github.repository }}/actions/artifacts" \
+            --jq '[.artifacts[] | select(.name=="tv-sync-state" and .expired==false)] | first | .workflow_run.id // empty')
           echo "run_id=$RUN_ID" >> "$GITHUB_OUTPUT"
 
       # Restore persisted state (ticker history, exchange registry) from that run.
