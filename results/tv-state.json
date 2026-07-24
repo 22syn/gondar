@@ -1,156 +1,236 @@
 {
-  "updatedAt": "2026-07-23",
+  "updatedAt": "2026-07-24",
   "watchlists": {
     "Smart Radar - BUY": [
       {
         "ticker": "EWO",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "EWI",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "XBI",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "JETS",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "JPM",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "WBS",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "GREK",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "EZJ",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "VLY",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "COLO",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "BLND",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       }
     ],
     "Smart Radar - WATCH": [
       {
-        "ticker": "APH",
-        "signalDate": "2026-07-23"
+        "ticker": "DELL",
+        "signalDate": "2026-07-24"
       },
       {
-        "ticker": "DIPL",
-        "signalDate": "2026-07-23"
+        "ticker": "APH",
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "FROG",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
-        "ticker": "NET",
-        "signalDate": "2026-07-23"
+        "ticker": "EFCP",
+        "signalDate": "2026-07-24"
       },
       {
-        "ticker": "LUV",
-        "signalDate": "2026-07-23"
+        "ticker": "DIFI",
+        "signalDate": "2026-07-24"
       },
       {
-        "ticker": "SIMO",
-        "signalDate": "2026-07-23"
+        "ticker": "MAXO",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "EZJ",
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "UAL",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
-        "ticker": "LIND",
-        "signalDate": "2026-07-23"
+        "ticker": "OKTA",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "LHA",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "SPEN",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "LUV",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "AER",
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "S",
-        "signalDate": "2026-07-23"
-      },
-      {
-        "ticker": "SUN",
-        "signalDate": "2026-07-23"
-      },
-      {
-        "ticker": "MAS",
-        "signalDate": "2026-07-23"
-      },
-      {
-        "ticker": "IDIN",
-        "signalDate": "2026-07-23"
-      },
-      {
-        "ticker": "SBUX",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "DDOG",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
-        "ticker": "EWN",
-        "signalDate": "2026-07-23"
+        "ticker": "EAT",
+        "signalDate": "2026-07-24"
       },
       {
-        "ticker": "ASML",
-        "signalDate": "2026-07-23"
+        "ticker": "PKG",
+        "signalDate": "2026-07-24"
       },
       {
-        "ticker": "HARL",
-        "signalDate": "2026-07-23"
+        "ticker": "DAL",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "PPG",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "SIMO",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "ORL",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "AZRT",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "SCHW",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "LIND",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "MTX",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "DIN",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "SNOW",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "ARKO",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "IFX",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "NET",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "DE",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "XLF",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "EWL",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "GCT",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "CAPL",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "PHM",
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "PANW",
-        "signalDate": "2026-07-23"
-      },
-      {
-        "ticker": "FTNT",
-        "signalDate": "2026-07-23"
-      },
-      {
-        "ticker": "XLE",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       }
     ],
     "Lean Radar - Breakouts": [
       {
         "ticker": "DBC",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "SLB",
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "PKG",
+        "signalDate": "2026-07-24"
       }
     ],
     "Lean Radar - Near": [
       {
         "ticker": "WBS",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "PKG",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "MNST",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
       },
       {
         "ticker": "CL",
-        "signalDate": "2026-07-23"
+        "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "GD",
+        "signalDate": "2026-07-24"
       }
     ]
   }
