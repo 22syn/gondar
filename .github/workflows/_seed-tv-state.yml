@@ -1,0 +1,32 @@
+name: (temp) Seed TV sync state
+
+# One-off: publish a tv-sync-state artifact reconstructed from git history
+# (see .github/_tv-state-seed/), so the next real tv-sync run restores true
+# first-seen/last-seen data instead of starting from empty. Does not touch
+# TradingView. Delete this workflow and .github/_tv-state-seed/ after running
+# it once.
+on:
+  workflow_dispatch:
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Stage seed files into cache dir
+        run: |
+          mkdir -p /home/runner/.cache/svr-tv-sync/
+          cp .github/_tv-state-seed/*.json /home/runner/.cache/svr-tv-sync/
+          ls -la /home/runner/.cache/svr-tv-sync/
+
+      - name: Upload as tv-sync-state artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tv-sync-state
+          path: /home/runner/.cache/svr-tv-sync/
+          retention-days: 90
+          overwrite: true
