@@ -501,6 +501,27 @@ function renderFragilityChart(rows) {
   const hasCapitulation = capitulation.some((v) => v != null);
   const threshold = rows.map(() => 1.0);
 
+  // Real two-tier alert rule, reconstructed from fields already in the payload
+  // (no bare "score crossed 1.0" — that ignores the near-high gate). canary_count
+  // is populated ONLY within 2% of the trailing-250d index high, so it is an exact
+  // proxy for the engine's indexNearHigh (verified against the source + D1).
+  //   🔴 Alert: score >= 1.0 AND near-high
+  //   🟡 Watch: core3 >= 1.0 OR (climax >= 1.5 AND near-high)
+  const nearHigh = (r) => r.canary_count != null;
+  const isAlert = (r) => r.score != null && r.score >= 1.0 && nearHigh(r);
+  const isWatch = (r) =>
+    (r.core3 != null && r.core3 >= 1.0) ||
+    (r.climax != null && r.climax >= 1.5 && nearHigh(r));
+  // Mark the day each tier NEWLY fires (matches the one-per-crossing Telegram
+  // alert), not every day it holds — held-days would flood the recent window.
+  const marker = rows.map((r, i) => {
+    const prev = i > 0 ? rows[i - 1] : null;
+    if (isAlert(r) && !(prev && isAlert(prev))) return 'alert';
+    if (isWatch(r) && !isAlert(r) && !(prev && isWatch(prev))) return 'watch';
+    return null;
+  });
+  const heldState = (r) => (isAlert(r) ? '🔴 Alert פעיל' : isWatch(r) ? '🟡 Watch פעיל' : '🟢 שקט');
+
   const ctx = $('#fragility-chart').getContext('2d');
   fragChart = new Chart(ctx, {
     type: 'line',
@@ -513,7 +534,11 @@ function renderFragilityChart(rows) {
           borderColor: 'rgba(163,113,247,0.95)',
           backgroundColor: 'rgba(163,113,247,0.12)',
           borderWidth: 1.6,
-          pointRadius: 0,
+          // Dots mark the day the real rule newly fired: 🔴 Alert, 🟡 Watch.
+          pointRadius: (ctx) => (marker[ctx.dataIndex] === 'alert' ? 3.6 : marker[ctx.dataIndex] === 'watch' ? 2.6 : 0),
+          pointBackgroundColor: (ctx) => (marker[ctx.dataIndex] === 'alert' ? 'rgba(248,81,73,0.95)' : 'rgba(210,153,34,0.95)'),
+          pointBorderColor: 'transparent',
+          pointHoverRadius: (ctx) => (marker[ctx.dataIndex] === 'alert' ? 4.4 : marker[ctx.dataIndex] === 'watch' ? 3.6 : 3),
           pointHitRadius: 6,
           tension: 0.25,
           fill: false,
@@ -582,9 +607,10 @@ function renderFragilityChart(rows) {
                   : `Capitulation: ${r.capitulation.toFixed(2)} (תיאורי בלבד, לא טריגר)`;
               }
               return [
+                heldState(r),
                 `ציון: ${r.score.toFixed(2)}  |  core3: ${z(r.core3)}  |  climax: ${z(r.climax)}`,
                 `DD: ${r.drawdown_pct == null ? '—' : r.drawdown_pct.toFixed(1) + '%'}` +
-                  (r.canary_count != null ? ` | Canary: ${r.canary_count}` : ''),
+                  (r.canary_count != null ? ` | Canary: ${r.canary_count}` : ' | רחוק מהשיא'),
                 `wick ${z(r.wick10_z)} | %>50 ${z(r.pct_above50_z)} | dist ${z(r.dist20_z)}`,
                 `ext ${z(r.ext50_z)} | corr ${z(r.corr20_z)} | disp ${z(r.disp10_z)}`,
               ];

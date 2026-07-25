@@ -112,5 +112,14 @@ export function buildFragilityQuery(p: FragilityParams = {}): Query {
       params: [p.from, limit],
     };
   }
-  return { sql: `${SEL} ORDER BY scan_date ASC LIMIT ?`, params: [limit] };
+  // Newest `limit` rows, returned oldest→newest so the chart still plots
+  // left-to-right. The inner query takes the most RECENT rows (DESC LIMIT);
+  // the outer query re-sorts ascending. A plain `ORDER BY scan_date ASC LIMIT`
+  // pinned the chart to the OLDEST rows and it stopped advancing as the table
+  // grew — the ingest appends one row per trading day but never prunes, so the
+  // window kept sliding further into the past every day.
+  return {
+    sql: `SELECT * FROM (${SEL} ORDER BY scan_date DESC LIMIT ?) ORDER BY scan_date ASC`,
+    params: [limit],
+  };
 }
