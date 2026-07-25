@@ -2,8 +2,6 @@
 
 /** Canonical watchlist names, in sync-rotation order. Single source of truth. */
 const WATCHLISTS = [
-  'Smart Radar - BUY',
-  'Smart Radar - WATCH',
   'Lean Radar - Breakouts',
   'Lean Radar - Near',
 ];
