@@ -6,7 +6,10 @@
   "scripts": {
     "test": "jest",
     "seed": "tsx scripts/seed.ts",
-    "dev": "wrangler pages dev public --d1 DB",
+    "seed:local:sql": "node scripts/gen-seed-sql.mjs",
+    "db:local:schema": "wrangler d1 execute lean-radar --local --persist-to=.wrangler/state --file=schema.sql",
+    "db:local:seed": "wrangler d1 execute lean-radar --local --persist-to=.wrangler/state --file=seed.sql",
+    "dev": "wrangler pages dev public --persist-to=.wrangler/state --compatibility-date=2025-07-18",
     "deploy": "wrangler pages deploy public"
   },
   "devDependencies": {
