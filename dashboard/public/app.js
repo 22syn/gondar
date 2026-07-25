@@ -1037,14 +1037,64 @@ function updateHeaderMeta() {
   $('#header-meta').textContent = `${s.total} סיגנלים · Score≥70: ${s.score70 ?? 0}${runPart}`;
 }
 
+/* ─── Current TradingView watchlist (separate app/branch, read via /api/watchlist) ─ */
+
+async function loadWatchlist() {
+  let state = { updatedAt: null, watchlists: {} };
+  try {
+    const resp = await fetch('/api/watchlist');
+    if (resp.ok) state = await resp.json();
+  } catch { /* fall through to empty state below */ }
+  renderWatchlist(state);
+}
+
+function renderWatchlist(state) {
+  const meta = $('#watchlist-meta');
+  const wrap = $('#watchlist-sections');
+  const names = Object.keys(state.watchlists || {});
+
+  if (!state.updatedAt || names.length === 0) {
+    meta.textContent = 'לא ניתן לטעון כרגע — נסה שוב מאוחר יותר.';
+    wrap.innerHTML = '';
+    return;
+  }
+
+  meta.textContent = `כפי שנשלח ל-TradingView (tv-sync) · עודכן לאחרונה: ${state.updatedAt}`;
+
+  wrap.innerHTML = names.map((name) => {
+    const rows = [...(state.watchlists[name] || [])].sort(
+      (a, b) => b.signalDate.localeCompare(a.signalDate)
+    );
+    const body = rows.length
+      ? rows.map((r) => `
+        <tr>
+          <td>${r.ticker}</td>
+          <td class="et-sub">${r.signalDate}</td>
+        </tr>
+      `).join('')
+      : `<tr><td colspan="2" class="et-sub">ריק כרגע</td></tr>`;
+    return `
+      <div class="explainer-section">
+        <div class="explainer-h2">${name} (${rows.length})</div>
+        <div class="explainer-table-wrap">
+          <table class="explainer-table">
+            <thead><tr><th>טיקר</th><th>איתות ראשון</th></tr></thead>
+            <tbody>${body}</tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 /* ─── Tab switching ───────────────────────────────────────────────────────── */
 
 /**
- * Switch between the signals view and the explainer view.
- * @param {'signals'|'explainer'} name
+ * Switch between the signals view, current-watchlist view, and explainer view.
+ * @param {'signals'|'watchlist'|'explainer'} name
  */
 function switchTab(name) {
-  const tabs  = ['signals', 'explainer'];
+  const tabs  = ['signals', 'watchlist', 'explainer'];
   for (const t of tabs) {
     const btn  = $(`#tab-${t}`);
     const view = $(`#view-${t}`);
@@ -1076,8 +1126,9 @@ async function boot() {
     renderTable();
   });
 
-  // Tab navigation: signals ↔ explainer
+  // Tab navigation: signals ↔ watchlist ↔ explainer
   $('#tab-signals').addEventListener('click', () => switchTab('signals'));
+  $('#tab-watchlist').addEventListener('click', () => switchTab('watchlist'));
   $('#tab-explainer').addEventListener('click', () => switchTab('explainer'));
 
   // Calendar popover — open/close
@@ -1152,6 +1203,9 @@ async function boot() {
 
   // Fragility series is global (not per-day) — load once, after the main view.
   loadFragility();
+
+  // Current TradingView watchlist — global (not per-day) — load once too.
+  loadWatchlist();
 }
 
 boot();
