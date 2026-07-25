@@ -1,11 +1,14 @@
 name: TV Watchlist Sync
 
 on:
-  # Fire after the Smart Radar scan completes (Lean runs in parallel; the sync
-  # script downloads artifacts from both workflows independently, so Lean's
-  # artifact is picked up regardless of which finished first).
+  # Fire after the Lean Radar scan completes — the only source the sync
+  # consumes now that Smart Radar - BUY/WATCH were dropped from TV sync
+  # (2026-07-25; Smart Radar's Telegram report is unaffected). Lean runs
+  # twice on weekdays (20:15 UTC primary + 23:45 UTC settled-close refresh);
+  # both completions trigger a sync, which is fine — the second just picks
+  # up corrected closes.
   workflow_run:
-    workflows: ["Smart Volume Radar - Daily Scan"]
+    workflows: ["Lean Radar - Daily Scan"]
     types: [completed]
 
   # Manual trigger for testing / catch-up runs.

@@ -27,8 +27,8 @@ test('watchlist adds --watchlist NAME as two args (no shell quoting)', () => {
 
 test('flags combine in stable order: dry-run, replace, headed, watchlist', () => {
   assert.deepEqual(
-    buildArgs({ dryRun: true, replace: true, headed: true, watchlist: 'Smart Radar - BUY' }),
-    ['--dry-run', '--replace', '--headed', '--watchlist', 'Smart Radar - BUY']
+    buildArgs({ dryRun: true, replace: true, headed: true, watchlist: 'Lean Radar - Breakouts' }),
+    ['--dry-run', '--replace', '--headed', '--watchlist', 'Lean Radar - Breakouts']
   );
 });
 
@@ -41,10 +41,8 @@ test('invalid watchlist throws', () => {
   assert.throws(() => buildArgs({ watchlist: 'Nope' }), /invalid watchlist/i);
 });
 
-test('WATCHLISTS lists the four canonical lists', () => {
+test('WATCHLISTS lists the two canonical lists', () => {
   assert.deepEqual(WATCHLISTS, [
-    'Smart Radar - BUY',
-    'Smart Radar - WATCH',
     'Lean Radar - Breakouts',
     'Lean Radar - Near',
   ]);
@@ -78,8 +76,8 @@ test('buildReadArgs rejects invalid/missing watchlist', () => {
 
 test('buildAddArgs maps to --add NAME --symbols CSV (trimmed, upper)', () => {
   assert.deepEqual(
-    buildAddArgs({ watchlist: 'Smart Radar - WATCH', symbols: [' nvda ', 'tsla'] }),
-    ['--add', 'Smart Radar - WATCH', '--symbols', 'NVDA,TSLA']
+    buildAddArgs({ watchlist: 'Lean Radar - Breakouts', symbols: [' nvda ', 'tsla'] }),
+    ['--add', 'Lean Radar - Breakouts', '--symbols', 'NVDA,TSLA']
   );
 });
 

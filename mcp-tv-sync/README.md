@@ -20,10 +20,9 @@ behavior to a manual run, using the persistent Chromium profile at
 | `dryRun` | `--dry-run` (preview diff, no writes) | false |
 | `replace` | `--replace` (remove non-target symbols) | false |
 | `headed` | `--headed` (visible browser) | false |
-| `watchlist` | `--watchlist "NAME"` (one of the four lists) | all |
+| `watchlist` | `--watchlist "NAME"` (one of the two lists) | all |
 
-Watchlist names: `Smart Radar - BUY`, `Smart Radar - WATCH`,
-`Lean Radar - Breakouts`, `Lean Radar - Near`.
+Watchlist names: `Lean Radar - Breakouts`, `Lean Radar - Near`.
 
 Outer timeout: `TV_SYNC_TIMEOUT_MS` env (default 35 min). On timeout the child
 process is killed (SIGKILL) and the tool returns a clear error instead of hanging.

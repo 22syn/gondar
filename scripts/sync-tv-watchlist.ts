@@ -1,15 +1,17 @@
 #!/usr/bin/env npx tsx
 /**
- * Smart Volume Radar — nightly TradingView watchlist sync (FOUR lists).
+ * Smart Volume Radar — TradingView watchlist sync (Lean Radar only).
  *
- * Runs from a LaunchAgent on the user's mac (23:25 IDT, Mon-Fri). Pulls
- * the latest tv-*.txt files from BOTH the Smart Radar and Lean Radar
- * GitHub Actions workflows, then drives a persistent Chromium profile to:
+ * Runs via the tv-sync.yml GitHub Actions workflow, triggered after
+ * "Lean Radar - Daily Scan" completes. Pulls the latest tv-*.txt files
+ * from that workflow's artifacts, then drives a headless Chromium
+ * browser to sync:
  *
- *   1. Smart Radar - BUY     ← tv-smart-buy-latest.txt   (Smart workflow)
- *   2. Smart Radar - WATCH   ← tv-smart-watch-latest.txt (Smart workflow)
- *   3. Lean Radar - Breakouts ← tv-breakouts-latest.txt  (Lean workflow)
- *   4. Lean Radar - Near     ← tv-near-latest.txt        (Lean workflow)
+ *   1. Lean Radar - Breakouts ← tv-breakouts-latest.txt  (Lean workflow)
+ *   2. Lean Radar - Near     ← tv-near-latest.txt        (Lean workflow)
+ *
+ * Smart Radar - BUY/WATCH were dropped from TradingView sync (2026-07-25) —
+ * Smart Radar's Telegram report is unaffected, only its TV watchlists.
  *
  * Per-watchlist staleness pruning (default 14 days): tickers that haven't
  * appeared in any sync for N days get right-click → Remove'd from TV.
@@ -77,8 +79,8 @@ const REPLACE = has('replace');
 const HEADED = has('headed') || LOGIN_MODE;
 const WATCHLIST_FILE_EXPLICIT = process.argv.includes('--file');
 const SINGLE_LIST_MODE = process.argv.includes('--watchlist') || process.argv.includes('--file');
-const WATCHLIST_NAME_OVERRIDE = arg('watchlist', 'Smart Radar - BUY');
-const WATCHLIST_FILE_OVERRIDE = arg('file', path.join(PROJECT_ROOT, 'results', 'tv-smart-buy-latest.txt'));
+const WATCHLIST_NAME_OVERRIDE = arg('watchlist', 'Lean Radar - Breakouts');
+const WATCHLIST_FILE_OVERRIDE = arg('file', path.join(PROJECT_ROOT, 'results', 'tv-breakouts-latest.txt'));
 
 const PRUNE_AFTER_DAYS = parseInt(arg('prune-after-days', '14'), 10);
 
@@ -202,16 +204,6 @@ interface SyncTarget {
 }
 
 const DEFAULT_TARGETS: SyncTarget[] = [
-    {
-        file: path.join(PROJECT_ROOT, 'results', 'tv-smart-buy-latest.txt'),
-        name: 'Smart Radar - BUY',
-        workflow: 'Smart Volume Radar - Daily Scan',
-    },
-    {
-        file: path.join(PROJECT_ROOT, 'results', 'tv-smart-watch-latest.txt'),
-        name: 'Smart Radar - WATCH',
-        workflow: 'Smart Volume Radar - Daily Scan',
-    },
     {
         file: path.join(PROJECT_ROOT, 'results', 'tv-breakouts-latest.txt'),
         name: 'Lean Radar - Breakouts',
@@ -825,7 +817,7 @@ function resolveTargetFile(t: SyncTarget): string | null {
 // ─── Resolve the single SyncTarget for --watchlist / --file mode ────
 // Without an explicit --file, the file + workflow come from the matching
 // DEFAULT_TARGETS entry by name (DRY) — so e.g. "Lean Radar - Near" loads
-// tv-near-latest.txt, not the tv-smart-buy default. An explicit --file
+// tv-near-latest.txt, not the tv-breakouts default. An explicit --file
 // overrides the path verbatim (workflow still taken from the matched entry,
 // falling back to a name heuristic for unknown names).
 function resolveSingleListTask(): SyncTarget {
