@@ -63,10 +63,13 @@ describe('buildFragilityQuery', () => {
   // Imported lazily to keep the existing import block untouched.
   const { buildFragilityQuery } = require('../src/query.js');
 
-  it('defaults to the full scored series with limit 250, ascending', () => {
+  it('defaults to the NEWEST 250 rows, returned ascending for the chart', () => {
     const q = buildFragilityQuery({});
     expect(q.sql).toMatch(/FROM fragility_daily WHERE score IS NOT NULL/);
-    expect(q.sql).toMatch(/ORDER BY scan_date ASC LIMIT \?/);
+    // Inner query grabs the most recent rows (DESC LIMIT), outer re-sorts ASC
+    // so the chart both stays current and still plots left-to-right.
+    expect(q.sql).toMatch(/ORDER BY scan_date DESC LIMIT \?/);
+    expect(q.sql).toMatch(/ORDER BY scan_date ASC$/);
     expect(q.params).toEqual([250]);
   });
 
