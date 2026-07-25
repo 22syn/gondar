@@ -93,20 +93,24 @@ jobs:
           path: results/
           retention-days: 365
 
-      # Persist the monitor-list.json across runs so the follow-up state survives.
-      # Artifacts aren't loaded back automatically; committing to the repo is the
-      # simplest way to keep state continuous and visible in git history.
-      - name: Commit-back monitor-list.json
+      # Persist daily-scan state across runs so it survives CI: monitor-list.json
+      # (follow-up state) and oos_log.csv (the append-only frozen OOS scorecard —
+      # the ONLY frozen record of what the fragility gauge said in real time each
+      # day; the D1 series gets recomputed and drifts). Artifacts aren't loaded
+      # back automatically; committing to the repo is the simplest way to keep
+      # state continuous and visible in git history.
+      - name: Commit-back daily-scan state
         if: success() && hashFiles('results/monitor-list.json') != ''
         continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add results/monitor-list.json
+          git add results/monitor-list.json || true
+          git add results/oos_log.csv || true   # may not exist if fragility compute failed today
           if git diff --staged --quiet; then
-            echo "No monitor-list.json changes to commit"
+            echo "No daily-scan state changes to commit"
           else
-            git commit -m "chore: update monitor-list.json (daily scan ${{ steps.artifact.outputs.name }})"
+            git commit -m "chore: update daily-scan state — monitor-list + OOS log (${{ steps.artifact.outputs.name }})"
             # Pull latest before push to avoid conflicts with concurrent runs.
             git pull --rebase origin main || true
             git push origin HEAD:main || echo "Push failed — will retry next run"

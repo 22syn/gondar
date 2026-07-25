@@ -28,6 +28,8 @@
     "evaluate-retro-advanced": "tsx scripts/evaluate-retro-advanced.ts",
     "analyze-criteria-importance": "tsx scripts/analyze-criteria-importance.ts",
     "preview-report": "tsx scripts/preview-report.ts",
+    "oos-log": "tsx scripts/oos-log.ts",
+    "oos-scorecard": "tsx scripts/oos-scorecard.ts",
     "tv-sync": "tsx scripts/sync-tv-watchlist.ts",
     "sync-friend-watchlists": "tsx scripts/sync-friend-watchlists.ts",
     "export-tv-cookies": "tsx scripts/export-tv-cookies.ts",
