@@ -62,6 +62,10 @@ results/*
 # Exception: tv-state.json is committed by the tv-sync GHA workflow so
 # telegram-mcp can read watchlist state without needing local disk access.
 !results/tv-state.json
+# Exception: oos_log.csv is the append-only frozen OOS scorecard for the Purple
+# Fragility gauge — committed daily by the scan so the out-of-sample record
+# survives CI runs (it is the ONLY frozen record; D1 gets recomputed).
+!results/oos_log.csv
 # Finnhub fundamentals cache (TTL 7d) — never committed, never shared across machines.
 results/finnhub-cache/
 .claude/worktrees/

@@ -18,6 +18,7 @@ import { calculateRVOL } from './services/rvolCalculator.js';
 import { sendDailyReport, sendTelegramMessage, formatMonitorTelegramMessage, formatFragilityAlert, formatFragilityWatchAlert, GraduationInfo, MonitorMeta } from './services/telegramBot.js';
 import { computePurpleFragility } from './services/purpleFragility.js';
 import { ingestFragilityToD1 } from './utils/fragilityD1Ingest.js';
+import { appendOosLogRow } from './utils/oosLog.js';
 import { loadMonitorState, saveMonitorState } from './utils/monitorStore.js';
 import { updateMonitorState } from './services/monitorTracker.js';
 import { RVOLResult, MarketStatus, StockData } from './types/index.js';
@@ -439,6 +440,11 @@ async function main(): Promise<void> {
 
         // 8.06 Fragility series → D1 (own table, soft-fail; no-op when compute failed).
         await ingestFragilityToD1(fragility, scanDate);
+
+        // 8.07 Frozen OOS scorecard row → results/oos_log.csv (append-only,
+        // soft-fail). This is the ONLY record of what the gauge said in real
+        // time on this day; the D1 series above gets recomputed and drifts.
+        appendOosLogRow(fragility, scanDate, resultsDir);
 
         // 8.1 Write TradingView watchlist files (BUY + WATCH) for nightly TV sync.
         // Files land in results/ alongside scan-*.json so the daily-scan GHA
