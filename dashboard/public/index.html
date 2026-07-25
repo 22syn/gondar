@@ -29,6 +29,13 @@
       >📡 סיגנלים</button>
       <button
         class="header-tab"
+        id="tab-watchlist"
+        role="tab"
+        aria-selected="false"
+        aria-controls="view-watchlist"
+      >📺 Watchlist</button>
+      <button
+        class="header-tab"
         id="tab-explainer"
         role="tab"
         aria-selected="false"
@@ -178,6 +185,19 @@
     <div class="state-msg" id="state-msg" hidden></div>
   </main>
   </div><!-- /view-signals -->
+
+  <!-- ════════════════════════════════════════
+       CURRENT TRADINGVIEW WATCHLIST VIEW
+  ════════════════════════════════════════ -->
+  <div id="view-watchlist" role="tabpanel" aria-labelledby="tab-watchlist" hidden>
+    <article class="explainer" aria-label="Watchlist נוכחי ב-TradingView">
+      <div class="explainer-hero">
+        <div class="explainer-title">📺 מה נמצא עכשיו על TradingView</div>
+        <div class="explainer-subtitle" id="watchlist-meta">טוען…</div>
+      </div>
+      <div id="watchlist-sections"><!-- injected by JS: one table per watchlist --></div>
+    </article>
+  </div><!-- /view-watchlist -->
 
   <!-- ════════════════════════════════════════
        HOW IT WORKS VIEW
