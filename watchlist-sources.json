@@ -1,27 +1,78 @@
 [
-  { "shareUrl": "https://www.tradingview.com/watchlists/92888046/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/90305926/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/37138989/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/38392712/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/83487600/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/86875796/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/115487682/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/167014691/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/315805417/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/83280062/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/93605794/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/100697946/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/89282898/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/98858870/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/38232356/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/88762007/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/87222572/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/93347621/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/90065469/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/98314959/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/210989145/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/90408975/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/90586879/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/106779336/" },
-  { "shareUrl": "https://www.tradingview.com/watchlists/94502647/" }
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/92888046/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/90305926/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/37138989/",
+        "universeOnly": true
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/38392712/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/83487600/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/86875796/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/115487682/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/167014691/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/315805417/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/83280062/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/93605794/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/100697946/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/89282898/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/98858870/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/38232356/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/88762007/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/87222572/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/93347621/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/90065469/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/98314959/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/210989145/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/90408975/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/90586879/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/106779336/"
+    },
+    {
+        "shareUrl": "https://www.tradingview.com/watchlists/94502647/"
+    }
 ]
