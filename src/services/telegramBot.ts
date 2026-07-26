@@ -25,6 +25,28 @@ function sleep(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/** Network-level errors (timeouts, DNS, connection reset) are worth retrying; HTTP responses are not — those are handled by the caller. */
+const NETWORK_RETRY_ATTEMPTS = 2;
+const NETWORK_RETRY_BASE_DELAY_MS = 2000;
+
+/** fetch() that retries on network-level failures (e.g. ETIMEDOUT) with exponential backoff. */
+async function fetchWithRetry(url: string, options: RequestInit): Promise<Response> {
+    let lastError: unknown;
+    for (let attempt = 0; attempt <= NETWORK_RETRY_ATTEMPTS; attempt++) {
+        try {
+            return await fetch(url, options);
+        } catch (error) {
+            lastError = error;
+            if (attempt < NETWORK_RETRY_ATTEMPTS) {
+                const delayMs = NETWORK_RETRY_BASE_DELAY_MS * 2 ** attempt;
+                logger.warn(`Telegram fetch failed (attempt ${attempt + 1}/${NETWORK_RETRY_ATTEMPTS + 1}), retrying in ${delayMs}ms`, error);
+                await sleep(delayMs);
+            }
+        }
+    }
+    throw lastError;
+}
+
 /**
  * Send a message via Telegram Bot API
  * @param message - HTML formatted message
@@ -41,7 +63,7 @@ export async function sendTelegramMessage(message: string): Promise<void> {
     const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`;
 
     try {
-        const response = await fetch(url, {
+        const response = await fetchWithRetry(url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -58,7 +80,7 @@ export async function sendTelegramMessage(message: string): Promise<void> {
                 const waitSec = error.parameters.retry_after;
                 logger.warn(`Telegram rate limit (429), waiting ${waitSec}s before retry`);
                 await sleep(waitSec * 1000);
-                const retryRes = await fetch(url, {
+                const retryRes = await fetchWithRetry(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
