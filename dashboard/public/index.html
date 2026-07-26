@@ -195,6 +195,81 @@
         <div class="explainer-title">📺 מה נמצא עכשיו על TradingView</div>
         <div class="explainer-subtitle" id="watchlist-meta">טוען…</div>
       </div>
+      <!-- Lifecycle docs — how these lists are built, refreshed, and pruned -->
+      <section class="explainer-section" aria-labelledby="wl-howto">
+        <h2 class="explainer-h2" id="wl-howto">🔄 איך הרשימות נבנות — ומתי הן מתעדכנות</h2>
+        <p class="explainer-prose">
+          שתי הרשימות נכתבות ע"י <strong>סריקת ה-Lean</strong>, לא ע"י הדשבורד. הדשבורד רק מציג
+          את מה שכבר יושב על TradingView.
+        </p>
+        <div class="explainer-score-grid">
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label">📈 Lean Radar - Breakouts — רשימת פעולה</span>
+            <span class="explainer-score-detail">🎓 Graduated שהסיגנל שלהן היום הוא breakout אמיתי + פריצות קונסולידציה אמיתיות. אלה המניות להסתכל עליהן <em>היום</em>.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label">⏳ Lean Radar - Near — רשימת מעקב</span>
+            <span class="explainer-score-detail">nearConsolidation בלבד — עד 2% מהפיבוט, כלומר יום-יומיים לפני פריצה. נועדה לתפוס את המעבר.</span>
+          </div>
+        </div>
+        <p class="explainer-prose explainer-prose--note">
+          Pullback ו-High Volume <strong>לא</strong> נכנסים לרשימות האלה בכוונה — ארכיטיפ מסחר אחר
+          (קנייה בירידה / הקשר נפח). הם מופיעים בדוח הטלגרם ובלשונית 📡 סיגנלים.
+        </p>
+
+        <h3 class="explainer-h3">⏱️ קצב העדכון</h3>
+        <p class="explainer-prose">
+          אחרי <strong>כל סריקת Lean מוצלחת</strong> (20:15 UTC, ושוב 23:45 UTC לסגירות המתוקנות,
+          ימים ב׳–ו׳) רץ אוטומטית ה-tv-sync: מוריד את קובץ היעד מהארטיפקט של הסריקה, מסנכרן אותו
+          לתוך TradingView, ושומר snapshot ל-<code>results/tv-state.json</code>. הלשונית הזאת קוראת
+          בדיוק את הקובץ הזה (מטמון 5 דקות), ולכן "עודכן לאחרונה" בכותרת = <strong>הסנכרון האחרון
+          שהצליח</strong>. אם התאריך שם ישן ביומיים — הסנכרון נכשל, לא השוק נרדם.
+        </p>
+
+        <h3 class="explainer-h3">🧹 מה מוריד מנייה מהרשימה</h3>
+        <p class="explainer-prose">
+          זו הנקודה החשובה: הסנכרון הוא <strong>מצטבר (additive)</strong>. מנייה <em>לא</em> יורדת
+          מהרשימה רק בגלל שהיום היא לא נדלקה מחדש. יש בדיוק <strong>שני</strong> מסלולי הסרה:
+        </p>
+        <div class="explainer-score-grid">
+          <div class="explainer-score-item explainer-score-item--neg">
+            <span class="explainer-score-label">⏳ גיזום ותק — 14 יום</span>
+            <span class="explainer-score-detail">אם הראדאר לא סימן את המנייה שוב <strong>לאותה רשימה</strong> במשך 14 יום, הסנכרון הבא מסיר אותה.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--neg">
+            <span class="explainer-score-label">🩹 גיזום בריאות — שבירה של ‎8%‎</span>
+            <span class="explainer-score-detail">בדיקת הבריאות מסמנת מנייה שירדה ‎≥8%‎ מתחת למחיר האיתות ומכניסה אותה לתור גיזום; הסנכרון הבא מסיר אותה — אלא אם הראדאר סימן אותה מחדש באותו יום. פעם אחת למנייה.</span>
+          </div>
+        </div>
+
+        <h3 class="explainer-h3">📖 איך לקרוא את הטבלה</h3>
+        <p class="explainer-prose">
+          העמודה <strong>"איתות ראשון"</strong> היא התאריך הראשון שבו המנייה נכנסה לרשימה —
+          <strong>לא חותמת רעננות</strong>. מנייה עם תאריך מלפני שבוע נמצאת שם כי היא עדיין לא
+          התיישנה 14 יום ולא נשברה ב-8% — לא בהכרח כי היא בפריצה עכשיו. התאריך גם נשמר בין ריצות:
+          מנייה שהוסרה וחזרה חודשיים אחר כך תציג עדיין את התאריך הראשון אי-פעם.
+        </p>
+        <p class="explainer-prose">
+          לכן הטבלה מוסיפה שתי עמודות שעונות על "ומה המצב <em>עכשיו</em>":
+          <strong>ימים ברשימה</strong> (ותק מאז האיתות הראשון — ב-14 יום בלי איתות חדש היא נגזמת),
+          ו<strong>סטטוס</strong> מול הסריקה האחרונה:
+        </p>
+        <div class="explainer-score-grid">
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label">🟢 נדלק היום</span>
+            <span class="explainer-score-detail">הראדאר סימן את המנייה שוב בסריקה האחרונה — לצד התווית מופיע הסיגנל שבגללו. שים לב שהוא לא בהכרח אותו סיגנל שהכניס אותה לרשימה.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--neg">
+            <span class="explainer-score-label">⚪ ותק בלבד</span>
+            <span class="explainer-score-detail">המנייה ברשימה כי היא עוד לא התיישנה ולא נשברה — <strong>לא</strong> כי היא נדלקה היום. זו בדיוק ההתרעה מלפני שבועיים שכבר לא בהכרח רלוונטית.</span>
+          </div>
+        </div>
+        <p class="explainer-prose explainer-prose--note">
+          <strong>ומה זה לא:</strong> לא תיק, לא רשימת קניות, ואין כאן מעקב כניסה או סטופ.
+          הרשימה עונה על "מה שווה לפתוח בגרף", לא על "מה להחזיק".
+        </p>
+      </section>
+
       <div id="watchlist-sections"><!-- injected by JS: one table per watchlist --></div>
     </article>
   </div><!-- /view-watchlist -->
@@ -207,7 +282,7 @@
 
       <header class="explainer-hero">
         <h1 class="explainer-title">איך Lean Radar עובד?</h1>
-        <p class="explainer-subtitle">מקור הדאטה, הלוגיקה מאחורי כל סיגנל, שכבות ה-Setup, עמודת ה-RS, הציון, ומדדי ה-Purple Fragility וה-Capitulation — הכל כאן. עודכן 2026-07-23.</p>
+        <p class="explainer-subtitle">מקור הדאטה, הלוגיקה מאחורי כל סיגנל, שכבות ה-Setup, עמודת ה-RS, הציון, ומדדי ה-Purple Fragility וה-Capitulation — הכל כאן. מחזור החיים של רשימות ה-TradingView מתועד בלשונית 📺 Watchlist. עודכן 2026-07-26.</p>
       </header>
 
       <!-- Pipeline -->
@@ -420,7 +495,9 @@
         <p class="explainer-prose">
           מדד ברמת <strong>השוק</strong> (לא ברמת מנייה): ציון שבירוּת יומי על סל קבוע של
           <strong>10 מניות שבבים/AI</strong> (SMTC, AMKR, CRDO, IFX, MRVL, MU, ONTO, SEDG, SNDK, TSM) —
-          הקבוצה שמובילה את הראלי, ולכן משמשת חיישן מוקדם. הרעיון: נפילות גדולות לא מגיעות משום מקום —
+          הקבוצה שמובילה את הראלי, ולכן משמשת חיישן מוקדם. ההרכב <strong>נעול</strong> —
+          למה, ומה יגרום לו בכל זאת להשתנות, בסעיף <a href="#ex-basket">🧺 סל 10 המניות</a> למטה.
+          הרעיון: נפילות גדולות לא מגיעות משום מקום —
           קודם מופיע פרופיל של <strong>אופוריה</strong>: כולם בפנים, נדחפים בכוח, ומישהו גדול מוכר לתוך החוזק.
         </p>
         <p class="explainer-prose">
@@ -486,6 +563,95 @@
           <strong>מה זה לא:</strong> תצוגה בלבד — הציון לא חוסם ולא משנה שום סיגנל ברדאר.
           מחזור גבוה לבדו, אגב, לא מספיק — הוא מנבא רק בהקשר (קרוב לשיא), ולכן ימי חלוקה
           וה-climax החדש בפנים, אבל Volume גולמי נשאר בחוץ.
+        </p>
+      </section>
+
+      <!-- The basket: why it's locked and when it would change -->
+      <section class="explainer-section" aria-labelledby="ex-basket">
+        <h2 class="explainer-h2" id="ex-basket">🧺 סל 10 המניות — למה הוא נעול, ומתי בכל זאת נחליף</h2>
+        <p class="explainer-prose">
+          הסל מוגדר בקובץ <code>config/purple-list.json</code> (גרסה 3, עודכן 2026-07-22), ואותן
+          10 מניות משרתות גם את ה-<strong>Fragility</strong> וגם את ה-<strong>Capitulation</strong>.
+          <strong>ההרכב נעול</strong> בהחלטה מ-2026-07-20 — וזו לא עצלות, זה תנאי לכך שהמספרים
+          יהיו שווים משהו.
+        </p>
+
+        <h3 class="explainer-h3">🔒 למה נעול</h3>
+        <p class="explainer-prose">
+          כל רכיב מנורמל כ-Z מול ההיסטוריה של <strong>הסל עצמו</strong> מ-2022 (חלון מתרחב).
+          החלפת מנייה אחת כותבת מחדש את כל ההיסטוריה של המדד — גם הציון של יוני 2026 משתנה
+          רטרואקטיבית. שני דברים נשברים באותו רגע:
+        </p>
+        <div class="explainer-score-grid">
+          <div class="explainer-score-item explainer-score-item--neg">
+            <span class="explainer-score-label">הכיול</span>
+            <span class="explainer-score-detail">‎94%/92%‎ לכידה בדיוק ~39%, מבדיקת Split-Half — נמדד על <em>ההרכב הזה</em>. סל אחר = מספרים אחרים, שעוד לא נמדדו.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--neg">
+            <span class="explainer-score-label">יומן ה-OOS</span>
+            <span class="explainer-score-detail"><code>results/oos_log.csv</code> — שורה אחת <strong>קפואה</strong> ליום מאז 2026-07-19, מה שהמדד אמר בזמן אמת. הרשומה החיה הזאת שווה משהו רק כל עוד גם הכלל וגם הסל לא זזו.</span>
+          </div>
+        </div>
+
+        <h3 class="explainer-h3">🔧 מה כן השתנה — בלי לגעת בהרכב</h3>
+        <p class="explainer-prose">
+          ה-<code>changeLog</code> בקובץ מבדיל בין שני סוגי שינוי. <strong>תיקוני מקור-נתונים</strong>:
+          IFX עברה מה-ADR הדליל IFNNY ללisting המקורי IFX.DE ‏(2026-07-20, ~פי-7 מחזור), ו-SNDK
+          קיבלה את היסטוריית WDC מלפני הספין-אוף במקום סדרה שמתחילה בפברואר 2025.
+          <strong>שינויי מודל</strong>: v2 הוסיף את רכיב ה-climax ואת הכלל הדו-שכבתי.
+          באף אחד מהם ההרכב לא השתנה — אותן 10 מניות מהיום הראשון.
+        </p>
+
+        <h3 class="explainer-h3">🔁 מתי בכל זאת מחליפים</h3>
+        <p class="explainer-prose">
+          לא לפי לוח זמנים אלא לפי טריגר. שלושה מצבים מצדיקים לפתוח את השאלה:
+        </p>
+        <div class="explainer-score-grid">
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label">1 · אירוע מבני על מנייה</span>
+            <span class="explainer-score-detail">מיזוג, מחיקה מהמסחר, או פיצול שקוטע את הסדרה. הפתרון המועדף הוא <em>לחבר היסטוריה</em> (כמו <code>predecessorYahoo</code> ב-SNDK), לא להחליף חבר.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label">2 · הסל הפסיק להיות ההנהגה</span>
+            <span class="explainer-score-detail">הרעיון כולו הוא שהקבוצה שמובילה את הראלי היא החיישן המוקדם. אם הראלי עבר לסקטור אחר והסל כבר לא מקדים את השוק — בשיאים ובשברים — הוא מדווח על מסיבה שנגמרה.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label">3 · Review תקופתי</span>
+            <span class="explainer-score-detail">פעם בשנה שואלים במפורש "האם אלה עדיין העשר?" — כשאלה, לא כשינוי אוטומטי. ברירת המחדל של ה-review היא "לא נוגעים".</span>
+          </div>
+        </div>
+        <p class="explainer-prose explainer-prose--note">
+          <strong>ומה שלא עושים:</strong> לא מחליפים חבר כי "המנייה לא עובדת" או כי משהו אחר חם
+          החודש. סל שנבחר מחדש לפי מי שמוביל <em>היום</em> הוא curve-fitting טהור — בדיעבד הוא
+          תמיד ייראה מנבא, ובזמן אמת הוא לא יהיה.
+        </p>
+
+        <h3 class="explainer-h3">📋 הפרוטוקול להחלפה</h3>
+        <p class="explainer-prose">כשבכל זאת מחליטים להחליף — ארבעת השלבים האלה הם חבילה אחת:</p>
+        <div class="explainer-score-grid">
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label">1 · גרסה חדשה בקובץ</span>
+            <span class="explainer-score-detail">עדכון <code>purple-list.json</code> + שורת <code>changeLog</code> עם התאריך, מה השתנה, והנימוק.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label">2 · כיול מחדש</span>
+            <span class="explainer-score-detail">Split-Half על שתי תקופות עצמאיות עם הסל החדש. אם הדיוק צונח — הספים חוזרים לדיון לפני שהסל נכנס לתוקף.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label">3 · אתחול שעון ה-OOS</span>
+            <span class="explainer-score-detail"><code>OOS_START</code> חדש. השורות הישנות נשמרות ומסומנות כשייכות לסל הקודם — לא נמחקות, ולא מתערבבות עם החדשות.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label">4 · תקופת המתנה</span>
+            <span class="explainer-score-detail">עד שהיומן החדש צובר מספיק ימים, המדד נקרא כ<strong>תיאורי בלבד</strong> — בלי להתייחס לחציות כהתרעה מאומתת.</span>
+          </div>
+        </div>
+        <p class="explainer-prose explainer-prose--note">
+          <strong>שורה תחתונה:</strong> השאלה "האם אלה עדיין 10 המניות הנכונות?" לגיטימית ונשאלת
+          מדי פעם — אבל כל "לא" עולה באיפוס של הרשומה החיה היחידה שיש לנו. זו העלות שצריך לשקול
+          מול התועלת, ולא החלטה טכנית.
+          <br>המדיניות הזאת נוסחה ותועדה כאן ב-2026-07-26; היא מקבעת בכתב את מה שנגזר מהתכנון
+          הקיים (הרכב נעול + יומן OOS קפוא).
         </p>
       </section>
 

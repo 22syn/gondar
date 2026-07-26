@@ -1396,6 +1396,21 @@ td.col-score {
   color: var(--up);
 }
 
+/* Watchlist freshness: re-flagged by today's scan vs. still there on seniority */
+.explainer-table .wl-live {
+  font-family: var(--sans);
+  color: var(--up);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.explainer-table .wl-aged {
+  font-family: var(--sans);
+  color: var(--muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
 .explainer-table .et-indent {
   padding-right: 26px;
   color: var(--muted);

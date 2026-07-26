@@ -22,6 +22,18 @@ const SIGNAL_META = {
   setupRecovery: { label: 'Recovery',     icon: '🚀', cls: 'highVolume' },
 };
 
+/**
+ * TradingView exchange tag → SVR ticker suffix. Used to resolve a watchlist
+ * entry (exchange-stripped, e.g. {ticker:'NICE', exchange:'TASE'}) back to the
+ * D1 ticker ('NICE.TA') — a plain base match alone would confuse the TASE NICE
+ * with the US NICE. EURONEXT is deliberately absent: it maps to both .PA and
+ * .AS, so those fall through to the suffix-agnostic fallback.
+ */
+const EXCHANGE_SUFFIX = {
+  TASE: '.TA', XETR: '.DE', SIX: '.SW', LSE: '.L', MIL: '.MI',
+  VIE: '.VI', TWSE: '.TW', KRX: '.KS', BMFBOVESPA: '.SA', BME: '.MC',
+};
+
 /** Table column definitions: [key, hebrewLabel, cssClass] */
 const COLS = [
   ['ticker',    'טיקר',      'col-ticker'],
@@ -1071,10 +1083,56 @@ async function loadWatchlist() {
     const resp = await fetch('/api/watchlist');
     if (resp.ok) state = await resp.json();
   } catch { /* fall through to empty state below */ }
-  renderWatchlist(state);
+
+  // The list is additive — a ticker can sit there for up to 14 days without
+  // being re-flagged. Pull the LATEST scan day (not the date-picker selection,
+  // which this tab is independent of) so each row can say whether the radar
+  // still fires on it today.
+  let todayRows = null;
+  const todayDate = summaryDays[0] ? summaryDays[0].scan_date : null;
+  if (todayDate) {
+    try {
+      const resp = await fetch(`/api/signals?from=${todayDate}&to=${todayDate}`);
+      if (resp.ok) todayRows = await resp.json();
+    } catch { /* status column degrades to "—" below */ }
+  }
+
+  renderWatchlist(state, todayRows, todayDate);
 }
 
-function renderWatchlist(state) {
+/**
+ * Resolve a watchlist entry to its row in the latest scan, if the radar flagged
+ * it again today. Exchange-aware so a foreign listing never matches its US
+ * namesake (and vice versa).
+ * @param {{ticker: string, exchange?: string}} entry
+ * @param {Map<string, object>} byTicker - D1 ticker (upper) → row
+ * @param {Map<string, Array<object>>} byBase - base symbol (upper) → rows
+ * @returns {object|null}
+ */
+function matchTodayRow(entry, byTicker, byBase) {
+  const base = (entry.ticker || '').toUpperCase();
+  if (!base) return null;
+
+  // No exchange tag = US listing: only an exact, suffix-less match counts.
+  if (!entry.exchange) return byTicker.get(base) || null;
+
+  const suffix = EXCHANGE_SUFFIX[entry.exchange];
+  if (suffix) return byTicker.get(base + suffix) || null;
+
+  // Unknown/ambiguous tag (EURONEXT → .PA or .AS): any non-US listing wins.
+  const candidates = byBase.get(base) || [];
+  return candidates.find((r) => r.ticker.includes('.')) || null;
+}
+
+/** Whole calendar days between two ISO dates (yyyy-mm-dd). */
+function daysBetween(fromIso, toIso) {
+  const a = Date.parse(`${fromIso}T00:00:00Z`);
+  const b = Date.parse(`${toIso}T00:00:00Z`);
+  if (Number.isNaN(a) || Number.isNaN(b)) return null;
+  return Math.round((b - a) / 86400000);
+}
+
+function renderWatchlist(state, todayRows, todayDate) {
   const meta = $('#watchlist-meta');
   const wrap = $('#watchlist-sections');
   const names = Object.keys(state.watchlists || {});
@@ -1085,26 +1143,54 @@ function renderWatchlist(state) {
     return;
   }
 
-  meta.textContent = `כפי שנשלח ל-TradingView (tv-sync) · עודכן לאחרונה: ${state.updatedAt}`;
+  const statusHead = todayRows ? `סטטוס ב-${todayDate}` : 'סטטוס היום';
+  meta.textContent = `כפי שנשלח ל-TradingView (tv-sync) · עודכן לאחרונה: ${state.updatedAt}`
+    + (todayRows ? ` · סטטוס מול סריקת ${todayDate}` : '');
+
+  // Lookups for "did the radar flag it again today?"
+  const byTicker = new Map();
+  const byBase = new Map();
+  for (const r of todayRows || []) {
+    const t = (r.ticker || '').toUpperCase();
+    if (!t) continue;
+    byTicker.set(t, r);
+    const base = t.split('.')[0];
+    if (!byBase.has(base)) byBase.set(base, []);
+    byBase.get(base).push(r);
+  }
 
   wrap.innerHTML = names.map((name) => {
     const rows = [...(state.watchlists[name] || [])].sort(
       (a, b) => b.signalDate.localeCompare(a.signalDate)
     );
     const body = rows.length
-      ? rows.map((r) => `
+      ? rows.map((r) => {
+        const age = todayDate ? daysBetween(r.signalDate, todayDate) : null;
+        // 14 days without a fresh flag = auto-pruned on the next sync.
+        const ageCell = age == null
+          ? '—'
+          : `<span title="14 יום ללא איתות חדש → גיזום אוטומטי בסנכרון הבא">${age}</span>`;
+        const hit = todayRows ? matchTodayRow(r, byTicker, byBase) : null;
+        let status;
+        if (!todayRows) status = '—';
+        else if (hit) status = `<span class="wl-live">🟢 נדלק היום</span> ${badgeHTML((hit.signal || '').trim(), true)}`;
+        else status = '<span class="wl-aged">⚪ ותק בלבד</span>';
+        return `
         <tr>
           <td>${r.ticker}</td>
           <td class="et-sub">${r.signalDate}</td>
+          <td class="et-sub">${ageCell}</td>
+          <td>${status}</td>
         </tr>
-      `).join('')
-      : `<tr><td colspan="2" class="et-sub">ריק כרגע</td></tr>`;
+      `;
+      }).join('')
+      : `<tr><td colspan="4" class="et-sub">ריק כרגע</td></tr>`;
     return `
       <div class="explainer-section">
         <div class="explainer-h2">${name} (${rows.length})</div>
         <div class="explainer-table-wrap">
           <table class="explainer-table">
-            <thead><tr><th>טיקר</th><th>איתות ראשון</th></tr></thead>
+            <thead><tr><th>טיקר</th><th>איתות ראשון</th><th>ימים ברשימה</th><th>${statusHead}</th></tr></thead>
             <tbody>${body}</tbody>
           </table>
         </div>
