@@ -5,7 +5,9 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "$0")/.." && pwd)"
-SHEET_ID="${GOOGLE_SHEET_ID:-1MstPA9TNElVDTq3UhztkL7BwUGHlktOBDC8HfG478vo}"
+# No default: the sheet id is the only access control on the public-read universe
+# sheet, so it must not be committed. Set GOOGLE_SHEET_ID in your environment.
+SHEET_ID="${GOOGLE_SHEET_ID:?set GOOGLE_SHEET_ID to the target universe sheet id}"
 CREDS="${GOOGLE_SHEETS_CREDENTIALS:-$HOME/.config/google-sheets-mcp/service-account.json}"
 
 [ -f "$CREDS" ] || { echo "Service-account key not found at: $CREDS" >&2; exit 1; }

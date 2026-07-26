@@ -50,7 +50,28 @@ export interface SharedWatchlist {
     symbols: string[];
 }
 
+/**
+ * Only https TradingView share URLs may be fetched. `shareUrl` comes from config
+ * (`watchlist-sources.json` / the `WATCHLIST_SOURCES_JSON` CI secret); this allowlist
+ * closes the SSRF angle — no `file://`, `http://localhost`, or internal addresses.
+ */
+export function assertAllowedUrl(url: string): void {
+    let parsed: URL;
+    try {
+        parsed = new URL(url);
+    } catch {
+        throw new Error(`shared watchlist: invalid URL: ${url}`);
+    }
+    const host = parsed.hostname.toLowerCase();
+    const allowed =
+        parsed.protocol === 'https:' && (host === 'tradingview.com' || host.endsWith('.tradingview.com'));
+    if (!allowed) {
+        throw new Error(`shared watchlist: refusing to fetch non-TradingView URL: ${url}`);
+    }
+}
+
 async function fetchHtml(url: string): Promise<string> {
+    assertAllowedUrl(url);
     const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
     if (!res.ok) {
         throw new Error(
