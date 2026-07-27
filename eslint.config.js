@@ -13,6 +13,10 @@ export default [
       sourceType: 'module',
       globals: {
         ...globals.node,
+        // Node 20 ships the fetch API (undici) but the `globals` node set does not
+        // include its *type-only* globals, so `no-undef` false-positives on them
+        // even though tsc resolves them fine. Declare the ones we use as types.
+        RequestInit: 'readonly',
       },
     },
     plugins: {

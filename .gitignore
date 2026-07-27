@@ -70,3 +70,6 @@ results/*
 results/finnhub-cache/
 .claude/worktrees/
 .fuse_hidden*
+# Generated code-graph output (graphify) — 2.7MB of graph.json/graph.html rebuilt
+# on demand with `graphify update .` at no API cost. Build artifact, not source.
+graphify-out/
