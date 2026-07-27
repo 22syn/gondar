@@ -107,7 +107,7 @@
         <canvas id="dist-chart" height="130" aria-label="היסטוגרמת ציונים" role="img"></canvas>
       </div>
       <div class="chart-wrap chart-wrap--fragility" id="fragility-wrap" hidden>
-        <p class="chart-title">🟣 Purple Fragility <span class="chart-subtitle">אופוריה (סף 1.0) + מיצוי — תיאורי בלבד · 🔴 חציית Alert · 🟡 חציית Watch (הכלל המלא, לא רק הסף) · ראו "איך זה עובד"</span></p>
+        <p class="chart-title">🟣 Purple Fragility <span class="chart-subtitle">אופוריה (סף 1.0) + מיצוי — תיאורי בלבד · 🔴 חציית Alert · 🟡 חציית Watch (core3, נשלחת בטלגרם) · ⚪ climax בלבד (תיאורי, ללא הודעה) · ראו "איך זה עובד"</span></p>
         <div class="chart-box">
           <canvas id="fragility-chart" aria-label="גרף ציון שבירות ומיצוי" role="img"></canvas>
         </div>
@@ -549,7 +549,11 @@
           </div>
           <div class="explainer-score-item explainer-score-item--neg">
             <span class="explainer-score-label">🟡 Watch</span>
-            <span class="explainer-score-detail">core3 ≥ 1.0 <strong>או</strong> (climax ≥ 1.5 וגם קרוב לשיא) — השכבה שתופסת הכי הרבה</span>
+            <span class="explainer-score-detail">core3 ≥ 1.0 — הזרוע היחידה ששולחת הודעה בטלגרם (דיוק 81%)</span>
+          </div>
+          <div class="explainer-score-item">
+            <span class="explainer-score-label">⚪ climax בלבד</span>
+            <span class="explainer-score-detail">climax ≥ 1.5 וגם קרוב לשיא — מסומן בגרף בעיגול אפור חלול, <strong>בלי הודעה</strong> (דיוק 33%)</span>
           </div>
         </div>
         <p class="explainer-prose">
@@ -559,6 +563,36 @@
           ה-drawdown של הסל ואת <strong>ספירת הקנריות</strong> — כמה מניות כבר עשו את השיא שלהן
           לפני יותר מ-10 ימים בזמן שהמדד עוד ליד שיא (ביוני 2026: SEDG, IFX ו-MRVL נשברו
           שבועיים-שלושה לפני כולם).
+        </p>
+        <p class="explainer-prose">
+          <strong>עדכון 2026-07-27 — פירוק שתי הזרועות של ה-Watch.</strong> ה-94% לכידה למעלה
+          נכון, אבל הוא מדד <em>לכידה</em>, לא <em>דיוק</em>. פירוק על 252 ימי המסחר שב-D1
+          (2025-07-16 עד 2026-07-23), מול שיאי הסל עצמו בירידה של ‎7%‎ ומעלה:
+        </p>
+        <ul class="explainer-card-list">
+          <li><strong>core3</strong> — דיוק <strong>81%</strong>, מול שיעור בסיס של ‎31%‎. זו הזרוע שעובדת.</li>
+          <li><strong>climax בלבד</strong> — דיוק <strong>33%</strong>, כלומר <em>מתחת</em> לשיעור הבסיס: 15 התרעות, 5 מהן לפני שיא אמיתי.</li>
+          <li>יחד: לכידה ‎11/11‎ מהשיאים בדיוק ‎58%‎ (31 התרעות). בלי climax: לכידה ‎7/11‎ בדיוק ‎81%‎ (16 התרעות).</li>
+        </ul>
+        <p class="explainer-prose">
+          לכן climax נשאר <strong>בגרף</strong> — הוא באמת מוסיף לכידה, וסימון מיותר בגרף שממילא
+          מסתכלים עליו לא עולה כלום — אבל <strong>יצא מנתיב ההודעות</strong>: הודעה שקוטעת אותך
+          כשאין מה לראות שוחקת אמון. הרכיב ממשיך להיחשב, להישמר ב-D1 ולהופיע ב-tooltip.
+        </p>
+        <p class="explainer-prose">
+          <strong>ולמה QQQ כקו הייחוס:</strong> מכל המדדים שנבדקו (QQQ, ‎^IXIC‎, SPY, ‎^GSPC‎, IWM)
+          QQQ הוא הצמוד ביותר לסל עצמו (מתאם תשואות יומיות ‎0.821‎) וגם בעל התוצאה החזקה ביותר
+          מול ה-Alert: ‎7/10‎ מההתרעות לוו בירידה של ‎5%‎ ומעלה ב-QQQ תוך 20 ימי מסחר —
+          מול <strong>שיעור בסיס של 21%</strong> ליום אקראי, פי ‎3.4‎ (מבחן הרשאה ‎p=0.008‎).
+          <strong>שימו לב לשיעור הבסיס</strong>: בלעדיו המספר ‎7/10‎ נשמע חזק בהרבה משהוא.
+          בסף רופף יותר (‎3%‎ תוך 20 יום) שיעור הבסיס מזנק ל-‎41%‎ — כמעט הטלת מטבע, ולכן
+          אין להסיק ממנו. הבסיס הזה נמדד בתקופה תנודתית במיוחד ואינו קבוע.
+        </p>
+        <p class="explainer-prose">
+          <strong>מגבלות:</strong> 10 ההתרעות מתקבצות לשני אירועים בלבד (אוקטובר–נובמבר 2025,
+          מאי–יוני 2026), כך שמדובר בשני משטרי שוק ולא בעשרה מדגמים בלתי-תלויים. נבדקו כ-20
+          צירופים של מדד/סף בלי תיקון להשוואות מרובות. 252 ימים הם תת-קבוצה של תקופת הכיול
+          המקורית. המחקר המלא, כולל הקוד לשחזור: <code>docs/research/fragility-calibration/</code>.
         </p>
         <p class="explainer-prose">
           <strong>מה זה לא:</strong> תצוגה בלבד — הציון לא חוסם ולא משנה שום סיגנל ברדאר.
