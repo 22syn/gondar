@@ -512,6 +512,8 @@ function renderFragilityChart(rows) {
   const capitulation = rows.map((r) => r.capitulation ?? null);
   const hasCapitulation = capitulation.some((v) => v != null);
   const threshold = rows.map(() => 1.0);
+  const qqqIndex = rows.map((r) => r.qqq_index ?? null);
+  const hasQqq = qqqIndex.some((v) => v != null);
 
   // Real two-tier alert rule, reconstructed from fields already in the payload
   // (no bare "score crossed 1.0" — that ignores the near-high gate). canary_count
@@ -584,6 +586,23 @@ function renderFragilityChart(rows) {
           pointHitRadius: 0,
           fill: false,
         },
+        // QQQ (Nasdaq-100), rebased to 100 at this chart's first day — plotted
+        // on its own right-hand axis (y1) so its price scale never fights the
+        // 0-2ish fragility/capitulation scores. Lets you eyeball whether a
+        // purple peak actually led the next market pullback.
+        {
+          label: 'QQQ (נאסד"ק 100, מנורמל)',
+          data: qqqIndex,
+          borderColor: 'rgba(88,166,255,0.85)',
+          borderWidth: 1.4,
+          borderDash: [2, 2],
+          pointRadius: 0,
+          pointHitRadius: 6,
+          tension: 0.15,
+          fill: false,
+          yAxisID: 'y1',
+          hidden: !hasQqq,
+        },
       ],
     },
     options: {
@@ -607,12 +626,15 @@ function renderFragilityChart(rows) {
           borderWidth: 1,
           titleColor: '#e6edf3',
           bodyColor: '#8b95a5',
-          filter: (item) => item.datasetIndex === 0 || item.datasetIndex === 1,
+          filter: (item) => item.datasetIndex === 0 || item.datasetIndex === 1 || item.datasetIndex === 3,
           callbacks: {
             title: (items) => (items[0] ? rows[items[0].dataIndex].scan_date : ''),
             label: (item) => {
               const r = rows[item.dataIndex];
               const z = (v) => (v == null ? '—' : v.toFixed(1));
+              if (item.datasetIndex === 3) {
+                return r.qqq_index == null ? 'QQQ: —' : `QQQ: ${r.qqq_index.toFixed(1)} (בסיס 100)`;
+              }
               if (item.datasetIndex === 1) {
                 return r.capitulation == null
                   ? 'Capitulation: —'
@@ -643,6 +665,12 @@ function renderFragilityChart(rows) {
         y: {
           ticks: { color: '#8b95a5', font: { size: 10 } },
           grid: { color: '#242c3a' },
+        },
+        y1: {
+          position: 'right',
+          display: hasQqq,
+          ticks: { color: 'rgba(88,166,255,0.85)', font: { size: 10 } },
+          grid: { drawOnChartArea: false },
         },
       },
     },
