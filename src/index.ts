@@ -403,6 +403,9 @@ async function main(): Promise<void> {
         // Fragility threshold-crossing alerts — separate messages, never fail the scan.
         // 🔴 Alert (mean6>=1.0 AND indexNearHigh) wins over 🟡 Watch
         // (core3>=1.0 OR climax>=1.5 AND indexNearHigh) on the same day.
+        // The 🟡 message additionally requires watchAlertable: a climax-only
+        // crossing stays on the dashboard but is not worth an interruption
+        // (33% precision vs a 31% base rate — see watchAlertable's contract).
         if (fragility?.crossedUp) {
             try {
                 await sendTelegramMessage(formatFragilityAlert(fragility));
@@ -410,7 +413,7 @@ async function main(): Promise<void> {
             } catch (fragErr) {
                 logger.warn('Fragility alert send failed (non-fatal): ' + (fragErr as Error).message);
             }
-        } else if (fragility?.core3CrossedUp) {
+        } else if (fragility?.core3CrossedUp && fragility.watchAlertable) {
             try {
                 await sendTelegramMessage(formatFragilityWatchAlert(fragility));
                 logger.info(`🟡 Fragility Watch (${fragility.watchTrigger}) alert sent to Telegram`);

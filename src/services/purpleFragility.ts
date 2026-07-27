@@ -157,6 +157,20 @@ export interface FragilityResult {
     core3CrossedUp: boolean;
     /** Which condition fired the Watch tier on the latest day; null if neither. */
     watchTrigger: 'core3' | 'climax' | 'both' | null;
+    /** True when a newly-fired Watch tier is worth interrupting Kobi over — i.e.
+     *  the core3 arm fired (alone or alongside climax).
+     *
+     *  The climax-only arm stays computed, persisted and charted, but must NOT
+     *  raise a Telegram message. Measured over the 252 sessions in D1
+     *  (2025-07-16 → 2026-07-23, study 2026-07-27): against the basket's own
+     *  >=7% top episodes, climax-only fired 15 times at 33% precision — below
+     *  the 31% unconditional base rate — while core3 ran 81%. Dropping climax
+     *  from the message path takes 🟡 Telegram precision 58% → 81% and volume
+     *  31 → 16. Its recall contribution is real (PR #82's 94% figure replicates:
+     *  11/11 top episodes vs 7/11 without it), which is why it is kept on the
+     *  dashboard — a passive chart pays no cost for a false mark, an
+     *  interrupting message does. */
+    watchAlertable: boolean;
     canaryCount: number;
     indexNearHigh: boolean;
     tickersUsed: string[];
@@ -647,6 +661,8 @@ export function computeFragilityFromSeries(
         // (core3 alone, or climax while the basket is near its high).
         core3CrossedUp: latestWatchTrigger != null && !(prev != null && watchTrigger(prev) != null),
         watchTrigger: latestWatchTrigger,
+        // Message-worthy only via the core3 arm — see watchAlertable's contract.
+        watchAlertable: latestWatchTrigger === 'core3' || latestWatchTrigger === 'both',
         canaryCount: latest.canaryCount ?? 0,
         indexNearHigh: latest.indexNearHigh,
         tickersUsed: tickers,

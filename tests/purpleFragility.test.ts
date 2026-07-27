@@ -342,6 +342,9 @@ describe('climax (contextual volume z)', () => {
         expect(result.latest.core3 == null || result.latest.core3! < CORE3_THRESHOLD).toBe(true);
         expect(result.core3CrossedUp).toBe(true);
         expect(result.watchTrigger).toBe('climax');
+        // ...but a climax-only crossing is charted, never messaged: 33% precision
+        // against the basket's own >=7% tops vs a 31% base rate (study 2026-07-27).
+        expect(result.watchAlertable).toBe(false);
     });
 });
 
@@ -411,6 +414,33 @@ describe('dual-tier crossing (model v2)', () => {
         expect(result.latest.core3!).toBeGreaterThanOrEqual(CORE3_THRESHOLD);
         expect(result.latest.climax!).toBeGreaterThanOrEqual(CLIMAX_THRESHOLD);
         expect(result.watchTrigger).toBe('both');
+        // core3 is present, so this one IS message-worthy.
+        expect(result.watchAlertable).toBe(true);
+    });
+
+    it('watchAlertable is true for a core3-only crossing (the 81%-precision arm)', () => {
+        const last = T - 1;
+        // Wide cross-sectional dispersion on the last bar drives core3 up without
+        // the volume spike climax needs — volume is held flat at the quiet level.
+        const disperse = (name: string, phase: number, gainPct: number): OhlcvSeries => {
+            let prevClose = 0;
+            return makeSeries(name, T, (t) => {
+                const b = quietBar(t, phase);
+                if (t !== last) {
+                    prevClose = b.c;
+                    return b;
+                }
+                const c = prevClose * (1 + gainPct);
+                return { o: prevClose, h: c * 1.15, l: prevClose * 0.995, c, v: b.v };
+            });
+        };
+        const result = computeFragilityFromSeries(
+            [disperse('A', 0, 0.03), disperse('B', 1, 0.08), disperse('C', 2, 0.12)],
+            dateAt(last)
+        )!;
+        expect(result.latest.core3!).toBeGreaterThanOrEqual(CORE3_THRESHOLD);
+        expect(result.watchTrigger).toBe('core3');
+        expect(result.watchAlertable).toBe(true);
     });
 });
 
