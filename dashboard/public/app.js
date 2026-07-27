@@ -521,20 +521,35 @@ function renderFragilityChart(rows) {
   // proxy for the engine's indexNearHigh (verified against the source + D1).
   //   🔴 Alert: score >= 1.0 AND near-high
   //   🟡 Watch: core3 >= 1.0 OR (climax >= 1.5 AND near-high)
+  //
+  // The two Watch arms are drawn differently because they perform differently.
+  // Against the basket's own >=7% tops over the 252 sessions in D1 (study
+  // 2026-07-27, docs/research/fragility-calibration on main): core3 runs 81%
+  // precision, climax-only 33% — below the 31% base rate. As of PR #99 only the
+  // core3 arm sends a Telegram message; climax stays here because it does add
+  // real recall (11/11 top episodes with it, 7/11 without) and a chart you
+  // choose to look at pays no price for a mark that doesn't pan out.
   const nearHigh = (r) => r.canary_count != null;
   const isAlert = (r) => r.score != null && r.score >= 1.0 && nearHigh(r);
-  const isWatch = (r) =>
-    (r.core3 != null && r.core3 >= 1.0) ||
-    (r.climax != null && r.climax >= 1.5 && nearHigh(r));
+  const isCore3 = (r) => r.core3 != null && r.core3 >= 1.0;
+  const isClimax = (r) => r.climax != null && r.climax >= 1.5 && nearHigh(r);
+  const isWatch = (r) => isCore3(r) || isClimax(r);
   // Mark the day each tier NEWLY fires (matches the one-per-crossing Telegram
   // alert), not every day it holds — held-days would flood the recent window.
+  // 'watch' = core3 arm (messaged); 'soft' = climax-only (chart-only).
   const marker = rows.map((r, i) => {
     const prev = i > 0 ? rows[i - 1] : null;
     if (isAlert(r) && !(prev && isAlert(prev))) return 'alert';
-    if (isWatch(r) && !isAlert(r) && !(prev && isWatch(prev))) return 'watch';
+    if (isWatch(r) && !isAlert(r) && !(prev && isWatch(prev))) {
+      return isCore3(r) ? 'watch' : 'soft';
+    }
     return null;
   });
-  const heldState = (r) => (isAlert(r) ? '🔴 Alert פעיל' : isWatch(r) ? '🟡 Watch פעיל' : '🟢 שקט');
+  const heldState = (r) =>
+    isAlert(r) ? '🔴 Alert פעיל'
+      : isCore3(r) ? '🟡 Watch פעיל (core3)'
+        : isClimax(r) ? '⚪ climax בלבד — תיאורי, לא נשלחת הודעה'
+          : '🟢 שקט';
 
   const ctx = $('#fragility-chart').getContext('2d');
   fragChart = new Chart(ctx, {
@@ -548,11 +563,27 @@ function renderFragilityChart(rows) {
           borderColor: 'rgba(163,113,247,0.95)',
           backgroundColor: 'rgba(163,113,247,0.12)',
           borderWidth: 1.6,
-          // Dots mark the day the real rule newly fired: 🔴 Alert, 🟡 Watch.
-          pointRadius: (ctx) => (marker[ctx.dataIndex] === 'alert' ? 3.6 : marker[ctx.dataIndex] === 'watch' ? 2.6 : 0),
-          pointBackgroundColor: (ctx) => (marker[ctx.dataIndex] === 'alert' ? 'rgba(248,81,73,0.95)' : 'rgba(210,153,34,0.95)'),
-          pointBorderColor: 'transparent',
-          pointHoverRadius: (ctx) => (marker[ctx.dataIndex] === 'alert' ? 4.4 : marker[ctx.dataIndex] === 'watch' ? 3.6 : 3),
+          // Dots mark the day the real rule newly fired. Three weights, matching
+          // how much each one earns: 🔴 Alert (solid red), 🟡 Watch/core3 (solid
+          // amber — the arm that still messages), climax-only (small hollow grey,
+          // deliberately quiet: 33% precision, below base rate).
+          pointRadius: (ctx) => {
+            const m = marker[ctx.dataIndex];
+            return m === 'alert' ? 3.6 : m === 'watch' ? 2.6 : m === 'soft' ? 2.2 : 0;
+          },
+          pointBackgroundColor: (ctx) => {
+            const m = marker[ctx.dataIndex];
+            return m === 'alert' ? 'rgba(248,81,73,0.95)'
+              : m === 'watch' ? 'rgba(210,153,34,0.95)'
+                : 'transparent';
+          },
+          pointBorderColor: (ctx) =>
+            (marker[ctx.dataIndex] === 'soft' ? 'rgba(139,149,165,0.8)' : 'transparent'),
+          pointBorderWidth: (ctx) => (marker[ctx.dataIndex] === 'soft' ? 1.2 : 0),
+          pointHoverRadius: (ctx) => {
+            const m = marker[ctx.dataIndex];
+            return m === 'alert' ? 4.4 : m === 'watch' ? 3.6 : m === 'soft' ? 3.2 : 3;
+          },
           pointHitRadius: 6,
           tension: 0.25,
           fill: false,
