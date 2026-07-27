@@ -61248,7 +61248,7 @@
       "firstAlertPrice": 19.920000076293945,
       "firstAlertRvol": 1.6993249372536035,
       "lastChecked": "2026-07-27",
-      "status": "monitoring",
+      "status": "sma21-pullback",
       "sector": "Cyber",
       "events": [
         {
@@ -61257,8 +61257,18 @@
           "price": 19.920000076293945,
           "rvol": 1.6993249372536035,
           "note": "First alert (close)"
+        },
+        {
+          "date": "2026-07-27",
+          "type": "sma21-pullback",
+          "price": 18.139999389648438,
+          "rvol": 0.5834124427323821,
+          "note": "Quiet pullback to SMA21 (dist 0.3%, RVOL 0.58, green)"
         }
-      ]
+      ],
+      "resolvedDate": "2026-07-27",
+      "resolvedPrice": 18.139999389648438,
+      "resolvedReason": "Quiet pullback to SMA21 (dist 0.3%, RVOL 0.58, green)"
     }
   ]
 }
