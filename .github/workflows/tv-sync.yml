@@ -67,6 +67,27 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
         continue-on-error: true   # artifact may have expired (90-day retention)
 
+      # Health check BEFORE the sync, in the SAME job — this ordering is the
+      # whole point. It evaluates the watchlist as it stands right now (from the
+      # committed results/tv-state.json) and writes prune-queue.json into the
+      # cache dir restored above; the sync step below then consumes it in this
+      # same run. Until 2026-07-27 this script only ever ran on Kobi's Mac, so
+      # its queue never reached the runner and the ≥8% prune path could not fire
+      # at all — see cabinet outputs/2026-07-26-two-radar-improvement.md (F3).
+      #
+      # Same-run consumption is safe: sync-tv-watchlist.ts only prunes a queued
+      # ticker when it is NOT in today's fresh target, so a stock that broke down
+      # and immediately re-signalled is kept.
+      #
+      # continue-on-error + the script's own catch: health is advisory. If it
+      # fails or Yahoo is down, the sync must still run — it just won't prune.
+      - name: Watchlist health check (writes prune queue)
+        continue-on-error: true
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node scripts/watchlist-health.mjs --telegram
+
       # Decode the TV_COOKIES secret (base64 JSON) and write to temp file.
       - name: Prepare TradingView cookies
         run: |
