@@ -229,8 +229,7 @@
         <h3 class="explainer-h3">🧹 מה מוריד מנייה מהרשימה</h3>
         <p class="explainer-prose">
           זו הנקודה החשובה: הסנכרון הוא <strong>מצטבר (additive)</strong>. מנייה <em>לא</em> יורדת
-          מהרשימה רק בגלל שהיום היא לא נדלקה מחדש. תוכננו <strong>שני</strong> מסלולי הסרה —
-          אבל רק הראשון פועל בפועל:
+          מהרשימה רק בגלל שהיום היא לא נדלקה מחדש. יש בדיוק <strong>שני</strong> מסלולי הסרה:
         </p>
         <div class="explainer-score-grid">
           <div class="explainer-score-item explainer-score-item--neg">
@@ -238,8 +237,8 @@
             <span class="explainer-score-detail">אם הראדאר לא סימן את המנייה שוב <strong>לאותה רשימה</strong> במשך 14 יום, הסנכרון הבא מסיר אותה.</span>
           </div>
           <div class="explainer-score-item explainer-score-item--neg">
-            <span class="explainer-score-label">🩹 גיזום בריאות — שבירה של ‎8%‎ <strong>(לא פעיל כרגע)</strong></span>
-            <span class="explainer-score-detail"><strong>בתכנון:</strong> בדיקת הבריאות מסמנת מנייה שירדה ‎≥8%‎ מתחת למחיר האיתות ומכניסה אותה לתור גיזום; הסנכרון הבא מסיר אותה. <strong>בפועל (נבדק 2026-07-26): המסלול הזה לא רץ</strong> — הסקריפט שכותב את התור יושב על המחשב המקומי, אין לו הרצה ב-CI, והפלט האחרון שלו מ-2026-06-02. הסנכרון רץ ב-GitHub Actions ולא רואה את הקובץ. <strong>המשמעות: גיזום הוותק (14 יום) הוא מסלול ההסרה היחיד שפועל</strong> — מנייה שנשברה ב-8% תישאר ברשימה עד שתתיישן.</span>
+            <span class="explainer-score-label">🩹 גיזום בריאות — שבירה של ‎8%‎</span>
+            <span class="explainer-score-detail">בדיקת הבריאות רצה אוטומטית לפני כל סנכרון, מסמנת מנייה שירדה ‎≥8%‎ מתחת למחיר האיתות, והסנכרון מסיר אותה באותה ריצה — אלא אם הראדאר סימן אותה מחדש באותו יום. פעם אחת למנייה. <strong>פעיל מ-2026-07-27</strong> (עד אז המנגנון היה מתועד אבל לא רץ בפועל).</span>
           </div>
         </div>
 
