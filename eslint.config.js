@@ -13,10 +13,6 @@ export default [
       sourceType: 'module',
       globals: {
         ...globals.node,
-        // Node 20 ships the fetch API (undici) but the `globals` node set does not
-        // include its *type-only* globals, so `no-undef` false-positives on them
-        // even though tsc resolves them fine. Declare the ones we use as types.
-        RequestInit: 'readonly',
       },
     },
     plugins: {
@@ -33,6 +29,13 @@ export default [
       ],
       '@typescript-eslint/no-explicit-any': 'warn',
       'no-console': 'off',
+      // Off for TypeScript on typescript-eslint's own advice: tsc already errors
+      // on genuinely undefined identifiers (verified: TS2304), while eslint
+      // cannot see type space and false-positives on type-only globals. This
+      // cost a full day of red CI on 2026-07-26 (`RequestInit` in telegramBot.ts)
+      // — and since ci.yml runs lint -> build -> test, it skipped build and test
+      // entirely. Declaring globals one at a time only defers the next instance.
+      'no-undef': 'off',
     },
   },
 ];

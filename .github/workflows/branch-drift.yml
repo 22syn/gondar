@@ -24,14 +24,44 @@ jobs:
     steps:
       # Full history is not needed, but both branch tips are — a shallow
       # single-branch checkout cannot see the other side of the comparison.
-      - uses: actions/checkout@v4
+      # SHA-pinned per the hardening convention established in bd6996b.
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           fetch-depth: 0
 
       - name: Fetch both radar branches
         run: git fetch --no-tags origin main stable
 
+      # Pick what to compare against what.
+      #
+      # On push the branch tips ARE the merged state, so origin/main vs
+      # origin/stable is exactly right.
+      #
+      # On pull_request, comparing the two tips would ignore the PR entirely and
+      # report a green check that means nothing — the drift would only surface
+      # after merge, on somebody else's push. So compare the PR's own head
+      # against the OPPOSITE branch from the one it targets.
+      - name: Resolve comparison refs
+        id: refs
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            if [ "${{ github.base_ref }}" = "main" ]; then
+              other=origin/stable
+            else
+              other=origin/main
+            fi
+            echo "base=HEAD"   >> "$GITHUB_OUTPUT"
+            echo "head=$other" >> "$GITHUB_OUTPUT"
+            echo "Comparing this PR against $other"
+          else
+            echo "base=origin/main"   >> "$GITHUB_OUTPUT"
+            echo "head=origin/stable" >> "$GITHUB_OUTPUT"
+          fi
+
       # Pure git + bash: no npm install, so this reports in seconds and cannot
       # be masked by a dependency problem.
       - name: Check shared files for drift
-        run: ./scripts/check-branch-drift.sh
+        env:
+          BASE: ${{ steps.refs.outputs.base }}
+          HEAD_REF: ${{ steps.refs.outputs.head }}
+        run: ./scripts/check-branch-drift.sh --suggest
