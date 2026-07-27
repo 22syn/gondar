@@ -862,12 +862,16 @@ const WATCH_TRIGGER_LABEL_HE: Record<'core3' | 'climax' | 'both', string> = {
 };
 
 /**
- * 🟡 Watch alert — sent only on the day the OR-condition newly holds: core3
- * (wick+dist+disp z-mean) over threshold, or climax (contextual volume-z)
- * over threshold while the basket is near its high. Softer tier than the 🔴
- * mean6+nearHigh alert. Validated via split-half stability (2023-24 vs
- * 2025-26): the combined rule caught 94%/92% of >7% tops at ~39% precision,
- * vs 54%/comparable recall for core3 alone. Display-only, gates nothing.
+ * 🟡 Watch alert — sent only on the day the core3 arm (wick+dist+disp z-mean)
+ * newly crosses its threshold. Softer tier than the 🔴 mean6+nearHigh alert.
+ * Display-only, gates nothing.
+ *
+ * The climax arm still fires `watchTrigger` and is still charted, but no longer
+ * sends a message (see `watchAlertable`). PR #82's split-half result stands on
+ * recall — the combined rule caught 94%/92% of >7% tops — but the 2026-07-27
+ * study decomposed it: climax-only ran 33% precision against a 31% base rate,
+ * core3 ran 81%. Restricting the message path to core3 moves 🟡 precision
+ * 58% → 81% and volume 31 → 16 over the 252 sessions measured.
  */
 export function formatFragilityWatchAlert(f: FragilityResult): string {
     const c3 = f.latest.core3 ?? 0;
@@ -887,12 +891,13 @@ export function formatFragilityWatchAlert(f: FragilityResult): string {
         `🟣 core3 (פתילים+חלוקה+פיזור): <b>${c3.toFixed(2)}</b>` +
         (prev != null ? ` (אתמול ${prev.toFixed(2)} → חצה את ${CORE3_THRESHOLD.toFixed(1)})` : '') +
         `\n` +
-        `climax (נפח קונטקסטואלי): <b>${climax != null ? climax.toFixed(2) : '—'}</b> (סף ${CLIMAX_THRESHOLD.toFixed(1)})${triggerBit}\n` +
+        `climax (נפח קונטקסטואלי): <b>${climax != null ? climax.toFixed(2) : '—'}</b> (תיאורי בלבד)${triggerBit}\n` +
         `ציון מלא (mean6): ${f.latest.score?.toFixed(2) ?? '—'} | ` +
         `DD ${f.latest.drawdownPct.toFixed(1)}%${canaryBit}\n` +
         `רכיבי הליבה (z): wick ${fmt(z.wick10)} | dist ${fmt(z.dist20)} | disp ${fmt(z.disp10)}\n\n` +
-        `<i>שכבת ה-Watch (core3 OR climax קרוב לשיא): לפי בדיקת יציבות Split-Half תפסה 94%/92% ` +
-        `משיאי הראלי בדיוק ~39%. רמת דריכות — לא שינוי בשום התראת סריקה.</i>`
+        `<i>שכבת ה-Watch נשלחת רק על core3 (סף ${CORE3_THRESHOLD.toFixed(1)}): דיוק 81% מול ` +
+        `שיעור בסיס 31%, על 252 המסחר שנמדדו. רכיב climax ממשיך להופיע בגרף אך אינו שולח ` +
+        `הודעה — דיוקו 33%, מתחת לשיעור הבסיס. רמת דריכות — לא שינוי בשום התראת סריקה.</i>`
     );
 }
 
