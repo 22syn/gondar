@@ -1,0 +1,37 @@
+name: Branch Drift
+
+# The two radars run from two branches (Smart on `main`, Lean on `stable`) and
+# each carries its own copy of the shared layer. A fix applied to one silently
+# does not reach the other — PR #49 (SMA/RSI → trading-signals) landed on `main`
+# only and `stable` kept the hand-rolled version unnoticed for two months.
+#
+# This job makes that drift loud. It does NOT try to prevent divergence: if a
+# file is meant to differ, remove it from config/shared-files.txt and say why.
+#
+# Decision: cabinet decisions-log, 2026-07-26 — "accept the split, add a drift
+# guard". Full analysis: outputs/2026-07-26-two-radar-improvement.md.
+
+on:
+  push:
+    branches: [main, stable]
+  pull_request:
+    branches: [main, stable]
+  workflow_dispatch:
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      # Full history is not needed, but both branch tips are — a shallow
+      # single-branch checkout cannot see the other side of the comparison.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch both radar branches
+        run: git fetch --no-tags origin main stable
+
+      # Pure git + bash: no npm install, so this reports in seconds and cannot
+      # be masked by a dependency problem.
+      - name: Check shared files for drift
+        run: ./scripts/check-branch-drift.sh
