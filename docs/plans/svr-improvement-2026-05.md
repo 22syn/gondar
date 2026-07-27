@@ -1,5 +1,24 @@
 # Plan: Smart Volume Radar — Full Improvement Roadmap
 
+> ## 🔄 Reconciliation — 2026-07-26
+>
+> This tracker had **55 open boxes and 0 ticked** while several phases had already
+> shipped. Verified against `origin/main` and re-marked. Evidence per phase:
+>
+> | Phase | Status | Evidence |
+> |---|---|---|
+> | 1 — spam fix | **Shipped** (1.1/1.3/1.4 ticked) | `NOTABLE_MAX_PER_BUCKET=5`, `NOTABLE_SKIP_NEGATIVE_SECTOR=true`, `formatGraduationSection` wired |
+> | 1.2 — `championScore < 60` filter | **Superseded** | Built as `NOTABLE_MIN_RS = 70` instead — RS replaced the weighted score (2026-07-09) |
+> | 2 — kill `llmSummary` | **Shipped** (all ticked) | dead exports gone, `src/agents/` deleted, LLM vars out of config; `classifyTickersWithGroq` kept |
+> | 4 — `radar-criteria-tester` | **Built, then retired** | Now in `~/cabinet/agent-library/specialists/_to_delete/`, staged for deletion |
+> | 6 — RS Percentile | **Shipped** | `src/utils/rsPercentile.ts` exists and is the documented ranking column |
+> | 3, 5, 7–10 | **Still open** — not re-verified in this pass | — |
+>
+> Successor plan: `docs/plans/two-radar-improvement.md`. Review:
+> `~/cabinet/outputs/2026-07-26-two-radar-improvement.md`.
+
+---
+
 ## Context
 Two tracks of work merged into this plan:
 
@@ -40,16 +59,16 @@ volume-confirmed AND fundamentally sound.
   - **Verify:** `git log` shows commit, push succeeded.
 
 ### Phase 1: Smart Radar spam fix — *the headline win, est. 30 min*
-- [ ] **1.1** Cap `formatNotableSection` at top-5 per sub-section (distribution + no-vol).
+- [x] **1.1** Cap `formatNotableSection` at top-5 per sub-section (distribution + no-vol).
   - File: `src/services/telegramBot.ts:543`.
   - **Verify:** unit test or quick `npm run preview-report` shows ≤10 lines in NOTABLE.
 - [ ] **1.2** Skip stocks in NOTABLE when `championScore < 60` (low-quality filter).
   - File: `src/services/telegramBot.ts:543`.
   - **Verify:** preview-report shows distribution items only with score ≥60.
-- [ ] **1.3** Skip NOTABLE entirely when `sectorMedianReturn63d < 0` (sector-wide noise).
+- [x] **1.3** Skip NOTABLE entirely when `sectorMedianReturn63d < 0` (sector-wide noise).
   - File: `src/services/telegramBot.ts:543`.
   - **Verify:** preview-report on a day with weak A&D sector — A&D items absent.
-- [ ] **1.4** Add 🎓 **Graduated** section to top of Telegram (Close→Full event).
+- [x] **1.4** Add 🎓 **Graduated** section to top of Telegram (Close→Full event).
   - File: `src/services/telegramBot.ts:formatGraduationSection` (already exists at line 717 — just verify it's wired).
   - **Verify:** when a real graduation happens, section appears at top.
 - [ ] **1.5** Use **`anthropic-skills:code-review-checklist`** on the diff before commit.
@@ -59,13 +78,13 @@ volume-confirmed AND fundamentally sound.
   - **Verify:** the night's Telegram shows ≤20 lines total instead of 155.
 
 ### Phase 2: llmSummary — kill the dead code, optionally build aiCommentary
-- [ ] **2.1** Delete `src/services/llmSummary.ts` exports that are unused
+- [x] **2.1** Delete `src/services/llmSummary.ts` exports that are unused
   (`getReportSummary`, `getPerStockAnalyses`, `buildPrompt`).
   Keep `classifyTickersWithGroq` only (it's a utility, not dead).
   - **Verify:** `grep -rn "getReportSummary\|getPerStockAnalyses" src/` returns nothing.
-- [ ] **2.2** Delete `src/agents/llmClient.ts` + `src/agents/types.ts` (newer abstraction, never used).
+- [x] **2.2** Delete `src/agents/llmClient.ts` + `src/agents/types.ts` (newer abstraction, never used).
   - **Verify:** `grep -rn "from.*agents/llmClient" src/` returns nothing.
-- [ ] **2.3** Remove `enableLlmSummary`, `LLM_PROVIDER`, `LLM_*` from `src/config/index.ts`
+- [x] **2.3** Remove `enableLlmSummary`, `LLM_PROVIDER`, `LLM_*` from `src/config/index.ts`
   except for the bits `classifyTickersWithGroq` still needs (Groq key).
   - **Verify:** `tsc --noEmit` passes.
 - [ ] **2.4** Remove `ENABLE_LLM_SUMMARY` + `LLM_PROVIDER` + `GEMINI_API_KEY`
