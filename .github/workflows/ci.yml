@@ -1,10 +1,13 @@
 name: CI
 
+# `stable` added 2026-07-27: it was missing, so the Lean radar branch — which
+# drives the dashboard, D1 and the TradingView sync — had NEVER run CI on a push
+# or a PR. `develop` dropped: no such branch exists.
 on:
   push:
-    branches: [main, develop]
+    branches: [main, stable]
   pull_request:
-    branches: [main, develop]
+    branches: [main, stable]
 
 jobs:
   lint-build-test:
