@@ -282,8 +282,81 @@
 
       <header class="explainer-hero">
         <h1 class="explainer-title">איך Lean Radar עובד?</h1>
-        <p class="explainer-subtitle">מקור הדאטה, הלוגיקה מאחורי כל סיגנל, שכבות ה-Setup, עמודת ה-RS, הציון, ומדדי ה-Purple Fragility וה-Capitulation — הכל כאן. מחזור החיים של רשימות ה-TradingView מתועד בלשונית 📺 Watchlist. עודכן 2026-07-26.</p>
+        <p class="explainer-subtitle">מקור הדאטה, הלוגיקה מאחורי כל סיגנל, שכבות ה-Setup, עמודת ה-RS, הציון, ומדדי ה-Purple Fragility וה-Capitulation — הכל כאן. מחזור החיים של רשימות ה-TradingView מתועד בלשונית 📺 Watchlist. עודכן 2026-07-27.</p>
       </header>
+
+      <!-- Open items — deliberately first: these are the things that need a human
+           decision later, and they are easy to forget once they scroll away. -->
+      <section class="explainer-section" aria-labelledby="ex-open">
+        <h2 class="explainer-h2" id="ex-open">📌 פתוח לבדיקה בהמשך</h2>
+        <p class="explainer-prose">
+          דברים שנשארו במכוון פתוחים — לא באגים, אלא החלטות שדורשות עוד דאטה או עוד זמן.
+          מה שיש לו בדיקה אוטומטית מסומן; השאר תלוי בך. עודכן 2026-07-27.
+        </p>
+
+        <div class="explainer-score-grid">
+          <div class="explainer-score-item explainer-score-item--neg">
+            <span class="explainer-score-label">🔁 כיול מחדש של Fragility</span>
+            <span class="explainer-score-detail">
+              המחקר מ-2026-07-27 נשען על <strong>2 אירועים בלבד</strong> (אוקטובר–נובמבר 2025,
+              מאי–יוני 2026). צריך עוד <strong>2–3 אירועים בלתי-תלויים</strong> — לא עוד התרעות:
+              10 ההתרעות הקיימות מתקבצות לשני אירועים.
+              <br><em>יש בדיקה אוטומטית ב-1 לכל חודש שסופרת אירועים חדשים ב-D1 ותודיע כשיגיע הזמן.</em>
+            </span>
+          </div>
+
+          <div class="explainer-score-item">
+            <span class="explainer-score-label">⚪ אימות חי של climax</span>
+            <span class="explainer-score-detail">
+              השינוי נבדק על 252 שורות היסטוריות, אבל עוד לא ראינו אותו חי.
+              בחצייה הבאה של <strong>climax בלבד</strong> מצופה: עיגול אפור חלול בגרף,
+              ו<strong>בלי הודעה בטלגרם</strong>. אם תגיע הודעה — משהו לא מחובר נכון.
+            </span>
+          </div>
+
+          <div class="explainer-score-item">
+            <span class="explainer-score-label">⚠️ הכלל כתוב פעמיים</span>
+            <span class="explainer-score-detail">
+              כלל ה-Alert/Watch מקודד גם במנוע (<code>purpleFragility.ts</code>, ענף <code>main</code>)
+              וגם בדאשבורד (<code>app.js</code>, ענף <code>stable</code>). הותאמו ידנית ב-2026-07-27,
+              אבל הם עלולים להיפרד בעתיד. תיקון אמיתי = מקור אחד משותף. חוב מוכר, לא דחוף.
+            </span>
+          </div>
+
+          <div class="explainer-score-item">
+            <span class="explainer-score-label">📊 שיעורי הבסיס אינם קבועים</span>
+            <span class="explainer-score-detail">
+              המספרים ‎21%‎ / ‎31%‎ / ‎41%‎ נמדדו בחלון תנודתי במיוחד (הסל ירד ‎21.9%‎ מהשיא בסופו).
+              בשנה רגועה הם ייראו אחרת. <strong>לחשב מחדש בכל כיול — לא להתייחס אליהם כקבועים.</strong>
+            </span>
+          </div>
+
+          <div class="explainer-score-item">
+            <span class="explainer-score-label">🧪 QQQ כקו ייחוס — לבדיקה חוזרת</span>
+            <span class="explainer-score-detail">
+              QQQ נבחר כי הוא הצמוד ביותר לסל (‎r=0.821‎) והחזק ביותר בסף המשמעותי.
+              הפער מול ‎^IXIC‎ קטן ומתהפך לפי הסף — <strong>לא להחליף אלא אם כיול עתידי
+              יראה פער יציב</strong>. הוחלט מפורשות לא להחליף ב-2026-07-27.
+            </span>
+          </div>
+
+          <div class="explainer-score-item">
+            <span class="explainer-score-label">🔒 מה לא נוגעים בו</span>
+            <span class="explainer-score-detail">
+              <code>FRAGILITY_THRESHOLD = 1.0</code> — הטווח ‎0.9–1.2‎ נותן ‎3–4x‎ ב-‎p&lt;0.01‎,
+              כלומר רמה יציבה ולא מקרית. הסף ‎1.1‎ נראה טוב יותר אבל על ‎8‎ אירועים מול ‎10‎ —
+              זו התאמת-יתר לשני אירועים. גם כלל ה-🔴 Alert והרכב הסל נעולים.
+            </span>
+          </div>
+        </div>
+
+        <p class="explainer-prose">
+          <strong>המכשיר שצובר את הדאטה:</strong> יומן ה-OOS הקפוא (<code>oosLog.ts</code>) רושם כל יום
+          שורה בלתי-ניתנת-לשינוי. הוא הבסיס לכיול הבא — עדיף לתת לו לצבור מאשר להוסיף
+          עוד שכבות על סיגנל שעדיין לא אומת מספיק.
+          המחקר המלא והקוד לשחזור: <code>docs/research/fragility-calibration/</code> בענף <code>main</code>.
+        </p>
+      </section>
 
       <!-- Pipeline -->
       <section class="explainer-section" aria-labelledby="ex-pipeline">
