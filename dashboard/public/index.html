@@ -282,8 +282,59 @@
 
       <header class="explainer-hero">
         <h1 class="explainer-title">איך Lean Radar עובד?</h1>
-        <p class="explainer-subtitle">מקור הדאטה, הלוגיקה מאחורי כל סיגנל, שכבות ה-Setup, עמודת ה-RS, הציון, ומדדי ה-Purple Fragility וה-Capitulation — הכל כאן. מחזור החיים של רשימות ה-TradingView מתועד בלשונית 📺 Watchlist. עודכן 2026-07-26.</p>
+        <p class="explainer-subtitle">מקור הדאטה, הלוגיקה מאחורי כל סיגנל, שכבות ה-Setup, עמודת ה-RS, הציון, ומדדי ה-Purple Fragility וה-Capitulation — הכל כאן. מחזור החיים של רשימות ה-TradingView מתועד בלשונית 📺 Watchlist. מה שעוד פתוח — בסעיף <a href="#ex-open">🧭 פתוח לבדיקה</a> מיד למטה. עודכן 2026-07-27.</p>
       </header>
+
+      <!-- Open items — things to revisit. Kept at the top on purpose: this is
+           the list that quietly rots if it lives only in a commit message. -->
+      <section class="explainer-section" aria-labelledby="ex-open">
+        <h2 class="explainer-h2" id="ex-open">🧭 פתוח לבדיקה — מה עוד לא סגור</h2>
+        <p class="explainer-prose">
+          רשימת המעקב של הדברים שנשארו פתוחים במכוון, כדי שלא ייעלמו.
+          <strong>עודכן 2026-07-27.</strong> מקור מלא:
+          <code>cabinet/outputs/2026-07-26-two-radar-improvement.md</code>.
+        </p>
+        <div class="explainer-table-wrap">
+          <table class="explainer-table">
+            <caption>פתוח לבדיקה — מה, למה חשוב, ואיך בודקים</caption>
+            <thead>
+              <tr><th>מה</th><th>למה זה משנה</th><th>איך בודקים</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>אין השוואה עדכנית Smart מול Lean</strong></td>
+                <td>ההשוואה היחידה (מאי 2026) בוטלה — היא נמדדה לפני שער המומנטום, הסרת lowRiskEntry, דירוג RS ושכבת ה-creep. כרגע <em>אין</em> תשובה מבוססת-נתונים לשאלה "מי מהם עדיף".</td>
+                <td>צריך שתי הרצות replay מלאות (‎~600 מניות × 250 ימים כל אחת) ואז <code>compare-radars-6mo.ts</code>. עבודה מפוקחת, לא ריצה ברקע.</td>
+              </tr>
+              <tr>
+                <td><strong>גיזום ה-8% עוד לא רץ באמת</strong></td>
+                <td>המנגנון פעיל מ-2026-07-27, אבל מאז אף מנייה לא נשברה — כלומר מסלול ההסרה עצמו עדיין לא הופעל בפרודקשן, רק בבדיקה מקומית.</td>
+                <td>בדוח הבריאות היומי בטלגרם: כשתופיע מנייה תחת "❌ נשברו", לוודא שהיא באמת ירדה מהרשימה בסנכרון של אותו יום.</td>
+              </tr>
+              <tr>
+                <td><strong>יומן ה-OOS עדיין צעיר</strong></td>
+                <td>הרשומה הקפואה של מדד השבירוּת התחילה ב-2026-07-19. עד שיצטברו מספיק ימים, הדיוק "החי" שלה לא אומר הרבה — הכיול ההיסטורי הוא עדיין המספר היחיד שמאומת.</td>
+                <td><code>results/oos_log.csv</code> — לספור שורות מאז OOS_START לפני שמסיקים משהו מהן.</td>
+              </tr>
+              <tr>
+                <td><strong>שומר ה-drift רץ רק מצד main</strong></td>
+                <td>הבדיקה שמוודאת ש-16 הקבצים המשותפים זהים בין הענפים לא מופעלת ב-push ל-<code>stable</code> — הקובץ קיים רק ב-main.</td>
+                <td>הכיסוי עקיף: ל-main נכנס commit כמעט כל יום, וכל אחד בודק מחדש את שני הענפים. אם main ישקוט לאורך זמן — לשקול להעתיק את ה-workflow.</td>
+              </tr>
+              <tr>
+                <td><strong>סל 10 המניות — review שנתי</strong></td>
+                <td>ההרכב נעול. ה-review הבא מתוכנן ל-2027, וברירת המחדל שלו היא "לא נוגעים" — כל שינוי מאפס את הרשומה החיה.</td>
+                <td>סעיף <a href="#ex-basket">🧺 סל 10 המניות</a> — הטריגרים והפרוטוקול המלא.</td>
+              </tr>
+              <tr>
+                <td><strong>‎49 משימות פתוחות בתוכנית מאי</strong></td>
+                <td>שלבים 3, 5, 7–10 של תוכנית השיפור של ה-Smart (ChampionScan) מעולם לא נסגרו ולא נבדקו מחדש.</td>
+                <td><code>docs/plans/svr-improvement-2026-05.md</code> — כולל טבלת התאמה שמסמנת מה כבר נשלח.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       <!-- Pipeline -->
       <section class="explainer-section" aria-labelledby="ex-pipeline">
