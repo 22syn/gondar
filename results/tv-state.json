@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-27",
+  "updatedAt": "2026-07-28",
   "watchlists": {
     "Lean Radar - Breakouts": [
       {
@@ -13,6 +13,10 @@
       {
         "ticker": "PKG",
         "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "KO",
+        "signalDate": "2026-07-28"
       }
     ],
     "Lean Radar - Near": [
