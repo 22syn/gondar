@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-28",
+  "updatedAt": "2026-07-29",
   "watchlists": {
     "Lean Radar - Breakouts": [
       {
@@ -17,6 +17,18 @@
       {
         "ticker": "KO",
         "signalDate": "2026-07-28"
+      },
+      {
+        "ticker": "TMHC",
+        "signalDate": "2026-07-29"
+      },
+      {
+        "ticker": "BXP",
+        "signalDate": "2026-07-29"
+      },
+      {
+        "ticker": "MDLZ",
+        "signalDate": "2026-07-29"
       }
     ],
     "Lean Radar - Near": [
