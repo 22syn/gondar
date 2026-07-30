@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-29",
+  "updatedAt": "2026-07-30",
   "watchlists": {
     "Lean Radar - Breakouts": [
       {
@@ -29,6 +29,14 @@
       {
         "ticker": "MDLZ",
         "signalDate": "2026-07-29"
+      },
+      {
+        "ticker": "EPOL",
+        "signalDate": "2026-07-30"
+      },
+      {
+        "ticker": "BUD",
+        "signalDate": "2026-07-30"
       }
     ],
     "Lean Radar - Near": [
