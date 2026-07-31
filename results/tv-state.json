@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-30",
+  "updatedAt": "2026-07-31",
   "watchlists": {
     "Lean Radar - Breakouts": [
       {
@@ -43,6 +43,11 @@
       {
         "ticker": "GD",
         "signalDate": "2026-07-24"
+      },
+      {
+        "ticker": "DLN",
+        "signalDate": "2026-07-31",
+        "exchange": "LSE"
       }
     ]
   }
