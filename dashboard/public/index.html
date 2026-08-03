@@ -117,22 +117,37 @@
       </div>
       <div class="chart-wrap chart-wrap--williamsr" id="williamsr-wrap" hidden>
         <div class="chart-title-row">
-          <p class="chart-title">📉 Williams %R <span class="chart-subtitle">מד תזמון-שוק על SPY שבועי (14) — לא לכל מניה, ולא קשור לציון ה-Fragility למעלה</span></p>
+          <p class="chart-title">📉 Williams %R <span class="chart-subtitle">מד תזמון-שוק על SPY ו-QQQ שבועי (14) — לא לכל מניה, ולא קשור לציון ה-Fragility למעלה</span></p>
         </div>
         <p class="williamsr-explainer">
-          <b>מה זה אומר:</b> כשהקו יורד מתחת ל-<b class="wr-legend-panic">‑80</b> — SPY נכנס ל"פאניקה קיצונית". היסטורית (2006–היום, 44 מקרים) זה הוביל לתשואה חיובית ב-77% מהמקרים, אבל <b>רק תוך 8–26 שבועות</b>, לא מיד — ו-77% מהמקרים גם ירדו לשפל נוסף לפני זה. זו לא נקודת "לקנות עכשיו", אלא איתות "תתחיל לשים לב". מעל <b class="wr-legend-overbought">‑20</b> = overbought. פירוט מלא ומחקר ה-backtest — ראו "איך זה עובד".
+          <b>מה זה אומר:</b> כשהקו יורד מתחת ל-<b class="wr-legend-panic">‑80</b> — השוק נכנס ל"פאניקה קיצונית". היסטורית (2006–היום, 44 מקרים ב-SPY) זה הוביל לתשואה חיובית ב-77% מהמקרים, אבל <b>רק תוך 8–26 שבועות</b>, לא מיד — ו-77% מהמקרים גם ירדו לשפל נוסף לפני זה. זו לא נקודת "לקנות עכשיו", אלא איתות "תתחיל לשים לב". מעל <b class="wr-legend-overbought">‑20</b> = overbought — ב-QQQ, ‎10+‎ שבועות רצופים באזור הזה קדמו לנפילת השבבים ביולי 2026. פירוט מלא ומחקר ה-backtest — ראו "איך זה עובד".
         </p>
-        <!-- The real TradingView chart — this IS what the indicator looks like.
-             Collapsible (open by default) so its portrait aspect ratio doesn't force a
+        <!-- The real TradingView charts — this IS what the indicator looks like.
+             Collapsible (open by default) so their portrait aspect ratio doesn't force a
              huge fixed block — see .williamsr-tv-img max-height in styles.css. -->
         <details class="williamsr-tv-primary" open>
-          <summary>📺 TradingView — הגרף האמיתי (מתעדכן כל יום ראשון)</summary>
+          <summary>📺 TradingView — SPY, הגרף האמיתי (מתעדכן כל יום ראשון)</summary>
           <img
             src="/assets/williams-r-spy-weekly.png"
             alt="SPY שבועי עם Williams %R ב-TradingView"
             class="williamsr-tv-img"
             loading="lazy"
           >
+          <a class="dd-tv-link" href="https://www.tradingview.com/chart/?symbol=SPY&interval=1W" target="_blank" rel="noopener noreferrer">
+            פתח את הגרף החי ב-TradingView ↗
+          </a>
+        </details>
+        <details class="williamsr-tv-primary" open>
+          <summary>📺 TradingView — QQQ, הגרף האמיתי (מתעדכן כל יום ראשון)</summary>
+          <img
+            src="/assets/williams-r-qqq-weekly.png"
+            alt="QQQ שבועי עם Williams %R ב-TradingView"
+            class="williamsr-tv-img"
+            loading="lazy"
+          >
+          <a class="dd-tv-link" href="https://www.tradingview.com/chart/?symbol=QQQ&interval=1W" target="_blank" rel="noopener noreferrer">
+            פתח את הגרף החי ב-TradingView ↗
+          </a>
         </details>
       </div>
     </section>
@@ -745,9 +760,9 @@
         </p>
       </section>
 
-      <!-- Williams %R — market-timing gauge (SPY weekly), separate from the basket-level Fragility score above -->
+      <!-- Williams %R — market-timing gauge (SPY + QQQ weekly), separate from the basket-level Fragility score above -->
       <section class="explainer-section" aria-labelledby="ex-williamsr">
-        <h2 class="explainer-h2" id="ex-williamsr">📉 Williams %R — מד תזמון-שוק (SPY שבועי)</h2>
+        <h2 class="explainer-h2" id="ex-williamsr">📉 Williams %R — מד תזמון-שוק (SPY + QQQ שבועי)</h2>
         <p class="explainer-prose">
           מדד ברמת <strong>השוק הרחב</strong> (לא ברמת מנייה, ולא קשור לסל ה-Fragility למעלה) —
           שכפול של אינדיקטור ששימש ב-<a href="https://x.com/TheRonnieVShow/status/2083202402186911864" target="_blank" rel="noopener">ציוץ של RonnieV</a>
@@ -762,6 +777,12 @@
           בדקנו את התמונה המקורית ברזולוציה מלאה כדי לוודא זאת. כדי לשחזר בדיוק את מה שהוא
           הראה — לא רק "משהו דומה" — הבנייה כאן משתמשת באותו טיקר ואותו טווח זמן בדיוק,
           עם תקופה סטנדרטית של 14 (ברירת המחדל של TradingView/לארי ויליאמס עצמו).
+        </p>
+        <p class="explainer-prose">
+          <strong>למה נוסף גם QQQ:</strong> בדיקה נפרדת (אוגוסט 2026) הראתה ‎10+‎ שבועות
+          רצופים של Williams %R על QQQ באזור overbought (‎≥‑20‎) שקדמו לנפילה החדה במניות
+          השבבים ביולי 2026 — כלומר האינדיקטור נתן איתות התרעה מוקדם גם ברמת סקטור,
+          לא רק ברמת "פאניקה קיצונית" ב-SPY. לכן הצגנו כאן גם QQQ, ולא רק SPY.
         </p>
         <div class="explainer-score-grid">
           <div class="explainer-score-item explainer-score-item--pos">

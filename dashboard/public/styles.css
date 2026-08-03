@@ -508,6 +508,8 @@ main {
 
 .williamsr-tv-primary summary:hover { color: var(--text); }
 
+.williamsr-tv-primary + .williamsr-tv-primary { margin-top: 16px; }
+
 /* The TradingView capture is portrait-ish (~1:1) — capping height (not just
  * width:100%) keeps it proportional to the other charts in this section
  * instead of stretching to a huge block at full container width. */
