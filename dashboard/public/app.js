@@ -457,15 +457,6 @@ function updateNavButtons() {
 
 /* ─── Summary cards ───────────────────────────────────────────────────────── */
 
-/**
- * Count today's rows at or above an RS threshold, from the merged signal rows.
- * @param {number} min
- * @returns {number}
- */
-function rsAtLeast(min) {
-  return allRows.filter((r) => (r.rs ?? -1) >= min).length;
-}
-
 function renderCards() {
   const s = summaryDays.find((d) => d.scan_date === selectedDate);
   const container = $('#cards');
@@ -479,11 +470,6 @@ function renderCards() {
     // (67.5%→70.9% win) and the 2026-08-03 live study found it carries no
     // information beyond RS, so a Score threshold card asserted a quality
     // cut-off the data does not support.
-    //
-    // Both RS counts come from `allRows`, NOT from the summary payload:
-    // /api/summary reads lean_signals.rs directly, which has been NULL since
-    // 2026-07-08 (RS moved to rs_daily + a read-time merge), so s.rs90 renders
-    // 0 every day. /api/signals goes through mergeSetup and is correct.
     ['סה"כ',        s.total,       '',                      null],
     ['Setup Full',  s.setup_full,  'stat-card--highlight',  'gps_fixed'],
     ['Setup/Rec',   s.setup_other, '',                      'visibility'],
@@ -492,8 +478,8 @@ function renderCards() {
     ['Pullback',    s.pullback,    '',                      'trending_down'],
     ['Creep',       s.creep,       '',                      'stairs'],
     ['Near',        s.near_all,    '',                      'hourglass_empty'],
-    ['RS≥80',       rsAtLeast(80), 'stat-card--highlight',  'fitness_center'],
-    ['RS≥90',       rsAtLeast(90), 'stat-card--highlight',  'local_fire_department'],
+    ['RS≥80',       s.rs80 ?? 0,   'stat-card--highlight',  'fitness_center'],
+    ['RS≥90',       s.rs90 ?? 0,   'stat-card--highlight',  'local_fire_department'],
   ];
 
   container.innerHTML = defs.map(([lbl, val, extra, icon]) => `
@@ -1253,7 +1239,7 @@ function updateHeaderMeta() {
   const runPart = run ? ` · ריצה אחרונה: ${run}` : '';
   // Leads with RS≥80 (the documented entry gate) rather than Score≥70, to match
   // the stat cards. Sourced from allRows for the same reason they are.
-  $('#header-meta').textContent = `${s.total} סיגנלים · RS≥80: ${rsAtLeast(80)}${runPart}`;
+  $('#header-meta').textContent = `${s.total} סיגנלים · RS≥80: ${s.rs80 ?? 0}${runPart}`;
 }
 
 /* ─── Current TradingView watchlist (separate app/branch, read via /api/watchlist) ─ */
