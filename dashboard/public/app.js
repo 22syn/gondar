@@ -72,11 +72,6 @@ let fragChart = null;
 let fragChartModal = null;
 /** Last-loaded fragility rows, kept so the expanded modal can re-render the same data. */
 let fragilityRows = [];
-/** Williams %R panel — two synced charts (oscillator + SPY price), each with a modal twin. */
-let wrOscChart = null;
-let wrPriceChart = null;
-let wrOscChartModal = null;
-let wrPriceChartModal = null;
 /** Calendar view state: which month/year the popover is currently showing */
 let calViewYear  = 0;
 let calViewMonth = 0; // 0-11
@@ -513,16 +508,7 @@ async function loadFragility() {
   fragilityRows = rows;
   $('#fragility-wrap').hidden = false;
   renderFragilityChart(rows, 'fragility-chart');
-
-  if (rows.some((r) => r.spy_w_williams_r != null)) {
-    $('#williamsr-wrap').hidden = false;
-    // Lazy: Chart.js can't size a canvas inside a closed <details> (0×0 at
-    // render time), so wait for it to actually open rather than rendering
-    // eagerly here — see the toggle listener in the init section below.
-    if ($('#williamsr-history-details').open) {
-      renderWilliamsRPanel(rows, 'williamsr-osc-chart', 'williamsr-price-chart', false);
-    }
-  }
+  $('#williamsr-wrap').hidden = false;
 }
 
 function renderFragilityChart(rows, canvasId) {
@@ -626,7 +612,10 @@ function renderFragilityChart(rows, canvasId) {
           pointHitRadius: 6,
           tension: 0.25,
           fill: false,
-          hidden: !hasCapitulation,
+          // Off by default (click the legend to enable) — keeps the chart to
+          // just the Fragility line on first load; Capitulation/QQQ are
+          // secondary overlays, not the primary signal.
+          hidden: true,
         },
         // Reference line only — the real 🔴 alert also requires the basket to be
         // near its own running high (indexNearHigh, not persisted per-day here),
@@ -657,7 +646,8 @@ function renderFragilityChart(rows, canvasId) {
           tension: 0.15,
           fill: false,
           yAxisID: 'y1',
-          hidden: !hasQqq,
+          // Off by default — see Capitulation dataset above for why.
+          hidden: true,
         },
       ],
     },
@@ -734,184 +724,6 @@ function renderFragilityChart(rows, canvasId) {
 
   if (isModal) fragChartModal = chartInstance;
   else fragChart = chartInstance;
-}
-
-/* ─── Williams %R panel (market-timing gauge, separate from Purple Fragility) ─── */
-
-/** -80/-20 are Larry Williams' own oversold/overbought convention (the
- *  "panic extreme" / "overbought" zones RonnieV's tweet referred to). */
-const WR_PANIC_THRESHOLD = -80;
-const WR_OVERBOUGHT_THRESHOLD = -20;
-
-function wrZone(v) {
-  return v == null ? null : v <= WR_PANIC_THRESHOLD ? 'panic' : v >= WR_OVERBOUGHT_THRESHOLD ? 'overbought' : null;
-}
-
-/**
- * Two synced charts: the W%R oscillator on top, SPY's own price directly
- * below it — same date axis, same marker dots at the same x-position — so
- * "what the oscillator said" and "what price actually did" sit right next
- * to each other, the way RonnieV's reference chart pairs them (oscillator
- * pane above a price pane, gray circles linking the two).
- */
-function renderWilliamsRPanel(rows, oscId, priceId, isModal) {
-  if (isModal) {
-    if (wrOscChartModal) { wrOscChartModal.destroy(); wrOscChartModal = null; }
-    if (wrPriceChartModal) { wrPriceChartModal.destroy(); wrPriceChartModal = null; }
-  } else {
-    if (wrOscChart) { wrOscChart.destroy(); wrOscChart = null; }
-    if (wrPriceChart) { wrPriceChart.destroy(); wrPriceChart = null; }
-  }
-
-  const labels = rows.map((r) => r.scan_date);
-  const wr = rows.map((r) => r.spy_w_williams_r ?? null);
-  const price = rows.map((r) => r.spy_price ?? null);
-
-  // A dot appears only the week a zone is NEWLY entered (not every week it's
-  // held) — one mark per crossing, same idea as RonnieV's gray BOTTOM circles.
-  const marker = wr.map((v, i) => {
-    const zone = wrZone(v);
-    if (!zone) return null;
-    return zone !== wrZone(i > 0 ? wr[i - 1] : null) ? zone : null;
-  });
-  const markerColor = (m) => (m === 'panic' ? 'rgba(63,185,80,0.95)' : m === 'overbought' ? 'rgba(248,81,73,0.95)' : 'transparent');
-  const markerRadius = (m) => (m === 'panic' ? 4 : m === 'overbought' ? 3.4 : 0);
-  const markerLabel = (m, v) => m === 'panic' ? ' 🟢 נכנס לפאניקה קיצונית — אזור קנייה היסטורי (לא מיידי)'
-    : m === 'overbought' ? ' 🔴 נכנס ל-overbought'
-      : v <= WR_PANIC_THRESHOLD ? ' (באזור פאניקה)'
-        : v >= WR_OVERBOUGHT_THRESHOLD ? ' (באזור overbought)' : '';
-
-  const xScale = {
-    ticks: { color: '#8b95a5', font: { size: 9, family: 'ui-monospace, monospace' }, maxTicksLimit: 14, maxRotation: 0 },
-    grid: { color: '#242c3a' },
-  };
-  const sharedTooltip = {
-    backgroundColor: '#1b2130', borderColor: '#242c3a', borderWidth: 1,
-    titleColor: '#e6edf3', bodyColor: '#8b95a5',
-    callbacks: { title: (items) => (items[0] ? rows[items[0].dataIndex].scan_date : '') },
-  };
-
-  const oscChart = new Chart($('#' + oscId).getContext('2d'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [
-        {
-          label: 'W%R (SPY שבועי, 14)',
-          data: wr,
-          borderColor: 'rgba(210,153,34,0.9)',
-          borderWidth: 1.5,
-          pointRadius: (ctx) => markerRadius(marker[ctx.dataIndex]),
-          pointBackgroundColor: (ctx) => markerColor(marker[ctx.dataIndex]),
-          pointHoverRadius: (ctx) => (marker[ctx.dataIndex] ? 5 : 3),
-          pointHitRadius: 6,
-          tension: 0.15,
-          fill: false,
-        },
-        {
-          label: `פאניקה קיצונית (${WR_PANIC_THRESHOLD})`,
-          data: wr.map(() => WR_PANIC_THRESHOLD),
-          borderColor: 'rgba(63,185,80,0.55)', borderWidth: 1, borderDash: [4, 3],
-          pointRadius: 0, pointHitRadius: 0, fill: false,
-        },
-        {
-          label: `Overbought (${WR_OVERBOUGHT_THRESHOLD})`,
-          data: wr.map(() => WR_OVERBOUGHT_THRESHOLD),
-          borderColor: 'rgba(248,81,73,0.55)', borderWidth: 1, borderDash: [4, 3],
-          pointRadius: 0, pointHitRadius: 0, fill: false,
-        },
-      ],
-    },
-    options: {
-      animation: false, responsive: true, maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: true, labels: { color: '#8b95a5', font: { size: 10 }, boxWidth: 12, filter: (item) => item.datasetIndex === 0 } },
-        tooltip: {
-          ...sharedTooltip,
-          filter: (item) => item.datasetIndex === 0,
-          callbacks: {
-            ...sharedTooltip.callbacks,
-            label: (item) => {
-              const v = wr[item.dataIndex];
-              return v == null ? 'W%R: —' : `W%R: ${v.toFixed(1)}${markerLabel(marker[item.dataIndex], v)}`;
-            },
-          },
-        },
-      },
-      scales: {
-        x: xScale,
-        y: { min: -100, max: 0, ticks: { color: '#8b95a5', font: { size: 10 } }, grid: { color: '#242c3a' } },
-      },
-    },
-  });
-
-  const priceChart = new Chart($('#' + priceId).getContext('2d'), {
-    type: 'line',
-    data: {
-      labels,
-      datasets: [{
-        label: 'SPY ($)',
-        data: price,
-        borderColor: 'rgba(88,166,255,0.9)',
-        backgroundColor: 'rgba(88,166,255,0.08)',
-        borderWidth: 1.5,
-        pointRadius: (ctx) => markerRadius(marker[ctx.dataIndex]),
-        pointBackgroundColor: (ctx) => markerColor(marker[ctx.dataIndex]),
-        pointHoverRadius: (ctx) => (marker[ctx.dataIndex] ? 5 : 3),
-        pointHitRadius: 6,
-        tension: 0.15,
-        fill: true,
-      }],
-    },
-    options: {
-      animation: false, responsive: true, maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          ...sharedTooltip,
-          callbacks: {
-            ...sharedTooltip.callbacks,
-            label: (item) => {
-              const v = price[item.dataIndex];
-              return v == null ? 'SPY: —' : `SPY: $${v.toFixed(2)}`;
-            },
-          },
-        },
-      },
-      scales: {
-        x: xScale,
-        y: { ticks: { color: '#8b95a5', font: { size: 10 } }, grid: { color: '#242c3a' } },
-      },
-    },
-  });
-
-  if (isModal) { wrOscChartModal = oscChart; wrPriceChartModal = priceChart; }
-  else { wrOscChart = oscChart; wrPriceChart = priceChart; }
-}
-
-function openWilliamsRModal() {
-  if (fragilityRows.length === 0) return;
-  $('#williamsr-modal-title').innerHTML = document.querySelector('#williamsr-wrap .chart-title').innerHTML;
-  $('#williamsr-modal').hidden = false;
-  $('#williamsr-modal-overlay').hidden = false;
-  document.body.style.overflow = 'hidden';
-  renderWilliamsRPanel(fragilityRows, 'williamsr-osc-chart-modal', 'williamsr-price-chart-modal', true);
-
-  const modal = $('#williamsr-modal');
-  modal._escHandler = (e) => { if (e.key === 'Escape') closeWilliamsRModal(); };
-  document.addEventListener('keydown', modal._escHandler);
-}
-
-function closeWilliamsRModal() {
-  const modal = $('#williamsr-modal');
-  $('#williamsr-modal').hidden = true;
-  $('#williamsr-modal-overlay').hidden = true;
-  document.body.style.overflow = '';
-  if (wrOscChartModal) { wrOscChartModal.destroy(); wrOscChartModal = null; }
-  if (wrPriceChartModal) { wrPriceChartModal.destroy(); wrPriceChartModal = null; }
-  if (modal._escHandler) { document.removeEventListener('keydown', modal._escHandler); modal._escHandler = null; }
 }
 
 /* ─── Chart modal (expanded view) ─────────────────────────────────────────── */
@@ -1531,19 +1343,6 @@ async function boot() {
   $('#btn-expand-fragility').addEventListener('click', openFragilityModal);
   $('#btn-close-chart-modal').addEventListener('click', closeFragilityModal);
   $('#chart-modal-overlay').addEventListener('click', closeFragilityModal);
-
-  // Williams %R panel — expand to a larger modal view
-  $('#btn-expand-williamsr').addEventListener('click', openWilliamsRModal);
-  $('#btn-close-williamsr-modal').addEventListener('click', closeWilliamsRModal);
-  $('#williamsr-modal-overlay').addEventListener('click', closeWilliamsRModal);
-
-  // Williams %R history <details> — render on first open (Chart.js needs a
-  // sized, visible canvas; a closed <details> gives it 0×0).
-  $('#williamsr-history-details').addEventListener('toggle', (e) => {
-    if (e.target.open && wrOscChart == null && fragilityRows.length > 0) {
-      renderWilliamsRPanel(fragilityRows, 'williamsr-osc-chart', 'williamsr-price-chart', false);
-    }
-  });
 
   // Tab navigation: signals ↔ watchlist ↔ explainer
   $('#tab-signals').addEventListener('click', () => switchTab('signals'));

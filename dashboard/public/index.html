@@ -120,37 +120,19 @@
           <p class="chart-title">📉 Williams %R <span class="chart-subtitle">מד תזמון-שוק על SPY שבועי (14) — לא לכל מניה, ולא קשור לציון ה-Fragility למעלה</span></p>
         </div>
         <p class="williamsr-explainer">
-          <b>מה זה אומר:</b> נקודה <b class="wr-legend-panic">ירוקה</b> = SPY נכנס מחדש ל"פאניקה קיצונית" (W%R ≤ ‑80) — היסטורית (2006–היום, 44 מקרים) זה הוביל לתשואה חיובית ב-77% מהמקרים, אבל <b>רק תוך 8–26 שבועות</b>, לא מיד — ו-77% מהמקרים גם ירדו לשפל נוסף לפני זה. זו לא נקודת "לקנות עכשיו", אלא איתות "תתחיל לשים לב". נקודה <b class="wr-legend-overbought">אדומה</b> = overbought (W%R ≥ ‑20).
+          <b>מה זה אומר:</b> כשהקו יורד מתחת ל-<b class="wr-legend-panic">‑80</b> — SPY נכנס ל"פאניקה קיצונית". היסטורית (2006–היום, 44 מקרים) זה הוביל לתשואה חיובית ב-77% מהמקרים, אבל <b>רק תוך 8–26 שבועות</b>, לא מיד — ו-77% מהמקרים גם ירדו לשפל נוסף לפני זה. זו לא נקודת "לקנות עכשיו", אלא איתות "תתחיל לשים לב". מעל <b class="wr-legend-overbought">‑20</b> = overbought. פירוט מלא ומחקר ה-backtest — ראו "איך זה עובד".
         </p>
-        <!-- PRIMARY: the real TradingView chart — this IS what the indicator looks like. -->
-        <p class="williamsr-tv-caption">📺 TradingView — הגרף האמיתי (מתעדכן כל יום ראשון)</p>
-        <img
-          src="/assets/williams-r-spy-weekly.png"
-          alt="SPY שבועי עם Williams %R ב-TradingView"
-          class="williamsr-tv-img"
-          loading="lazy"
-        >
-        <!-- SECONDARY: our own tool — NOT trying to imitate TradingView's look.
-             Different purpose: full 2006-today history + interactive backtest
-             (44 crossings, forward-return tooltips) that a static weekly image
-             can never show. -->
-        <details class="williamsr-history" id="williamsr-history-details">
-          <summary>🔍 היסטוריה מלאה (2006–היום) + Backtest <span class="chart-subtitle">— כלי משלים, לא ניסיון לחקות את TradingView</span></summary>
-          <div class="chart-title-row">
-            <span></span>
-            <button class="btn-expand" id="btn-expand-williamsr" aria-label="הגדל גרף" title="הגדל גרף">⛶</button>
-          </div>
-          <p class="williamsr-explainer">
-            איפה זה "לא תקין": כשקו ה-W%R (למטה) נוגע/יורד מתחת לקו הירוק המקווקו. השוו לקו המחיר של SPY בפאנל התחתון — באותו תאריך בדיוק.
-          </p>
-          <div class="williamsr-panels">
-            <div class="chart-box williamsr-osc-box">
-              <canvas id="williamsr-osc-chart" aria-label="גרף Williams %R" role="img"></canvas>
-            </div>
-            <div class="chart-box williamsr-price-box">
-              <canvas id="williamsr-price-chart" aria-label="גרף מחיר SPY" role="img"></canvas>
-            </div>
-          </div>
+        <!-- The real TradingView chart — this IS what the indicator looks like.
+             Collapsible (open by default) so its portrait aspect ratio doesn't force a
+             huge fixed block — see .williamsr-tv-img max-height in styles.css. -->
+        <details class="williamsr-tv-primary" open>
+          <summary>📺 TradingView — הגרף האמיתי (מתעדכן כל יום ראשון)</summary>
+          <img
+            src="/assets/williams-r-spy-weekly.png"
+            alt="SPY שבועי עם Williams %R ב-TradingView"
+            class="williamsr-tv-img"
+            loading="lazy"
+          >
         </details>
       </div>
     </section>
@@ -763,6 +745,68 @@
         </p>
       </section>
 
+      <!-- Williams %R — market-timing gauge (SPY weekly), separate from the basket-level Fragility score above -->
+      <section class="explainer-section" aria-labelledby="ex-williamsr">
+        <h2 class="explainer-h2" id="ex-williamsr">📉 Williams %R — מד תזמון-שוק (SPY שבועי)</h2>
+        <p class="explainer-prose">
+          מדד ברמת <strong>השוק הרחב</strong> (לא ברמת מנייה, ולא קשור לסל ה-Fragility למעלה) —
+          שכפול של אינדיקטור ששימש ב-<a href="https://x.com/TheRonnieVShow/status/2083202402186911864" target="_blank" rel="noopener">ציוץ של RonnieV</a>
+          לזיהוי "פאניקה קיצונית" בשוק לפני שלושה תיקונים (Tariffgeddon 2025, Iran 2026,
+          QQQ 2026). האינדיקטור: <strong>Williams %R</strong> (לארי ויליאמס, 1973) —
+          נוסחה: <code>%R = (שיא התקופה − סגירה) / (שיא התקופה − שפל התקופה) × ‑100</code>,
+          סקאלה 0 עד ‑100.
+        </p>
+        <p class="explainer-prose">
+          <strong>למה SPY שבועי, ולא QQQ יומי:</strong> הגרף שהוא צירף בפועל לציוץ היה על
+          <strong>SPY, טווח זמן שבועי (1W)</strong> — לא QQQ יומי כפי שהטקסט של הציוץ רומז.
+          בדקנו את התמונה המקורית ברזולוציה מלאה כדי לוודא זאת. כדי לשחזר בדיוק את מה שהוא
+          הראה — לא רק "משהו דומה" — הבנייה כאן משתמשת באותו טיקר ואותו טווח זמן בדיוק,
+          עם תקופה סטנדרטית של 14 (ברירת המחדל של TradingView/לארי ויליאמס עצמו).
+        </p>
+        <div class="explainer-score-grid">
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label">🟢 ‑80 ומטה — פאניקה קיצונית</span>
+            <span class="explainer-score-detail">היסטורית (2006–היום, 44 מקרים) win-rate ‎70–77%‎ תוך 8–26 שבועות — אבל <strong>לא מיידי</strong></span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--neg">
+            <span class="explainer-score-label">🔴 ‑20 ומעלה — Overbought</span>
+            <span class="explainer-score-detail">האזור השני של הסקאלה — לא נבדק לעומק במחקר הזה, מוצג להשלמת התמונה</span>
+          </div>
+        </div>
+        <p class="explainer-prose">
+          <strong>איך בוצע ה-backtest:</strong> משכנו נתונים שבועיים
+          אמיתיים של SPY מ-Yahoo Finance מאז 2006 (חייב טווח מפורש כמו <code>20y</code> —
+          <code>range=max</code> עם <code>interval=1wk</code> מחזיר בפועל נתונים
+          <strong>חודשיים</strong>, לא שבועיים — בדקנו את זה ישירות מול ה-API). לכל שבוע
+          חישבנו Williams %R (14), ואיתרנו כל <strong>כניסה חדשה</strong> לאזור ‎≤‑80‎
+          (לא כל שבוע שבו זה מוחזק — רק רגע החצייה, בדיוק כמו העיגולים בתמונה של RonnieV).
+          לכל אחת מ-44 החציות בדקנו את התשואה בפועל של SPY ושל QQQ קדימה (שבוע, 4, 8, 12,
+          26 שבועות), ואת השאלה "האם המחיר ירד לשפל נוסף בתוך 8 שבועות לפני ההתאוששות".
+        </p>
+        <ul class="explainer-card-list">
+          <li><strong>+8 עד +26 שבועות:</strong> win-rate ‎70–77%‎, תשואה ממוצעת ‎+4%‎ עד ‎+10%‎ (SPY ו-QQQ כאחד)</li>
+          <li><strong>+שבוע-שבועיים:</strong> אין יתרון — כמעט הטלת מטבע (‎48–64%‎)</li>
+          <li><strong>‎77%‎ מהמקרים</strong> ירדו לשפל נוסף תוך 8 שבועות <em>לפני</em> ההתאוששות — התבנית "Bounce Then... BOTTOM" שמופיעה בתמונה של RonnieV עצמה</li>
+        </ul>
+        <p class="explainer-prose">
+          <strong>מגבלות:</strong> 44 מקרים על פני 20 שנה אינם עצמאיים לגמרי — הם מתקבצים
+          סביב אירועי שוק בודדים (2008, 2020, 2022 וכו'), לא 44 מדגמים אקראיים. לא נבדקו
+          תקופות/ספים חלופיים לעומק (בניגוד למחקר ה-Fragility למעלה). זה כלי לכיוון
+          המחשבה, לא נוסחת קנייה.
+        </p>
+        <p class="explainer-prose">
+          <strong>הגרף האמיתי מ-TradingView</strong> שמוצג ראשי בסעיף מתעדכן אוטומטית כל
+          יום ראשון 9:15 (<code>scripts/capture-williams-r-snapshot.ts</code> על ענף
+          <code>main</code>, דרך אותו חשבון TradingView שמריץ את סנכרון ה-watchlists) —
+          זה צילום מסך אמיתי מהלייאאוט השמור שלך, לא שחזור.
+        </p>
+        <p class="explainer-prose">
+          <strong>מה זה לא:</strong> לא עמודה לכל מניה (זה נבנה ונבדק בהתחלה, והוסר —
+          הרעיון המקורי של RonnieV הוא ברמת שוק, לא לכל טיקר). לא סף/אלרט שרץ במנוע —
+          תצוגה בלבד, בדיוק כמו ה-Fragility למעלה.
+        </p>
+      </section>
+
       <!-- The basket: why it's locked and when it would change -->
       <section class="explainer-section" aria-labelledby="ex-basket">
         <h2 class="explainer-h2" id="ex-basket">🧺 סל 10 המניות — למה הוא נעול, ומתי בכל זאת נחליף</h2>
@@ -1180,31 +1224,6 @@
       </div>
       <div class="chart-modal-box">
         <canvas id="chart-modal-canvas"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <div class="chart-modal-overlay" id="williamsr-modal-overlay" hidden aria-hidden="true"></div>
-  <div
-    id="williamsr-modal"
-    class="chart-modal"
-    hidden
-    aria-modal="true"
-    aria-label="Williams %R מוגדל"
-    role="dialog"
-  >
-    <div class="chart-modal-inner">
-      <div class="chart-title-row">
-        <p class="chart-title" id="williamsr-modal-title"></p>
-        <button class="btn-close" id="btn-close-williamsr-modal" aria-label="סגור">✕</button>
-      </div>
-      <div class="williamsr-panels williamsr-panels--modal">
-        <div class="chart-box williamsr-osc-box williamsr-osc-box--modal">
-          <canvas id="williamsr-osc-chart-modal"></canvas>
-        </div>
-        <div class="chart-box williamsr-price-box williamsr-price-box--modal">
-          <canvas id="williamsr-price-chart-modal"></canvas>
-        </div>
       </div>
     </div>
   </div>

@@ -498,56 +498,29 @@ main {
 .wr-legend-panic { color: #3fb950; }
 .wr-legend-overbought { color: #f85149; }
 
-.williamsr-panels {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.williamsr-osc-box { position: relative; height: 150px; }
-.williamsr-price-box { position: relative; height: 110px; }
-
-.williamsr-panels--modal {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.williamsr-osc-box--modal { height: auto; flex: 1.2; }
-.williamsr-price-box--modal { height: auto; flex: 1; }
-
-.williamsr-tv-caption {
+.williamsr-tv-primary summary {
+  cursor: pointer;
   font-size: 0.72rem;
   color: var(--muted);
   font-family: var(--mono);
-  margin: 0 0 8px;
-}
-
-.williamsr-tv-img {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
-
-.williamsr-history {
-  margin-top: 14px;
-  border-top: 1px solid var(--border);
-  padding-top: 10px;
-}
-
-.williamsr-history summary {
-  cursor: pointer;
-  font-size: 0.78rem;
-  color: var(--text);
   margin-bottom: 8px;
 }
 
-.williamsr-history summary:hover { color: rgba(210,153,34,0.95); }
-.williamsr-history .chart-title-row { margin-top: 10px; }
+.williamsr-tv-primary summary:hover { color: var(--text); }
+
+/* The TradingView capture is portrait-ish (~1:1) — capping height (not just
+ * width:100%) keeps it proportional to the other charts in this section
+ * instead of stretching to a huge block at full container width. */
+.williamsr-tv-img {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 340px;
+  margin: 0 auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
 
 /* ═══════════════════════════════════════════════
    CONTROLS
