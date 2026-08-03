@@ -68,6 +68,10 @@ let sortDir = -1; // -1 = descending
 /** @type {Chart|null} */
 let chart = null;
 let fragChart = null;
+/** @type {Chart|null} Modal (expanded-view) instance of the fragility chart. */
+let fragChartModal = null;
+/** Last-loaded fragility rows, kept so the expanded modal can re-render the same data. */
+let fragilityRows = [];
 /** Calendar view state: which month/year the popover is currently showing */
 let calViewYear  = 0;
 let calViewMonth = 0; // 0-11
@@ -501,12 +505,19 @@ async function loadFragility() {
     if (resp.ok) rows = await resp.json();
   } catch { /* keep panel hidden */ }
   if (!Array.isArray(rows) || rows.length === 0) return;
+  fragilityRows = rows;
   $('#fragility-wrap').hidden = false;
-  renderFragilityChart(rows);
+  renderFragilityChart(rows, 'fragility-chart');
+  $('#williamsr-wrap').hidden = false;
 }
 
-function renderFragilityChart(rows) {
-  if (fragChart) { fragChart.destroy(); fragChart = null; }
+function renderFragilityChart(rows, canvasId) {
+  const isModal = canvasId === 'chart-modal-canvas';
+  if (isModal) {
+    if (fragChartModal) { fragChartModal.destroy(); fragChartModal = null; }
+  } else if (fragChart) {
+    fragChart.destroy(); fragChart = null;
+  }
   const labels = rows.map((r) => r.scan_date.slice(5)); // MM-DD
   const scores = rows.map((r) => r.score);
   const capitulation = rows.map((r) => r.capitulation ?? null);
@@ -551,8 +562,8 @@ function renderFragilityChart(rows) {
         : isClimax(r) ? '⚪ climax בלבד — תיאורי, לא נשלחת הודעה'
           : '🟢 שקט';
 
-  const ctx = $('#fragility-chart').getContext('2d');
-  fragChart = new Chart(ctx, {
+  const ctx = $('#' + canvasId).getContext('2d');
+  const chartInstance = new Chart(ctx, {
     type: 'line',
     data: {
       labels,
@@ -601,7 +612,10 @@ function renderFragilityChart(rows) {
           pointHitRadius: 6,
           tension: 0.25,
           fill: false,
-          hidden: !hasCapitulation,
+          // Off by default (click the legend to enable) — keeps the chart to
+          // just the Fragility line on first load; Capitulation/QQQ are
+          // secondary overlays, not the primary signal.
+          hidden: true,
         },
         // Reference line only — the real 🔴 alert also requires the basket to be
         // near its own running high (indexNearHigh, not persisted per-day here),
@@ -632,7 +646,8 @@ function renderFragilityChart(rows) {
           tension: 0.15,
           fill: false,
           yAxisID: 'y1',
-          hidden: !hasQqq,
+          // Off by default — see Capitulation dataset above for why.
+          hidden: true,
         },
       ],
     },
@@ -706,6 +721,33 @@ function renderFragilityChart(rows) {
       },
     },
   });
+
+  if (isModal) fragChartModal = chartInstance;
+  else fragChart = chartInstance;
+}
+
+/* ─── Chart modal (expanded view) ─────────────────────────────────────────── */
+
+function openFragilityModal() {
+  if (fragilityRows.length === 0) return;
+  $('#chart-modal-title').innerHTML = document.querySelector('#fragility-wrap .chart-title').innerHTML;
+  $('#chart-modal').hidden = false;
+  $('#chart-modal-overlay').hidden = false;
+  document.body.style.overflow = 'hidden';
+  renderFragilityChart(fragilityRows, 'chart-modal-canvas');
+
+  const modal = $('#chart-modal');
+  modal._escHandler = (e) => { if (e.key === 'Escape') closeFragilityModal(); };
+  document.addEventListener('keydown', modal._escHandler);
+}
+
+function closeFragilityModal() {
+  const modal = $('#chart-modal');
+  $('#chart-modal').hidden = true;
+  $('#chart-modal-overlay').hidden = true;
+  document.body.style.overflow = '';
+  if (fragChartModal) { fragChartModal.destroy(); fragChartModal = null; }
+  if (modal._escHandler) { document.removeEventListener('keydown', modal._escHandler); modal._escHandler = null; }
 }
 
 /* ─── Filtering / sorting ─────────────────────────────────────────────────── */
@@ -1296,6 +1338,11 @@ async function boot() {
     $('#f-near').checked = showNear;
     renderTable();
   });
+
+  // Fragility chart — expand to a larger modal view
+  $('#btn-expand-fragility').addEventListener('click', openFragilityModal);
+  $('#btn-close-chart-modal').addEventListener('click', closeFragilityModal);
+  $('#chart-modal-overlay').addEventListener('click', closeFragilityModal);
 
   // Tab navigation: signals ↔ watchlist ↔ explainer
   $('#tab-signals').addEventListener('click', () => switchTab('signals'));
