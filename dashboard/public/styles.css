@@ -858,10 +858,12 @@ td.col-signals { text-align: start; white-space: nowrap; }
 }
 
 /* Neutral outline, not red: breakout is below baseline, not harmful, and it
-   appears often enough that a red badge would shout on every other row. */
+   appears often enough that a red badge would shout on every other row.
+   Text sits a step brighter than `low` so the two neutral tiers stay
+   distinguishable — they'd otherwise resolve to the same slate. */
 .badge--weak {
   background: transparent;
-  color: var(--xsh-fg-3);
+  color: var(--xsh-fg-2);
   border-color: var(--xsh-border-strong);
 }
 

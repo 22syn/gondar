@@ -348,7 +348,7 @@
 
       <header class="explainer-hero">
         <h1 class="explainer-title">איך Gondar עובד?</h1>
- <p class="explainer-subtitle">מקור הדאטה, הלוגיקה מאחורי כל סיגנל, שכבות ה-Setup, עמודת ה-RS, הציון, ומדדי ה-Purple Fragility וה-Capitulation — הכל כאן. מחזור החיים של רשימות ה-TradingView מתועד בלשונית Watchlist. עודכן 2026-07-27.</p>
+ <p class="explainer-subtitle">מקור הדאטה, הלוגיקה מאחורי כל סיגנל, שכבות ה-Setup, עמודת ה-RS, הציון, ומדדי ה-Purple Fragility וה-Capitulation — הכל כאן. מחזור החיים של רשימות ה-TradingView מתועד בלשונית Watchlist. עודכן 2026-08-03.</p>
       </header>
 
       <!-- Open items — deliberately first: these are the things that need a human
@@ -485,6 +485,29 @@
       <!-- Signals -->
       <section class="explainer-section" aria-labelledby="ex-signals">
         <h2 class="explainer-h2" id="ex-signals"><span class="material-symbols-outlined" aria-hidden="true">radar</span>הסיגנלים</h2>
+        <p class="explainer-prose">
+          <strong>הצבע בטבלה = איכות נמדדת, לא קטגוריה</strong> (מ-2026-08-03). האייקון אומר
+          <em>איזה</em> סיגנל זה, הצבע אומר <em>כמה הוא שווה</em> לפי הבקטסט. לכן Breakout אפור
+          ולא ירוק — הקופי שלו עצמו אומר "edge שלילי, מתחת ל-baseline".
+        </p>
+        <div class="explainer-score-grid">
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label"><span class="badge badge--strong">ירוק</span> — שכבה חזקה</span>
+            <span class="explainer-score-detail">Pullback · Creep · Setup Full / Close / Recovery — כל אלה מנצחים את ה-baseline במחקר השנתיים.</span>
+          </div>
+          <div class="explainer-score-item">
+            <span class="explainer-score-label"><span class="badge badge--moderate">כתום</span> — הקשר בלבד</span>
+            <span class="explainer-score-detail">High Volume — "משהו קורה", בלי טענה מבוססת לכיוון.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--neg">
+            <span class="explainer-score-label"><span class="badge badge--weak">אפור מתאר</span> — edge שלילי</span>
+            <span class="explainer-score-detail">Breakout — מתחת ל-baseline, משקל נמוך בציון. לא אדום כי הוא לא מזיק, פשוט לא מוסיף.</span>
+          </div>
+          <div class="explainer-score-item">
+            <span class="explainer-score-label"><span class="badge badge--low">דהוי</span> — רשימת מעקב</span>
+            <span class="explainer-score-detail">Near-* — מוסתר כברירת מחדל, למעקב ולא לפעולה.</span>
+          </div>
+        </div>
         <div class="explainer-cards">
 
           <div class="explainer-card explainer-card--strong">
@@ -618,6 +641,85 @@
  (10,736 אפיזודות): <strong>RS ‏90–100 → ‏75% הצלחה, חציון +17.9%</strong> מול
           68% / +8.3% ב-RS ‏50–69 — והוא עבד גם בשנה השורית וגם בשנה המדשדשת.
           97% ממניות ה-+100% הגיעו ל-RS ≥ 80 כבר באפיזודה השנייה שלהן.
+        </p>
+      </section>
+
+      <!-- Score vs RS — the practical "which column do I read" answer -->
+      <section class="explainer-section" aria-labelledby="ex-which">
+        <h2 class="explainer-h2" id="ex-which"><span class="material-symbols-outlined" aria-hidden="true">compare_arrows</span>Score או RS — במה להסתכל?</h2>
+        <p class="explainer-prose">
+          <strong>התשובה הקצרה: RS, לא Score</strong> — אבל רק כדי לדרג <em>בתוך</em> שכבת סיגנל,
+          ורק כשמד ה-Fragility רגוע. אף אחד מהשניים אינו טריגר קנייה בפני עצמו.
+        </p>
+
+        <h3 class="explainer-h3">מה אומר המחקר ההיסטורי (שנתיים, 10,736 אפיזודות)</h3>
+        <p class="explainer-prose">
+          המדרג של ה-Score כמעט שטוח, של ה-RS תלול פי כמה. זה ההבדל כולו:
+        </p>
+        <div class="explainer-table-wrap">
+          <table class="explainer-table">
+            <caption>פער בין הרצועה הנמוכה לגבוהה — שנתיים, ווטצ'ליסט</caption>
+            <thead>
+              <tr><th>עמודה</th><th>רצועה נמוכה</th><th>רצועה גבוהה</th><th>פער ב-win</th><th>פער בחציון</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Score</td>
+                <td>&lt;50 — 67.5% / +9.3%</td>
+                <td>80+ — 70.9% / +11.5%</td>
+                <td>3.4 נק׳</td>
+                <td>+2.2%</td>
+              </tr>
+              <tr class="et-total">
+                <td><b>RS</b></td>
+                <td>50–69 — 67.9% / +8.3%</td>
+                <td class="et-good"><b>90–100 — 75.1% / +17.9%</b></td>
+                <td class="et-good"><b>7.2 נק׳</b></td>
+                <td class="et-good"><b>+9.6%</b></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="explainer-h3">ומה קרה בפועל בדאטה החי (יוני–אוגוסט 2026)</h3>
+        <p class="explainer-prose">
+          נבדקו <strong>539 שורות סיגנל</strong> מ-8 ימי מסחר מלאים (2026-06-08 עד 06-17) מול
+          מחירי Yahoo אמיתיים, בתשואה של 21 ו-35 ימי מסחר קדימה, <strong>בניכוי QQQ</strong>.
+          התוצאה מפתיעה וחשובה:
+        </p>
+        <div class="explainer-score-grid">
+          <div class="explainer-score-item explainer-score-item--neg">
+            <span class="explainer-score-label">RS ‎90–100‎ הפסידו למדד</span>
+            <span class="explainer-score-detail">‎−5.8%‎ מתחת ל-QQQ ב-21 יום, <strong>‎−15.4%‎ ב-35 יום</strong>. שיעור הצלחה ‎14.7%‎ בלבד.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--neg">
+            <span class="explainer-score-label">Score ‎70–85‎ גם הפסידו</span>
+            <span class="explainer-score-detail">‎−12.1%‎ מתחת ל-QQQ ב-35 יום, ‎8.9%‎ הצלחה. גם כאן המדרג התהפך.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label">דווקא RS ‎50–70‎ ניצחו</span>
+            <span class="explainer-score-detail">‎+10.2%‎ מעל QQQ ב-35 יום, ‎64%‎ הצלחה — המובילים נשברו, הבינוניים החזיקו.</span>
+          </div>
+        </div>
+
+        <h3 class="explainer-h3">למה זה קרה — וזו הנקודה החשובה</h3>
+        <p class="explainer-prose">
+          זו לא הוכחה ש-RS "לא עובד". זה בדיוק <strong>מפולת מומנטום</strong>: RS מדרג את מובילי
+          המומנטום, ובהתפרקות מומנטום הם בהגדרה נופלים הכי חזק. והראיה החותכת:
+          <strong>מד ה-Fragility היה מעל הסף ‎1.0‎ בכל אחד משמונת ימי המדגם</strong>, ושלח
+          התרעות Alert אמיתיות ב-06-12, 06-15, 06-18 ו-06-22 — בדיוק לפני הנפילה שנמדדה כאן.
+        </p>
+        <p class="explainer-prose explainer-prose--note">
+          <strong>כלל העבודה שנגזר מזה:</strong> קודם מסתכלים על ה-<strong>Fragility</strong>
+          (איזה משטר שוק), אחר כך על <strong>שכבת הסיגנל</strong> (מה הארכיטיפ), ורק אז על
+          <strong>RS</strong> כדי לדרג בתוך השכבה. ה-Score נשאר שימושי כמיון ברירת-מחדל של
+          הטבלה, אבל הוא <em>לא</em> העמודה שמפרידה בין מנצח למפסיד — לא בשנתיים ההיסטוריות
+          ולא בדאטה החי.
+        </p>
+        <p class="explainer-prose explainer-prose--note">
+          <strong>מגבלות המדידה החיה:</strong> 8 ימי מסחר, אירוע שוק אחד, ‎n=533‎ ל-21 יום
+          ו-‎314‎ ל-35 יום. זה מספיק כדי להדגים את <em>אופן הכישלון</em> של RS, ולא מספיק כדי
+          לבטל את מחקר השנתיים. הרצה מלאה חוזרת אחרי משטר שוק שונה תיתן תמונה מאוזנת יותר.
         </p>
       </section>
 
