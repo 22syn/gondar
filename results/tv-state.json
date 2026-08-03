@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-07-31",
+  "updatedAt": "2026-08-03",
   "watchlists": {
     "Lean Radar - Breakouts": [
       {
@@ -37,6 +37,18 @@
       {
         "ticker": "BUD",
         "signalDate": "2026-07-30"
+      },
+      {
+        "ticker": "EWO",
+        "signalDate": "2026-08-03"
+      },
+      {
+        "ticker": "EWP",
+        "signalDate": "2026-08-03"
+      },
+      {
+        "ticker": "EWI",
+        "signalDate": "2026-08-03"
       }
     ],
     "Lean Radar - Near": [
