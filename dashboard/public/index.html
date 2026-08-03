@@ -107,10 +107,51 @@
         <canvas id="dist-chart" height="130" aria-label="היסטוגרמת ציונים" role="img"></canvas>
       </div>
       <div class="chart-wrap chart-wrap--fragility" id="fragility-wrap" hidden>
-        <p class="chart-title">🟣 Purple Fragility <span class="chart-subtitle">אופוריה (סף 1.0) + מיצוי — תיאורי בלבד · 🔴 חציית Alert · 🟡 חציית Watch (core3, נשלחת בטלגרם) · ⚪ climax בלבד (תיאורי, ללא הודעה) · ראו "איך זה עובד"</span></p>
+        <div class="chart-title-row">
+          <p class="chart-title">🟣 Purple Fragility <span class="chart-subtitle">אופוריה (סף 1.0) + מיצוי — תיאורי בלבד · 🔴 חציית Alert · 🟡 חציית Watch (core3, נשלחת בטלגרם) · ⚪ climax בלבד (תיאורי, ללא הודעה) · ראו "איך זה עובד"</span></p>
+          <button class="btn-expand" id="btn-expand-fragility" aria-label="הגדל גרף" title="הגדל גרף">⛶</button>
+        </div>
         <div class="chart-box">
           <canvas id="fragility-chart" aria-label="גרף ציון שבירות ומיצוי" role="img"></canvas>
         </div>
+      </div>
+      <div class="chart-wrap chart-wrap--williamsr" id="williamsr-wrap" hidden>
+        <div class="chart-title-row">
+          <p class="chart-title">📉 Williams %R <span class="chart-subtitle">מד תזמון-שוק על SPY שבועי (14) — לא לכל מניה, ולא קשור לציון ה-Fragility למעלה</span></p>
+        </div>
+        <p class="williamsr-explainer">
+          <b>מה זה אומר:</b> נקודה <b class="wr-legend-panic">ירוקה</b> = SPY נכנס מחדש ל"פאניקה קיצונית" (W%R ≤ ‑80) — היסטורית (2006–היום, 44 מקרים) זה הוביל לתשואה חיובית ב-77% מהמקרים, אבל <b>רק תוך 8–26 שבועות</b>, לא מיד — ו-77% מהמקרים גם ירדו לשפל נוסף לפני זה. זו לא נקודת "לקנות עכשיו", אלא איתות "תתחיל לשים לב". נקודה <b class="wr-legend-overbought">אדומה</b> = overbought (W%R ≥ ‑20).
+        </p>
+        <!-- PRIMARY: the real TradingView chart — this IS what the indicator looks like. -->
+        <p class="williamsr-tv-caption">📺 TradingView — הגרף האמיתי (מתעדכן כל יום ראשון)</p>
+        <img
+          src="/assets/williams-r-spy-weekly.png"
+          alt="SPY שבועי עם Williams %R ב-TradingView"
+          class="williamsr-tv-img"
+          loading="lazy"
+        >
+        <!-- SECONDARY: our own tool — NOT trying to imitate TradingView's look.
+             Different purpose: full 2006-today history + interactive backtest
+             (44 crossings, forward-return tooltips) that a static weekly image
+             can never show. -->
+        <details class="williamsr-history" id="williamsr-history-details">
+          <summary>🔍 היסטוריה מלאה (2006–היום) + Backtest <span class="chart-subtitle">— כלי משלים, לא ניסיון לחקות את TradingView</span></summary>
+          <div class="chart-title-row">
+            <span></span>
+            <button class="btn-expand" id="btn-expand-williamsr" aria-label="הגדל גרף" title="הגדל גרף">⛶</button>
+          </div>
+          <p class="williamsr-explainer">
+            איפה זה "לא תקין": כשקו ה-W%R (למטה) נוגע/יורד מתחת לקו הירוק המקווקו. השוו לקו המחיר של SPY בפאנל התחתון — באותו תאריך בדיוק.
+          </p>
+          <div class="williamsr-panels">
+            <div class="chart-box williamsr-osc-box">
+              <canvas id="williamsr-osc-chart" aria-label="גרף Williams %R" role="img"></canvas>
+            </div>
+            <div class="chart-box williamsr-price-box">
+              <canvas id="williamsr-price-chart" aria-label="גרף מחיר SPY" role="img"></canvas>
+            </div>
+          </div>
+        </details>
       </div>
     </section>
 
@@ -1119,6 +1160,54 @@
   </aside>
   <!-- overlay for mobile bottom-sheet -->
   <div class="deepdive-overlay" id="deepdive-overlay" hidden aria-hidden="true"></div>
+
+  <!-- ════════════════════════════════════════
+       CHART MODAL (expanded view)
+  ════════════════════════════════════════ -->
+  <div class="chart-modal-overlay" id="chart-modal-overlay" hidden aria-hidden="true"></div>
+  <div
+    id="chart-modal"
+    class="chart-modal"
+    hidden
+    aria-modal="true"
+    aria-label="גרף מוגדל"
+    role="dialog"
+  >
+    <div class="chart-modal-inner">
+      <div class="chart-title-row">
+        <p class="chart-title" id="chart-modal-title"></p>
+        <button class="btn-close" id="btn-close-chart-modal" aria-label="סגור">✕</button>
+      </div>
+      <div class="chart-modal-box">
+        <canvas id="chart-modal-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-modal-overlay" id="williamsr-modal-overlay" hidden aria-hidden="true"></div>
+  <div
+    id="williamsr-modal"
+    class="chart-modal"
+    hidden
+    aria-modal="true"
+    aria-label="Williams %R מוגדל"
+    role="dialog"
+  >
+    <div class="chart-modal-inner">
+      <div class="chart-title-row">
+        <p class="chart-title" id="williamsr-modal-title"></p>
+        <button class="btn-close" id="btn-close-williamsr-modal" aria-label="סגור">✕</button>
+      </div>
+      <div class="williamsr-panels williamsr-panels--modal">
+        <div class="chart-box williamsr-osc-box williamsr-osc-box--modal">
+          <canvas id="williamsr-osc-chart-modal"></canvas>
+        </div>
+        <div class="chart-box williamsr-price-box williamsr-price-box--modal">
+          <canvas id="williamsr-price-chart-modal"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

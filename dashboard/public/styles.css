@@ -403,6 +403,152 @@ main {
   opacity: 0.75;
 }
 
+.chart-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.chart-title-row .chart-title { margin-bottom: 8px; flex: 1; }
+
+.btn-expand {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.btn-expand:hover { border-color: rgba(163, 113, 247, 0.6); color: var(--text); }
+
+/* ═══════════════════════════════════════════════
+   CHART MODAL (expanded view)
+═══════════════════════════════════════════════ */
+.chart-modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 399;
+}
+
+.chart-modal-overlay:not([hidden]) { display: block; }
+
+.chart-modal {
+  display: none;
+  position: fixed;
+  inset: 4% 4%;
+  z-index: 400;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.chart-modal:not([hidden]) { display: flex; }
+
+.chart-modal-inner {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 16px 18px;
+}
+
+.chart-modal-box {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+@media (max-width: 640px) {
+  .chart-modal { inset: 2%; }
+}
+
+/* ═══════════════════════════════════════════════
+   WILLIAMS %R PANEL (separate from Purple Fragility —
+   a market-timing gauge, not a per-ticker one)
+═══════════════════════════════════════════════ */
+.chart-wrap--williamsr {
+  grid-column: 1 / -1;
+  border-color: rgba(210, 153, 34, 0.35);
+}
+
+.williamsr-explainer {
+  font-size: 0.72rem;
+  color: var(--muted);
+  line-height: 1.55;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.williamsr-explainer b { color: var(--text); font-weight: 600; }
+.wr-legend-panic { color: #3fb950; }
+.wr-legend-overbought { color: #f85149; }
+
+.williamsr-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.williamsr-osc-box { position: relative; height: 150px; }
+.williamsr-price-box { position: relative; height: 110px; }
+
+.williamsr-panels--modal {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.williamsr-osc-box--modal { height: auto; flex: 1.2; }
+.williamsr-price-box--modal { height: auto; flex: 1; }
+
+.williamsr-tv-caption {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-family: var(--mono);
+  margin: 0 0 8px;
+}
+
+.williamsr-tv-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.williamsr-history {
+  margin-top: 14px;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+}
+
+.williamsr-history summary {
+  cursor: pointer;
+  font-size: 0.78rem;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.williamsr-history summary:hover { color: rgba(210,153,34,0.95); }
+.williamsr-history .chart-title-row { margin-top: 10px; }
+
 /* ═══════════════════════════════════════════════
    CONTROLS
 ═══════════════════════════════════════════════ */
