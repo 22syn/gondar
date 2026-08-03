@@ -90,7 +90,13 @@ let allRows = [];
 let summaryDays = [];
 /** @type {string|null} */
 let selectedDate = null;
-let sortKey = 'score';
+// Default sort is RS, not Score. Over the 2-year study RS spans 67.9%→75.1%
+// win and +8.3%→+17.9% median while Score is nearly flat (67.5%→70.9%), and
+// the 2026-08-03 forward-return study found Score carries no information once
+// RS is known (rho flips sign at random inside RS bands; RS still splits the
+// populated Score bands by 14-24pp). Rows with no RS sort last — the
+// comparator already pushes nulls to the bottom regardless of direction.
+let sortKey = 'rs';
 let sortDir = -1; // -1 = descending
 /** @type {Chart|null} */
 let chart = null;
@@ -451,6 +457,15 @@ function updateNavButtons() {
 
 /* ─── Summary cards ───────────────────────────────────────────────────────── */
 
+/**
+ * Count today's rows at or above an RS threshold, from the merged signal rows.
+ * @param {number} min
+ * @returns {number}
+ */
+function rsAtLeast(min) {
+  return allRows.filter((r) => (r.rs ?? -1) >= min).length;
+}
+
 function renderCards() {
   const s = summaryDays.find((d) => d.scan_date === selectedDate);
   const container = $('#cards');
@@ -458,8 +473,17 @@ function renderCards() {
 
   // [label, value, extraClass, iconLigature] — icon omitted for pure totals.
   const defs = [
-    // RS≥90 shares Setup Full's green "highlight" — per PR #109 it is the one
-    // metric that survived the 2-year study, so it ranks with the strong tier.
+    // RS≥80 / ≥90 share Setup Full's green "highlight" — RS is the entry gate
+    // (≥80) and the strongest cohort (≥90); see the "Score או RS" explainer
+    // section. Score≥70 was dropped: its 2-year gradient is nearly flat
+    // (67.5%→70.9% win) and the 2026-08-03 live study found it carries no
+    // information beyond RS, so a Score threshold card asserted a quality
+    // cut-off the data does not support.
+    //
+    // Both RS counts come from `allRows`, NOT from the summary payload:
+    // /api/summary reads lean_signals.rs directly, which has been NULL since
+    // 2026-07-08 (RS moved to rs_daily + a read-time merge), so s.rs90 renders
+    // 0 every day. /api/signals goes through mergeSetup and is correct.
     ['סה"כ',        s.total,       '',                      null],
     ['Setup Full',  s.setup_full,  'stat-card--highlight',  'gps_fixed'],
     ['Setup/Rec',   s.setup_other, '',                      'visibility'],
@@ -468,8 +492,8 @@ function renderCards() {
     ['Pullback',    s.pullback,    '',                      'trending_down'],
     ['Creep',       s.creep,       '',                      'stairs'],
     ['Near',        s.near_all,    '',                      'hourglass_empty'],
-    ['RS≥90',       s.rs90,        'stat-card--highlight',  'local_fire_department'],
-    ['Score≥70',    s.score70,     '',                      null],
+    ['RS≥80',       rsAtLeast(80), 'stat-card--highlight',  'fitness_center'],
+    ['RS≥90',       rsAtLeast(90), 'stat-card--highlight',  'local_fire_department'],
   ];
 
   container.innerHTML = defs.map(([lbl, val, extra, icon]) => `
@@ -1227,7 +1251,9 @@ function updateHeaderMeta() {
   if (!s) { $('#header-meta').textContent = ''; return; }
   const run = fmtRunTime(s.last_run);
   const runPart = run ? ` · ריצה אחרונה: ${run}` : '';
-  $('#header-meta').textContent = `${s.total} סיגנלים · Score≥70: ${s.score70 ?? 0}${runPart}`;
+  // Leads with RS≥80 (the documented entry gate) rather than Score≥70, to match
+  // the stat cards. Sourced from allRows for the same reason they are.
+  $('#header-meta').textContent = `${s.total} סיגנלים · RS≥80: ${rsAtLeast(80)}${runPart}`;
 }
 
 /* ─── Current TradingView watchlist (separate app/branch, read via /api/watchlist) ─ */
