@@ -837,38 +837,36 @@ td.col-signals { text-align: start; white-space: nowrap; }
   padding: 3px 9px;
 }
 
-/* By signal type.
-   The old palette gave each signal its own hue (green / amber / blue). With a
-   single accent that would make three of them identical, so the encoding is
-   split: the **icon** carries the category (trending_up, bolt, trending_down,
-   stairs, hourglass) and **accent intensity** carries the tier. That matches
-   what the explainer tab already says about these signals — pullback is the
-   alpha signal, breakout has a documented negative edge. */
+/* By backtested signal quality, not category — tiers from
+   docs/plans/dashboard-color-semantics-audit.md (2026-08-03), rendered in the
+   XSHEVA palette. The icon carries the signal's category, the colour carries
+   how much it has actually been worth.
 
-/* Solid accent — the alpha tier (pullback, creep, setupClose). */
-.badge--pullback {
-  background: rgba(255, 107, 53, 0.22);
-  color: var(--xsh-primary);
-  border-color: rgba(255, 107, 53, 0.45);
+   This is the one place the single-accent rule is deliberately relaxed: a
+   dense table needs a quality ramp, and flattening four tiers to one hue
+   destroys the information the table exists to convey. */
+.badge--strong {
+  background: rgba(74, 222, 128, 0.16);
+  color: var(--xsh-success);
+  border-color: rgba(74, 222, 128, 0.35);
 }
 
-/* Accent tint — context tier (high volume, recovery). */
-.badge--highVolume {
-  background: rgba(255, 107, 53, 0.10);
+.badge--moderate {
+  background: rgba(255, 107, 53, 0.14);
   color: var(--xsh-primary);
-  border-color: rgba(255, 107, 53, 0.25);
+  border-color: rgba(255, 107, 53, 0.32);
 }
 
-/* Neutral outline — breakout scores lowest in the research and is weighted
-   down in the score; the badge no longer implies otherwise. */
-.badge--breakout {
+/* Neutral outline, not red: breakout is below baseline, not harmful, and it
+   appears often enough that a red badge would shout on every other row. */
+.badge--weak {
   background: transparent;
-  color: var(--xsh-fg-2);
+  color: var(--xsh-fg-3);
   border-color: var(--xsh-border-strong);
 }
 
 /* Faintest — the silent watchlist, hidden by default. */
-.badge--near {
+.badge--low {
   background: rgba(157, 166, 185, 0.10);
   color: var(--muted);
   border-color: rgba(157, 166, 185, 0.20);
@@ -1377,12 +1375,12 @@ td.col-score {
   border-inline-start: 3px solid var(--border);
 }
 
-/* Mirrors the badge tiering in the table: accent for the alpha signals,
-   neutral for breakout (documented negative edge), muted for the near tier. */
-.explainer-card--pullback  { border-inline-start-color: var(--xsh-primary); }
-.explainer-card--highvol   { border-inline-start-color: rgba(255, 107, 53, 0.45); }
-.explainer-card--breakout  { border-inline-start-color: var(--xsh-border-strong); }
-.explainer-card--near      { border-inline-start-color: var(--muted); }
+/* Same quality tiers as the table badges, so the explainer cards and the
+   rows they describe cannot drift apart. */
+.explainer-card--strong    { border-inline-start-color: var(--xsh-success); }
+.explainer-card--moderate  { border-inline-start-color: var(--xsh-primary); }
+.explainer-card--weak      { border-inline-start-color: var(--xsh-border-strong); }
+.explainer-card--low       { border-inline-start-color: var(--muted); }
 
 .explainer-card-head {
   display: flex;

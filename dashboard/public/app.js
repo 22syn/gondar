@@ -9,25 +9,33 @@
 /* ─── Constants ──────────────────────────────────────────────────────────── */
 
 /**
- * Signal display metadata. `icon` is a Material Symbols Outlined ligature —
- * the XSHEVA system bans emoji and unicode-as-icon, so every marker resolves
- * through the icon webfont instead. Rendered via `iconHTML()`.
+ * Signal display metadata.
+ *
+ * `cls` encodes BACKTESTED QUALITY, not signal category — see
+ * docs/plans/dashboard-color-semantics-audit.md (2026-08-03). Breakout is
+ * documented in the explainer tab itself as negative-edge, so it's 'weak',
+ * not the 'strong' green it used to share with Setup Full.
+ *
+ * `icon` is a Material Symbols Outlined ligature — the XSHEVA system bans
+ * emoji and unicode-as-icon, so every marker resolves through the icon
+ * webfont instead. Rendered via `iconHTML()`. The icon carries the signal's
+ * *category*; the tier colour carries its *quality*.
  *
  * NOTE: these render as HTML only. Chart.js tooltips are canvas-drawn, so
  * ligatures would show as literal words there — those use plain text.
  */
 const SIGNAL_META = {
-  breakout:      { label: 'Breakout',     icon: 'trending_up',    cls: 'breakout' },
-  highVolume:    { label: 'High Volume',  icon: 'bolt',           cls: 'highVolume' },
-  pullback:      { label: 'Pullback',     icon: 'trending_down',  cls: 'pullback' },
-  creep:         { label: 'Creep',        icon: 'stairs',         cls: 'pullback' },
-  nearBreakout:  { label: 'Near Break',   icon: 'hourglass_empty', cls: 'near' },
-  nearHighVol:   { label: 'Near HiVol',   icon: 'hourglass_empty', cls: 'near' },
-  nearPullback:  { label: 'Near Pull',    icon: 'hourglass_empty', cls: 'near' },
+  breakout:      { label: 'Breakout',     icon: 'trending_up',     cls: 'weak' },
+  highVolume:    { label: 'High Volume',  icon: 'bolt',            cls: 'moderate' },
+  pullback:      { label: 'Pullback',     icon: 'trending_down',   cls: 'strong' },
+  creep:         { label: 'Creep',        icon: 'stairs',          cls: 'strong' },
+  nearBreakout:  { label: 'Near Break',   icon: 'hourglass_empty', cls: 'low' },
+  nearHighVol:   { label: 'Near HiVol',   icon: 'hourglass_empty', cls: 'low' },
+  nearPullback:  { label: 'Near Pull',    icon: 'hourglass_empty', cls: 'low' },
   // Smart-Setup tiers (momentum-gated package, backfilled 2026-07-09)
-  setupFull:     { label: 'Setup Full',   icon: 'gps_fixed',      cls: 'breakout' },
-  setupClose:    { label: 'Setup Close',  icon: 'visibility',     cls: 'pullback' },
-  setupRecovery: { label: 'Recovery',     icon: 'rocket_launch',  cls: 'highVolume' },
+  setupFull:     { label: 'Setup Full',   icon: 'gps_fixed',       cls: 'strong' },
+  setupClose:    { label: 'Setup Close',  icon: 'visibility',      cls: 'strong' },
+  setupRecovery: { label: 'Recovery',     icon: 'rocket_launch',   cls: 'strong' },
 };
 
 /**
@@ -450,6 +458,8 @@ function renderCards() {
 
   // [label, value, extraClass, iconLigature] — icon omitted for pure totals.
   const defs = [
+    // RS≥90 shares Setup Full's green "highlight" — per PR #109 it is the one
+    // metric that survived the 2-year study, so it ranks with the strong tier.
     ['סה"כ',        s.total,       '',                      null],
     ['Setup Full',  s.setup_full,  'stat-card--highlight',  'gps_fixed'],
     ['Setup/Rec',   s.setup_other, '',                      'visibility'],
@@ -458,7 +468,7 @@ function renderCards() {
     ['Pullback',    s.pullback,    '',                      'trending_down'],
     ['Creep',       s.creep,       '',                      'stairs'],
     ['Near',        s.near_all,    '',                      'hourglass_empty'],
-    ['RS≥90',       s.rs90,        'stat-card--accent',     'local_fire_department'],
+    ['RS≥90',       s.rs90,        'stat-card--highlight',  'local_fire_department'],
     ['Score≥70',    s.score70,     '',                      null],
   ];
 
