@@ -58,7 +58,11 @@ export function buildRsDailyQuery(p: SignalParams): Query {
 }
 
 /** Per-date setup counts for the summary merge. setup_new = setup rows with
- *  no lean row that day (added to the day's total). */
+ *  no lean row that day (added to the day's total).
+ *
+ *  Deliberately carries NO rs count: RS lives in rs_daily for every scanned
+ *  ticker, not just the handful with a setup row, so counting it here would
+ *  under-report by an order of magnitude. See buildRsSummaryQuery. */
 export function buildSetupSummaryQuery(): Query {
   return {
     sql: `SELECT scan_date,
@@ -66,9 +70,43 @@ export function buildSetupSummaryQuery(): Query {
       SUM(sig!='setupFull') AS setup_other,
       SUM(NOT EXISTS (SELECT 1 FROM lean_signals ls
                       WHERE ls.scan_date=setup_signals.scan_date
-                        AND ls.ticker=setup_signals.ticker)) AS setup_new,
-      SUM(rs>=90) AS rs90
+                        AND ls.ticker=setup_signals.ticker)) AS setup_new
       FROM setup_signals GROUP BY scan_date`,
+    params: [],
+  };
+}
+
+/**
+ * Authoritative per-date RS threshold counts.
+ *
+ * RS stopped being written into lean_signals on 2026-07-08 and now lives in
+ * rs_daily, filled in at read time by mergeSetup. The summary endpoint never
+ * followed, so `SUM(rs>=90) FROM lean_signals` returned 0 for every day after
+ * that date while the table below it showed the real values.
+ *
+ * Counts over exactly the row set the signals endpoint returns: every lean row
+ * for the day, plus setup rows that have no lean row, with RS resolved in the
+ * same precedence mergeSetupRows uses (own column first, then rs_daily).
+ */
+export function buildRsSummaryQuery(): Query {
+  return {
+    sql: `SELECT scan_date,
+      SUM(rs>=80) AS rs80,
+      SUM(rs>=90) AS rs90
+      FROM (
+        SELECT l.scan_date AS scan_date, COALESCE(l.rs, r.rs) AS rs
+          FROM lean_signals l
+          LEFT JOIN rs_daily r
+            ON r.scan_date = l.scan_date AND r.ticker = l.ticker
+        UNION ALL
+        SELECT s.scan_date, COALESCE(s.rs, r2.rs)
+          FROM setup_signals s
+          LEFT JOIN rs_daily r2
+            ON r2.scan_date = s.scan_date AND r2.ticker = s.ticker
+         WHERE NOT EXISTS (SELECT 1 FROM lean_signals ls
+                           WHERE ls.scan_date = s.scan_date
+                             AND ls.ticker = s.ticker)
+      ) GROUP BY scan_date`,
     params: [],
   };
 }
@@ -86,6 +124,9 @@ export function buildSummaryQuery(_p: SignalParams): Query {
       SUM(signal LIKE 'near%') AS near_all,
       SUM(score>=70) AS score70,
       SUM(score>=65) AS score65,
+      -- Fallback only: lean_signals.rs is NULL after 2026-07-08. Overwritten by
+      -- buildRsSummaryQuery whenever rs_daily is present.
+      SUM(rs>=80) AS rs80,
       SUM(rs>=90) AS rs90,
       MAX(ingested_at) AS last_run
       FROM lean_signals GROUP BY scan_date ORDER BY scan_date DESC`,

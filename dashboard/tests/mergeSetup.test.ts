@@ -86,16 +86,47 @@ describe('mergeSummary', () => {
   it('adds setup counts and setup-only rows to the day total', () => {
     const merged = mergeSummary(
       [{ scan_date: '2026-07-10', total: 50, setup_full: 0, setup_other: 0, rs90: 0 }],
-      [{ scan_date: '2026-07-10', setup_full: 2, setup_other: 5, setup_new: 4, rs90: 3 }],
+      [{ scan_date: '2026-07-10', setup_full: 2, setup_other: 5, setup_new: 4 }],
     );
-    expect(merged[0]).toMatchObject({ total: 54, setup_full: 2, setup_other: 5, rs90: 3 });
+    expect(merged[0]).toMatchObject({ total: 54, setup_full: 2, setup_other: 5 });
   });
 
   it('leaves dates without setup rows untouched (backfilled dates)', () => {
     const merged = mergeSummary(
       [{ scan_date: '2026-06-18', total: 90, setup_full: 8, setup_other: 12, rs90: 40 }],
-      [{ scan_date: '2026-07-10', setup_full: 1, setup_other: 2, setup_new: 3, rs90: 1 }],
+      [{ scan_date: '2026-07-10', setup_full: 1, setup_other: 2, setup_new: 3 }],
     );
     expect(merged[0]).toMatchObject({ total: 90, setup_full: 8, setup_other: 12, rs90: 40 });
+  });
+
+  // Regression: RS moved to rs_daily on 2026-07-08 and the summary endpoint
+  // kept reading lean_signals.rs, so every day after that reported rs90 = 0
+  // while /api/signals showed the real values. RS counts must REPLACE the
+  // lean value, never add to it.
+  it('replaces the stale lean RS counts rather than adding to them', () => {
+    const merged = mergeSummary(
+      [{ scan_date: '2026-07-31', total: 43, setup_full: 0, setup_other: 0, rs80: 0, rs90: 0 }],
+      [{ scan_date: '2026-07-31', setup_full: 0, setup_other: 1, setup_new: 1 }],
+      [{ scan_date: '2026-07-31', rs80: 16, rs90: 11 }],
+    );
+    expect(merged[0]).toMatchObject({ total: 44, setup_other: 1, rs80: 16, rs90: 11 });
+  });
+
+  it('does not double count RS when the lean row already had a value', () => {
+    const merged = mergeSummary(
+      [{ scan_date: '2026-06-18', total: 90, rs80: 30, rs90: 40 }],
+      [],
+      [{ scan_date: '2026-06-18', rs80: 30, rs90: 40 }],
+    );
+    expect(merged[0]).toMatchObject({ rs80: 30, rs90: 40 });
+  });
+
+  it('leaves RS alone when the rs summary has no row for that date', () => {
+    const merged = mergeSummary(
+      [{ scan_date: '2026-06-18', total: 90, rs80: 30, rs90: 40 }],
+      [],
+      [{ scan_date: '2026-07-31', rs80: 16, rs90: 11 }],
+    );
+    expect(merged[0]).toMatchObject({ rs80: 30, rs90: 40 });
   });
 });

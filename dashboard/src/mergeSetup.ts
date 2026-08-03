@@ -122,27 +122,50 @@ export interface SetupSummaryRow {
   setup_full: number;
   setup_other: number;
   setup_new: number; // setup rows with NO lean row that day (add to total)
+}
+
+/** Authoritative RS threshold counts per date (buildRsSummaryQuery). */
+export interface RsSummaryRow {
+  scan_date: string;
+  rs80: number;
   rs90: number;
 }
 
 /**
- * Merge per-date setup summary counts into the lean summary rows.
- * Backfilled dates have no setup_signals rows → no double counting.
+ * Merge per-date counts from the Smart pipeline into the lean summary rows.
+ *
+ * Two different merge semantics, on purpose:
+ *  - setup counts ADD. The lean query already counts setup signals that were
+ *    backfilled into lean_signals.signals (dates 2026-06-08..07-08); setup rows
+ *    for later dates live only in setup_signals. Backfilled dates have no
+ *    setup_signals rows, so nothing is double counted.
+ *  - RS counts REPLACE. The lean query's `SUM(rs>=90)` reads lean_signals.rs,
+ *    which is NULL for every date after 2026-07-08 — there is no partial value
+ *    worth preserving, and adding to it would mix two incompatible row sets.
  */
 export function mergeSummary<
-  T extends { scan_date: string; total?: number; setup_full?: number; setup_other?: number; rs90?: number },
->(summaryRows: T[], setupSummary: SetupSummaryRow[]): T[] {
-  if (setupSummary.length === 0) return summaryRows;
-  const byDate = new Map(setupSummary.map((s) => [s.scan_date, s]));
+  T extends {
+    scan_date: string; total?: number; setup_full?: number; setup_other?: number;
+    rs80?: number; rs90?: number;
+  },
+>(summaryRows: T[], setupSummary: SetupSummaryRow[], rsSummary: RsSummaryRow[] = []): T[] {
+  if (setupSummary.length === 0 && rsSummary.length === 0) return summaryRows;
+  const setupByDate = new Map(setupSummary.map((s) => [s.scan_date, s]));
+  const rsByDate = new Map(rsSummary.map((r) => [r.scan_date, r]));
   return summaryRows.map((r) => {
-    const s = byDate.get(r.scan_date);
-    if (!s) return r;
-    return {
-      ...r,
-      total: (r.total ?? 0) + (s.setup_new ?? 0),
-      setup_full: (r.setup_full ?? 0) + (s.setup_full ?? 0),
-      setup_other: (r.setup_other ?? 0) + (s.setup_other ?? 0),
-      rs90: (r.rs90 ?? 0) + (s.rs90 ?? 0),
-    };
+    const s = setupByDate.get(r.scan_date);
+    const rs = rsByDate.get(r.scan_date);
+    if (!s && !rs) return r;
+    const merged = { ...r };
+    if (s) {
+      merged.total = (r.total ?? 0) + (s.setup_new ?? 0);
+      merged.setup_full = (r.setup_full ?? 0) + (s.setup_full ?? 0);
+      merged.setup_other = (r.setup_other ?? 0) + (s.setup_other ?? 0);
+    }
+    if (rs) {
+      merged.rs80 = rs.rs80 ?? 0;
+      merged.rs90 = rs.rs90 ?? 0;
+    }
+    return merged;
   });
 }
