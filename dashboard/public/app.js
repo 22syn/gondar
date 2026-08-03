@@ -8,18 +8,22 @@
 
 /* ─── Constants ──────────────────────────────────────────────────────────── */
 
+// Badge tier ('cls') encodes BACKTESTED QUALITY, not signal category —
+// see docs/plans/dashboard-color-semantics-audit.md (2026-08-03). Breakout is
+// documented in the explainer tab itself as negative-edge, so it's 'weak', not
+// the 'strong' green it used to share with Setup Full.
 const SIGNAL_META = {
-  breakout:      { label: 'Breakout',     icon: '🎯', cls: 'breakout' },
-  highVolume:    { label: 'High Volume',  icon: '🔥', cls: 'highVolume' },
-  pullback:      { label: 'Pullback',     icon: '📉', cls: 'pullback' },
-  creep:         { label: 'Creep',        icon: '🐢', cls: 'pullback' },
-  nearBreakout:  { label: 'Near Break',   icon: '⏳', cls: 'near' },
-  nearHighVol:   { label: 'Near HiVol',   icon: '⏳', cls: 'near' },
-  nearPullback:  { label: 'Near Pull',    icon: '⏳', cls: 'near' },
+  breakout:      { label: 'Breakout',     icon: '🎯', cls: 'weak' },
+  highVolume:    { label: 'High Volume',  icon: '🔥', cls: 'moderate' },
+  pullback:      { label: 'Pullback',     icon: '📉', cls: 'strong' },
+  creep:         { label: 'Creep',        icon: '🐢', cls: 'strong' },
+  nearBreakout:  { label: 'Near Break',   icon: '⏳', cls: 'low' },
+  nearHighVol:   { label: 'Near HiVol',   icon: '⏳', cls: 'low' },
+  nearPullback:  { label: 'Near Pull',    icon: '⏳', cls: 'low' },
   // Smart-Setup tiers (momentum-gated package, backfilled 2026-07-09)
-  setupFull:     { label: 'Setup Full',   icon: '🎯', cls: 'breakout' },
-  setupClose:    { label: 'Setup Close',  icon: '👀', cls: 'pullback' },
-  setupRecovery: { label: 'Recovery',     icon: '🚀', cls: 'highVolume' },
+  setupFull:     { label: 'Setup Full',   icon: '🎯', cls: 'strong' },
+  setupClose:    { label: 'Setup Close',  icon: '👀', cls: 'strong' },
+  setupRecovery: { label: 'Recovery',     icon: '🚀', cls: 'strong' },
 };
 
 /**
@@ -420,7 +424,7 @@ function renderCards() {
     ['📉 Pullback', s.pullback,  ''],
     ['🐢 Creep',  s.creep,       ''],
     ['⏳ Near',   s.near_all,    ''],
-    ['RS≥90 🔥', s.rs90,         'stat-card--accent'],
+    ['RS≥90 🔥', s.rs90,         'stat-card--highlight'],
     ['Score≥70', s.score70,      ''],
   ];
 

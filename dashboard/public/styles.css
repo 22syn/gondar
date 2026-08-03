@@ -693,11 +693,12 @@ td.col-signals { text-align: start; white-space: nowrap; }
   padding: 3px 9px;
 }
 
-/* by signal type */
-.badge--breakout    { background: rgba(63, 185, 80, 0.18); color: var(--up);     border-color: rgba(63, 185, 80, 0.30); }
-.badge--highVolume  { background: rgba(210,153, 34, 0.18); color: var(--amber);  border-color: rgba(210,153, 34, 0.30); }
-.badge--pullback    { background: rgba(47, 129,247, 0.18); color: var(--accent); border-color: rgba(47, 129,247, 0.30); }
-.badge--near        { background: rgba(139,149,165, 0.14); color: var(--muted);  border-color: rgba(139,149,165, 0.22); }
+/* by backtested signal quality, not category — see
+   docs/plans/dashboard-color-semantics-audit.md (2026-08-03) */
+.badge--strong      { background: rgba(63, 185, 80, 0.18); color: var(--up);     border-color: rgba(63, 185, 80, 0.30); }
+.badge--moderate    { background: rgba(210,153, 34, 0.18); color: var(--amber);  border-color: rgba(210,153, 34, 0.30); }
+.badge--weak        { background: rgba(248, 81, 73, 0.18); color: var(--down);   border-color: rgba(248, 81, 73, 0.30); }
+.badge--low         { background: rgba(139,149,165, 0.14); color: var(--muted);  border-color: rgba(139,149,165, 0.22); }
 
 /* confluence counter */
 .conf-tag {
@@ -1204,10 +1205,12 @@ td.col-score {
   border-inline-start: 3px solid var(--border);
 }
 
-.explainer-card--pullback  { border-inline-start-color: var(--accent); }
-.explainer-card--highvol   { border-inline-start-color: var(--amber); }
-.explainer-card--breakout  { border-inline-start-color: var(--up); }
-.explainer-card--near      { border-inline-start-color: var(--muted); }
+/* by backtested signal quality, not category — see
+   docs/plans/dashboard-color-semantics-audit.md (2026-08-03) */
+.explainer-card--strong    { border-inline-start-color: var(--up); }
+.explainer-card--moderate  { border-inline-start-color: var(--amber); }
+.explainer-card--weak      { border-inline-start-color: var(--down); }
+.explainer-card--low       { border-inline-start-color: var(--muted); }
 
 .explainer-card-head {
   display: flex;
