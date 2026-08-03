@@ -1,6 +1,24 @@
-# Lean Radar Dashboard
+# GONDAR Dashboard
 
-Cloudflare Pages app over D1 (`lean-radar`). Data from the Lean Radar daily scan.
+Cloudflare Pages app over D1 (`lean-radar`). Data from the daily scan.
+
+Styled with the **XSHEVA design system** (`colors_and_type.css` in the Xsheva
+Design System project): single accent `#FF6B35` on `#101622`, Space Grotesk,
+Material Symbols Outlined for every icon, no emoji.
+
+## Names that are deliberately still "Lean"
+
+These are external identifiers, not display copy — renaming them breaks a live
+integration, so they were left alone in the 2026-08-03 rename:
+
+| Identifier | Where | Why it is pinned |
+|---|---|---|
+| `Lean Radar - Daily Scan` | workflow `name:` in `daily-scan-lean.yml` | `scripts/sync-tv-watchlist.ts` finds the run with `gh run list --workflow="Lean Radar - Daily Scan"` |
+| `Lean Radar - Breakouts` / `Lean Radar - Near` | `sync-tv-watchlist.ts` | actual watchlist names inside the TradingView account; the sync matches on the exact string |
+| `lean-radar` (D1), `src/lean/`, `lean-*.json` | engine + storage | internal names with no user-visible surface |
+
+To finish the rename, the TradingView lists must be renamed in TradingView
+**and** in `sync-tv-watchlist.ts` in the same change.
 
 ## Secrets (GitHub Actions)
 - `CF_API_TOKEN` — Cloudflare token, permission: Account › D1 › Edit

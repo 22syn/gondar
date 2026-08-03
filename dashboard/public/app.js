@@ -1,6 +1,6 @@
 /**
- * Lean Radar Dashboard — app.js
- * Vanilla JS, no framework. RTL Hebrew UI.
+ * GONDAR Dashboard — app.js
+ * Vanilla JS, no framework. RTL Hebrew UI, XSHEVA design system.
  * Depends on: Chart.js (CDN), styles.css
  */
 
@@ -8,19 +8,38 @@
 
 /* ─── Constants ──────────────────────────────────────────────────────────── */
 
+/**
+ * Signal display metadata. `icon` is a Material Symbols Outlined ligature —
+ * the XSHEVA system bans emoji and unicode-as-icon, so every marker resolves
+ * through the icon webfont instead. Rendered via `iconHTML()`.
+ *
+ * NOTE: these render as HTML only. Chart.js tooltips are canvas-drawn, so
+ * ligatures would show as literal words there — those use plain text.
+ */
 const SIGNAL_META = {
-  breakout:      { label: 'Breakout',     icon: '🎯', cls: 'breakout' },
-  highVolume:    { label: 'High Volume',  icon: '🔥', cls: 'highVolume' },
-  pullback:      { label: 'Pullback',     icon: '📉', cls: 'pullback' },
-  creep:         { label: 'Creep',        icon: '🐢', cls: 'pullback' },
-  nearBreakout:  { label: 'Near Break',   icon: '⏳', cls: 'near' },
-  nearHighVol:   { label: 'Near HiVol',   icon: '⏳', cls: 'near' },
-  nearPullback:  { label: 'Near Pull',    icon: '⏳', cls: 'near' },
+  breakout:      { label: 'Breakout',     icon: 'trending_up',    cls: 'breakout' },
+  highVolume:    { label: 'High Volume',  icon: 'bolt',           cls: 'highVolume' },
+  pullback:      { label: 'Pullback',     icon: 'trending_down',  cls: 'pullback' },
+  creep:         { label: 'Creep',        icon: 'stairs',         cls: 'pullback' },
+  nearBreakout:  { label: 'Near Break',   icon: 'hourglass_empty', cls: 'near' },
+  nearHighVol:   { label: 'Near HiVol',   icon: 'hourglass_empty', cls: 'near' },
+  nearPullback:  { label: 'Near Pull',    icon: 'hourglass_empty', cls: 'near' },
   // Smart-Setup tiers (momentum-gated package, backfilled 2026-07-09)
-  setupFull:     { label: 'Setup Full',   icon: '🎯', cls: 'breakout' },
-  setupClose:    { label: 'Setup Close',  icon: '👀', cls: 'pullback' },
-  setupRecovery: { label: 'Recovery',     icon: '🚀', cls: 'highVolume' },
+  setupFull:     { label: 'Setup Full',   icon: 'gps_fixed',      cls: 'breakout' },
+  setupClose:    { label: 'Setup Close',  icon: 'visibility',     cls: 'pullback' },
+  setupRecovery: { label: 'Recovery',     icon: 'rocket_launch',  cls: 'highVolume' },
 };
+
+/**
+ * Render a Material Symbols Outlined icon.
+ * @param {string} name - ligature name, e.g. 'trending_up'
+ * @param {string} [extraCls]
+ * @returns {string}
+ */
+function iconHTML(name, extraCls) {
+  const cls = extraCls ? `material-symbols-outlined ${extraCls}` : 'material-symbols-outlined';
+  return `<span class="${cls}" aria-hidden="true">${name}</span>`;
+}
 
 /**
  * TradingView exchange tag → SVR ticker suffix. Used to resolve a watchlist
@@ -120,9 +139,9 @@ function readableSignal(name) {
  * @returns {string}
  */
 function badgeHTML(name, primary) {
-  const meta = SIGNAL_META[name] || { label: name, icon: '•', cls: 'near' };
+  const meta = SIGNAL_META[name] || { label: name, icon: 'circle', cls: 'near' };
   const cls = primary ? `badge badge--${meta.cls} badge--primary` : `badge badge--${meta.cls}`;
-  return `<span class="${cls}" title="${meta.label}">${meta.icon} ${meta.label}</span>`;
+  return `<span class="${cls}" title="${meta.label}">${iconHTML(meta.icon)}${meta.label}</span>`;
 }
 
 /**
@@ -146,7 +165,7 @@ function signalBadgesHTML(row) {
   // Graduation badge first — highest priority
   if (row.graduated_from) {
     const fromLabel = readableSignal(row.graduated_from);
-    html += `<span class="badge badge--grad" title="Graduated from ${fromLabel}">🎓 ← ${fromLabel}</span>`;
+    html += `<span class="badge badge--grad" title="Graduated from ${fromLabel}">${iconHTML('school')}← ${fromLabel}</span>`;
   }
 
   if (primary) html += badgeHTML(primary, true);
@@ -160,7 +179,7 @@ function signalBadgesHTML(row) {
 
   // Streak chip (streak > 1 only)
   if (row.streak && row.streak > 1) {
-    html += `<span class="streak-chip" title="${row.streak} ימים ברצף">📅 ${row.streak}d</span>`;
+    html += `<span class="streak-chip" title="${row.streak} ימים ברצף">${iconHTML('calendar_month')}${row.streak}d</span>`;
   }
 
   html += '</span>';
@@ -176,7 +195,7 @@ function signalBadgesHTML(row) {
  */
 function scoreDeltaHTML(delta) {
   if (delta === null || delta === undefined) {
-    return '<span class="delta-new" title="סיגנל חדש היום">🆕</span>';
+    return `<span class="delta-new" title="סיגנל חדש היום">${iconHTML('fiber_new')}</span>`;
   }
   if (delta > 0)  return `<span class="delta-up" title="עלייה ב-${delta} נק׳">▲${delta}</span>`;
   if (delta < 0)  return `<span class="delta-down" title="ירידה ב-${Math.abs(delta)} נק׳">▼${Math.abs(delta)}</span>`;
@@ -186,29 +205,47 @@ function scoreDeltaHTML(delta) {
 /* ─── Score color ─────────────────────────────────────────────────────────── */
 
 /**
+ * Read a design token off :root so styles.css stays the single source of
+ * truth for the palette. Memoised — this is called once per rendered cell,
+ * and getComputedStyle forces a style recalc every time.
+ * @param {string} name - custom property name, e.g. '--score-b3'
+ * @returns {string}
+ */
+const TOKEN_CACHE = new Map();
+function token(name) {
+  let v = TOKEN_CACHE.get(name);
+  if (v === undefined) {
+    v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    TOKEN_CACHE.set(name, v);
+  }
+  return v;
+}
+
+/**
  * Returns a background-color CSS value for a score.
- * Uses dark-appropriate muted tones.
+ * Single-hue accent ramp — the score is sequential, not categorical.
  * @param {number|null} s
  * @returns {string}
  */
 function scoreBg(s) {
   if (s == null) return 'transparent';
-  if (s >= 85)  return 'rgba(63,185,80,0.32)';
-  if (s >= 70)  return 'rgba(63,185,80,0.18)';
-  if (s >= 55)  return 'rgba(210,153,34,0.22)';
-  return 'rgba(248,81,73,0.20)';
+  if (s >= 85)  return token('--score-b4');
+  if (s >= 70)  return token('--score-b3');
+  if (s >= 55)  return token('--score-b2');
+  return token('--score-b1');
 }
 
 /**
- * Returns a foreground color for a score badge (used in card list).
+ * Returns a foreground color for a score badge (used in card list), where the
+ * background tint is too faint to carry the ramp on its own.
  * @param {number|null} s
  * @returns {string}
  */
 function scoreColor(s) {
-  if (s == null) return '#8b95a5';
-  if (s >= 70)  return '#3fb950';
-  if (s >= 55)  return '#d29922';
-  return '#f85149';
+  if (s == null) return token('--xsh-fg-3');
+  if (s >= 70)  return token('--xsh-primary');
+  if (s >= 55)  return token('--xsh-fg-2');
+  return token('--xsh-fg-4');
 }
 
 /* ─── Number formatting ───────────────────────────────────────────────────── */
@@ -411,23 +448,24 @@ function renderCards() {
   const container = $('#cards');
   if (!s) { container.innerHTML = ''; return; }
 
+  // [label, value, extraClass, iconLigature] — icon omitted for pure totals.
   const defs = [
-    ['סה"כ',     s.total,        ''],
-    ['🎯 Setup Full', s.setup_full, 'stat-card--highlight'],
-    ['👀 Setup/Rec', s.setup_other, ''],
-    ['📈 Breakout', s.breakout,  ''],
-    ['🔥 High Vol', s.high_volume, ''],
-    ['📉 Pullback', s.pullback,  ''],
-    ['🐢 Creep',  s.creep,       ''],
-    ['⏳ Near',   s.near_all,    ''],
-    ['RS≥90 🔥', s.rs90,         'stat-card--accent'],
-    ['Score≥70', s.score70,      ''],
+    ['סה"כ',        s.total,       '',                      null],
+    ['Setup Full',  s.setup_full,  'stat-card--highlight',  'gps_fixed'],
+    ['Setup/Rec',   s.setup_other, '',                      'visibility'],
+    ['Breakout',    s.breakout,    '',                      'trending_up'],
+    ['High Vol',    s.high_volume, '',                      'bolt'],
+    ['Pullback',    s.pullback,    '',                      'trending_down'],
+    ['Creep',       s.creep,       '',                      'stairs'],
+    ['Near',        s.near_all,    '',                      'hourglass_empty'],
+    ['RS≥90',       s.rs90,        'stat-card--accent',     'local_fire_department'],
+    ['Score≥70',    s.score70,     '',                      null],
   ];
 
-  container.innerHTML = defs.map(([lbl, val, extra]) => `
+  container.innerHTML = defs.map(([lbl, val, extra, icon]) => `
     <div class="stat-card ${extra}" role="listitem">
       <span class="stat-card-val">${val ?? 0}</span>
-      <span class="stat-card-lbl">${lbl}</span>
+      <span class="stat-card-lbl">${icon ? iconHTML(icon) : ''}${lbl}</span>
     </div>`).join('');
 }
 
@@ -453,15 +491,17 @@ function renderChart() {
       datasets: [{
         label: 'ציונים',
         data: counts,
+        // Same sequential accent ramp as the score column — this is the
+        // distribution of that exact number, so the two must agree.
         backgroundColor: [
-          'rgba(248,81,73,0.55)',
-          'rgba(210,153,34,0.55)',
-          'rgba(210,153,34,0.70)',
-          'rgba(63,185,80,0.55)',
-          'rgba(63,185,80,0.80)',
+          'rgba(255,107,53,0.16)',
+          'rgba(255,107,53,0.28)',
+          'rgba(255,107,53,0.44)',
+          'rgba(255,107,53,0.64)',
+          'rgba(255,107,53,0.88)',
         ],
         borderColor: 'transparent',
-        borderRadius: 3,
+        borderRadius: 2,
       }],
     },
     options: {
@@ -469,22 +509,22 @@ function renderChart() {
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: '#1b2130',
-          borderColor: '#242c3a',
+          backgroundColor: '#151923',
+          borderColor: '#282e39',
           borderWidth: 1,
-          titleColor: '#e6edf3',
-          bodyColor: '#8b95a5',
+          titleColor: '#ffffff',
+          bodyColor: '#9da6b9',
         },
       },
       scales: {
         x: {
-          ticks: { color: '#8b95a5', font: { size: 10, family: 'ui-monospace, monospace' } },
-          grid:  { color: '#242c3a' },
+          ticks: { color: '#9da6b9', font: { size: 10, family: 'Space Grotesk, sans-serif' } },
+          grid:  { color: '#282e39' },
         },
         y: {
           beginAtZero: true,
-          ticks: { color: '#8b95a5', font: { size: 10 }, stepSize: 1 },
-          grid:  { color: '#242c3a' },
+          ticks: { color: '#9da6b9', font: { size: 10 }, stepSize: 1 },
+          grid:  { color: '#282e39' },
         },
       },
     },
@@ -530,8 +570,8 @@ function renderFragilityChart(rows, canvasId) {
   // (no bare "score crossed 1.0" — that ignores the near-high gate). canary_count
   // is populated ONLY within 2% of the trailing-250d index high, so it is an exact
   // proxy for the engine's indexNearHigh (verified against the source + D1).
-  //   🔴 Alert: score >= 1.0 AND near-high
-  //   🟡 Watch: core3 >= 1.0 OR (climax >= 1.5 AND near-high)
+  //   Alert: score >= 1.0 AND near-high
+  //   Watch: core3 >= 1.0 OR (climax >= 1.5 AND near-high)
   //
   // The two Watch arms are drawn differently because they perform differently.
   // Against the basket's own >=7% tops over the 252 sessions in D1 (study
@@ -557,10 +597,13 @@ function renderFragilityChart(rows, canvasId) {
     return null;
   });
   const heldState = (r) =>
-    isAlert(r) ? '🔴 Alert פעיל'
-      : isCore3(r) ? '🟡 Watch פעיל (core3)'
-        : isClimax(r) ? '⚪ climax בלבד — תיאורי, לא נשלחת הודעה'
-          : '🟢 שקט';
+    // Plain text, no icon markup: this string is drawn into the Chart.js
+    // canvas tooltip, where Material Symbols ligatures would render as the
+    // literal word ("circle") instead of a glyph.
+    isAlert(r) ? 'Alert פעיל'
+      : isCore3(r) ? 'Watch פעיל (core3)'
+        : isClimax(r) ? 'climax בלבד — תיאורי, לא נשלחת הודעה'
+          : 'שקט';
 
   const ctx = $('#' + canvasId).getContext('2d');
   const chartInstance = new Chart(ctx, {
@@ -571,12 +614,13 @@ function renderFragilityChart(rows, canvasId) {
         {
           label: 'Fragility (אופוריה)',
           data: scores,
-          borderColor: 'rgba(163,113,247,0.95)',
-          backgroundColor: 'rgba(163,113,247,0.12)',
+          borderColor: 'rgba(255,107,53,0.95)',
+          backgroundColor: 'rgba(255,107,53,0.12)',
           borderWidth: 1.6,
           // Dots mark the day the real rule newly fired. Three weights, matching
-          // how much each one earns: 🔴 Alert (solid red), 🟡 Watch/core3 (solid
-          // amber — the arm that still messages), climax-only (small hollow grey,
+          // how much each one earns: Alert (solid red), Watch/core3 (solid white
+          // — the arm that still messages; white rather than the accent so it
+          // stays legible on the orange line), climax-only (small hollow slate,
           // deliberately quiet: 33% precision, below base rate).
           pointRadius: (ctx) => {
             const m = marker[ctx.dataIndex];
@@ -584,12 +628,12 @@ function renderFragilityChart(rows, canvasId) {
           },
           pointBackgroundColor: (ctx) => {
             const m = marker[ctx.dataIndex];
-            return m === 'alert' ? 'rgba(248,81,73,0.95)'
-              : m === 'watch' ? 'rgba(210,153,34,0.95)'
+            return m === 'alert' ? 'rgba(248,113,113,0.95)'
+              : m === 'watch' ? 'rgba(255,255,255,0.95)'
                 : 'transparent';
           },
           pointBorderColor: (ctx) =>
-            (marker[ctx.dataIndex] === 'soft' ? 'rgba(139,149,165,0.8)' : 'transparent'),
+            (marker[ctx.dataIndex] === 'soft' ? 'rgba(157,166,185,0.8)' : 'transparent'),
           pointBorderWidth: (ctx) => (marker[ctx.dataIndex] === 'soft' ? 1.2 : 0),
           pointHoverRadius: (ctx) => {
             const m = marker[ctx.dataIndex];
@@ -605,8 +649,8 @@ function renderFragilityChart(rows, canvasId) {
         {
           label: 'Capitulation (מיצוי)',
           data: capitulation,
-          borderColor: 'rgba(88,196,220,0.95)',
-          backgroundColor: 'rgba(88,196,220,0.10)',
+          borderColor: 'rgba(157,166,185,0.95)',
+          backgroundColor: 'rgba(157,166,185,0.10)',
           borderWidth: 1.6,
           pointRadius: 0,
           pointHitRadius: 6,
@@ -617,14 +661,14 @@ function renderFragilityChart(rows, canvasId) {
           // secondary overlays, not the primary signal.
           hidden: true,
         },
-        // Reference line only — the real 🔴 alert also requires the basket to be
+        // Reference line only — the real Alert also requires the basket to be
         // near its own running high (indexNearHigh, not persisted per-day here),
         // so a score crossing 1.0 on this chart isn't identical to a real alert
         // having fired. See the tooltip / explainer tab for the full rule.
         {
           label: 'סף 1.0 (ייחוס — לא הכלל המלא)',
           data: threshold,
-          borderColor: 'rgba(248,81,73,0.7)',
+          borderColor: 'rgba(248,113,113,0.7)',
           borderWidth: 1,
           borderDash: [5, 4],
           pointRadius: 0,
@@ -638,7 +682,7 @@ function renderFragilityChart(rows, canvasId) {
         {
           label: 'QQQ (נאסד"ק 100, מנורמל)',
           data: qqqIndex,
-          borderColor: 'rgba(88,166,255,0.85)',
+          borderColor: 'rgba(100,116,139,0.9)',
           borderWidth: 1.4,
           borderDash: [2, 2],
           pointRadius: 0,
@@ -660,18 +704,18 @@ function renderFragilityChart(rows, canvasId) {
         legend: {
           display: true,
           labels: {
-            color: '#8b95a5',
+            color: '#9da6b9',
             font: { size: 10 },
             boxWidth: 12,
             filter: (item) => item.text !== 'סף 1.0 (ייחוס — לא הכלל המלא)',
           },
         },
         tooltip: {
-          backgroundColor: '#1b2130',
-          borderColor: '#242c3a',
+          backgroundColor: '#151923',
+          borderColor: '#282e39',
           borderWidth: 1,
-          titleColor: '#e6edf3',
-          bodyColor: '#8b95a5',
+          titleColor: '#ffffff',
+          bodyColor: '#9da6b9',
           filter: (item) => item.datasetIndex === 0 || item.datasetIndex === 1 || item.datasetIndex === 3,
           callbacks: {
             title: (items) => (items[0] ? rows[items[0].dataIndex].scan_date : ''),
@@ -701,21 +745,21 @@ function renderFragilityChart(rows, canvasId) {
       scales: {
         x: {
           ticks: {
-            color: '#8b95a5',
-            font: { size: 9, family: 'ui-monospace, monospace' },
+            color: '#9da6b9',
+            font: { size: 9, family: 'Space Grotesk, sans-serif' },
             maxTicksLimit: 12,
             maxRotation: 0,
           },
-          grid: { color: '#242c3a' },
+          grid: { color: '#282e39' },
         },
         y: {
-          ticks: { color: '#8b95a5', font: { size: 10 } },
-          grid: { color: '#242c3a' },
+          ticks: { color: '#9da6b9', font: { size: 10 } },
+          grid: { color: '#282e39' },
         },
         y1: {
           position: 'right',
           display: hasQqq,
-          ticks: { color: 'rgba(88,166,255,0.85)', font: { size: 10 } },
+          ticks: { color: 'rgba(100,116,139,0.9)', font: { size: 10 } },
           grid: { drawOnChartArea: false },
         },
       },
@@ -876,12 +920,12 @@ function renderTable() {
           inner = `<span class="${fmtPctClass(r.day_pct)}">${fmtPct(r.day_pct)}</span>`;
           break;
         case 'stage2':
-          inner = r.stage2 ? '<span class="num-up" title="Stage 2">✓</span>' : '';
+          inner = r.stage2 ? `<span class="num-up" title="Stage 2">${iconHTML('check')}</span>` : '';
           break;
         case 'rs': {
           // RS percentile — the ranking metric that survived the 2y score study.
           if (r.rs == null) return `<td class="${cls}" data-v="-1">—</td>`;
-          const flame = r.rs >= 90 ? ' 🔥' : '';
+          const flame = r.rs >= 90 ? iconHTML('local_fire_department', 'rs-flame') : '';
           return `<td class="${cls}" data-v="${r.rs}"><span class="${r.rs >= 90 ? 'num-up' : ''}">${r.rs}${flame}</span></td>`;
         }
         case 'score': {
@@ -938,8 +982,8 @@ function renderTable() {
           <div class="sc-kv"><span class="sc-k">יום%</span><span class="sc-v ${fmtPctClass(r.day_pct)}">${fmtPct(r.day_pct)}</span></div>
           <div class="sc-kv"><span class="sc-k">ATH%</span><span class="sc-v ${fmtPctClass(r.ath_pct)}">${fmtPct(r.ath_pct)}</span></div>
           <div class="sc-kv"><span class="sc-k">מחיר</span><span class="sc-v">${fmtPrice(r.price)}</span></div>
-          <div class="sc-kv"><span class="sc-k">RS</span><span class="sc-v ${(r.rs ?? 0) >= 90 ? 'num-up' : ''}">${r.rs != null ? r.rs + (r.rs >= 90 ? ' 🔥' : '') : '—'}</span></div>
-          <div class="sc-kv"><span class="sc-k">S2</span><span class="sc-v ${r.stage2 ? 'num-up' : ''}">${r.stage2 ? '✓' : '—'}</span></div>
+          <div class="sc-kv"><span class="sc-k">RS</span><span class="sc-v ${(r.rs ?? 0) >= 90 ? 'num-up' : ''}">${r.rs != null ? r.rs + (r.rs >= 90 ? iconHTML('local_fire_department', 'rs-flame') : '') : '—'}</span></div>
+          <div class="sc-kv"><span class="sc-k">S2</span><span class="sc-v ${r.stage2 ? 'num-up' : ''}">${r.stage2 ? iconHTML('check') : '—'}</span></div>
         </div>
       </div>`;
   }).join('');
@@ -966,10 +1010,10 @@ function renderShowMore() {
   if (!wrap || !btn) return;
 
   if (hiddenNearCount > 0) {
-    btn.textContent = `⏳ טען עוד ${hiddenNearCount} ניירות — רשימת מעקב שקטה (Near)`;
+    btn.innerHTML = `${iconHTML('expand_more')}טען עוד ${hiddenNearCount} ניירות — רשימת מעקב שקטה (Near)`;
     wrap.hidden = false;
   } else if (showNear && shownNearCount > 0) {
-    btn.textContent = `🔼 הסתר ${shownNearCount} ניירות — רשימת מעקב שקטה (Near)`;
+    btn.innerHTML = `${iconHTML('expand_less')}הסתר ${shownNearCount} ניירות — רשימת מעקב שקטה (Near)`;
     wrap.hidden = false;
   } else {
     wrap.hidden = true;
@@ -1004,7 +1048,7 @@ function scoreBreakdown(r) {
     items.push([`בסיס ${readableSignal(sigs[0])}`, base]);
     items.push(['RVOL ×5 (עד 30)', Math.round(rvolTerm)]);
     if (r.stage2) items.push(['Stage 2', 20]);
-    if ((r.rs ?? 0) >= 90) items.push(['RS ≥ 90 🔥', 10]);
+    if ((r.rs ?? 0) >= 90) items.push([`RS ≥ 90${iconHTML('local_fire_department', 'rs-flame')}`, 10]);
   } else {
     const leanSigs = sigs.filter((s) => !s.startsWith('setup'));
     const base = Math.max(...leanSigs.map((s) => SCORE_BASE[s] ?? 0), 0);
@@ -1048,7 +1092,7 @@ function openDeepDive(r) {
   // Graduation banner
   const gradBanner = r.graduated_from
     ? `<div class="dd-grad-banner" role="note" aria-label="Graduation">
-        🎓 Graduated from: ${readableSignal(r.graduated_from)}
+        ${iconHTML('school')}Graduated from: ${readableSignal(r.graduated_from)}
        </div>`
     : '';
 
@@ -1057,18 +1101,18 @@ function openDeepDive(r) {
 
   // Streak note
   const streakNote = (r.streak && r.streak > 1)
-    ? `<span class="streak-chip" title="${r.streak} ימים ברצף">📅 ${r.streak}d ברצף</span>`
+    ? `<span class="streak-chip" title="${r.streak} ימים ברצף">${iconHTML('calendar_month')}${r.streak}d ברצף</span>`
     : '';
 
   const pairs = [
     ['Score',  `${r.score ?? '—'}${deltaHtml ? ' ' + deltaHtml.replace(/class="delta-/g, 'class="delta-') : ''}`],
-    ['RS',     r.rs != null ? `${r.rs}${r.rs >= 90 ? ' 🔥' : ''}` : '—'],
+    ['RS',     r.rs != null ? `${r.rs}${r.rs >= 90 ? iconHTML('local_fire_department', 'rs-flame') : ''}` : '—'],
     ['RVOL',   fmtRvol(r.rvol)],
     ['ATH%',   fmtPct(r.ath_pct)],
     ['יום%',   fmtPct(r.day_pct)],
     ['לפיבוט', r.dist_pivot != null ? fmtPct(r.dist_pivot) : '—'],
     ['מחיר',   fmtPrice(r.price)],
-    ['Stage2', r.stage2 ? '✓ כן' : '✗ לא'],
+    ['Stage2', r.stage2 ? `${iconHTML('check')}כן` : `${iconHTML('close')}לא`],
     ['אזור',   r.region || '—'],
   ];
 
@@ -1087,7 +1131,7 @@ function openDeepDive(r) {
     </div>`).join('');
 
   $('#deepdive-inner').innerHTML = `
-    <button class="btn-close" id="btn-close-dd" aria-label="סגור פאנל">✕</button>
+    <button class="btn-close" id="btn-close-dd" aria-label="סגור פאנל">${iconHTML('close')}</button>
     ${gradBanner}
     <div class="dd-ticker">${r.ticker || ''} ${streakNote}</div>
     <div class="dd-sub">${r.sector || ''} · ${r.region || ''}</div>
@@ -1274,8 +1318,8 @@ function renderWatchlist(state, todayRows, todayDate) {
         const hit = todayRows ? matchTodayRow(r, byTicker, byBase) : null;
         let status;
         if (!todayRows) status = '—';
-        else if (hit) status = `<span class="wl-live">🟢 נדלק היום</span> ${badgeHTML((hit.signal || '').trim(), true)}`;
-        else status = '<span class="wl-aged">⚪ ותק בלבד</span>';
+        else if (hit) status = `<span class="wl-live">${iconHTML('check_circle')}נדלק היום</span> ${badgeHTML((hit.signal || '').trim(), true)}`;
+        else status = `<span class="wl-aged">${iconHTML('schedule')}ותק בלבד</span>`;
         return `
         <tr>
           <td>${r.ticker}</td>
