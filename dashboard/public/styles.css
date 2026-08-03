@@ -76,6 +76,14 @@
   --radius:    8px;   /* cards */
   --radius-lg: 12px;  /* large panels */
 
+  /* Type scale (2026-08-03 a11y pass).
+     The dashboard previously used 11 arbitrary sizes between 0.58rem and
+     0.78rem, which rendered secondary text at 9.5-11px — below the 12px
+     readability floor. Collapsed to two tokens with 12px as the hard minimum;
+     `xs` is the smallest type allowed anywhere on the page. */
+  --fs-xs:   0.8rem;    /* 12px — labels, chips, table headers, captions */
+  --fs-sm:   0.867rem;  /* 13px — table cells, secondary prose */
+
   --panel-w: 340px;
 }
 
@@ -98,7 +106,7 @@ table,
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html {
-  font-size: 14px;
+  font-size: 15px;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -162,7 +170,7 @@ button { font-family: inherit; }
 /* Endorsement line — the product is Gondar, the house is XSHEVA. */
 .brand-by {
   font-family: var(--xsh-font-display);
-  font-size: 0.6rem;
+  font-size: var(--fs-xs);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: var(--xsh-track-wider);
@@ -230,7 +238,7 @@ button { font-family: inherit; }
 
 .header-meta {
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   color: var(--muted);
 }
 
@@ -274,7 +282,7 @@ button { font-family: inherit; }
 }
 
 .date-picker-caret {
-  font-size: 0.65rem;
+  font-size: var(--fs-xs);
   color: var(--muted);
   transition: transform 0.15s;
 }
@@ -376,7 +384,7 @@ button { font-family: inherit; }
 .cal-wd {
   text-align: center;
   font-family: var(--mono);
-  font-size: 0.63rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--muted);
   padding: 3px 0;
@@ -398,7 +406,7 @@ button { font-family: inherit; }
   height: 34px;
   border-radius: var(--radius-sm);
   font-family: var(--mono);
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--muted);
   cursor: default;
@@ -439,7 +447,7 @@ button { font-family: inherit; }
 
 /* Small count label under the day number */
 .cal-day-count {
-  font-size: 0.58rem;
+  font-size: var(--fs-xs);
   color: var(--muted);
   font-weight: 400;
   line-height: 1;
@@ -507,7 +515,7 @@ main {
 }
 
 .stat-card-lbl {
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   color: var(--muted);
   white-space: nowrap;
 }
@@ -526,7 +534,7 @@ main {
 }
 
 .chart-title {
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   color: var(--muted);
   margin-bottom: 8px;
   font-family: var(--mono);
@@ -629,7 +637,7 @@ main {
 }
 
 .williamsr-explainer {
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   color: var(--muted);
   line-height: 1.55;
   margin: 0 0 10px;
@@ -645,7 +653,7 @@ main {
 
 .williamsr-tv-primary summary {
   cursor: pointer;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   color: var(--muted);
   font-family: var(--mono);
   margin-bottom: 8px;
@@ -718,7 +726,7 @@ main {
 
 .ctrl-count {
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   color: var(--muted);
   margin-inline-start: auto;
 }
@@ -743,7 +751,7 @@ main {
 #grid thead th {
   background: var(--surface2);
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -825,7 +833,7 @@ td.col-signals { text-align: start; white-space: nowrap; }
   gap: 3px;
   padding: 2px 7px;
   font-family: var(--sans);
-  font-size: 0.68rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   white-space: nowrap;
   border: 1px solid transparent;
@@ -833,7 +841,7 @@ td.col-signals { text-align: start; white-space: nowrap; }
 
 /* primary badge = slightly larger */
 .badge--primary {
-  font-size: 0.73rem;
+  font-size: var(--fs-xs);
   padding: 3px 9px;
 }
 
@@ -882,7 +890,7 @@ td.col-signals { text-align: start; white-space: nowrap; }
   background: rgba(255, 107, 53, 0.22);
   color: var(--accent);
   font-family: var(--mono);
-  font-size: 0.65rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   padding: 1px 5px;
   margin-inline-start: 2px;
@@ -896,7 +904,7 @@ td.col-signals { text-align: start; white-space: nowrap; }
   background: var(--xsh-primary);
   color: #ffffff;
   border-color: var(--xsh-primary);
-  font-size: 0.73rem;
+  font-size: var(--fs-xs);
   padding: 3px 9px;
 }
 
@@ -909,7 +917,7 @@ td.col-signals { text-align: start; white-space: nowrap; }
   background: rgba(157, 166, 185, 0.12);
   border: 1px solid rgba(157, 166, 185, 0.20);
   font-family: var(--mono);
-  font-size: 0.63rem;
+  font-size: var(--fs-xs);
   color: var(--muted);
   vertical-align: middle;
   margin-inline-start: 3px;
@@ -917,9 +925,9 @@ td.col-signals { text-align: start; white-space: nowrap; }
 }
 
 /* score delta */
-.delta-up  { color: var(--up);   font-family: var(--mono); font-size: 0.72rem; margin-inline-start: 4px; }
-.delta-down { color: var(--down); font-family: var(--mono); font-size: 0.72rem; margin-inline-start: 4px; }
-.delta-new { color: var(--muted); font-family: var(--mono); font-size: 0.70rem; margin-inline-start: 4px; letter-spacing: -0.02em; }
+.delta-up  { color: var(--up);   font-family: var(--mono); font-size: var(--fs-xs); margin-inline-start: 4px; }
+.delta-down { color: var(--down); font-family: var(--mono); font-size: var(--fs-xs); margin-inline-start: 4px; }
+.delta-new { color: var(--muted); font-family: var(--mono); font-size: var(--fs-xs); margin-inline-start: 4px; letter-spacing: -0.02em; }
 
 /* ═══════════════════════════════════════════════
    SCORE CELL (inline style sets --sc-bg via JS attr)
@@ -988,7 +996,7 @@ td.col-score {
 
 .sc-score-badge {
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   padding: 3px 9px;
   border-radius: var(--radius-sm);
@@ -1001,7 +1009,7 @@ td.col-score {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 4px 8px;
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
 }
 
 .sc-kv {
@@ -1010,7 +1018,7 @@ td.col-score {
   gap: 1px;
 }
 
-.sc-k { color: var(--muted); font-size: 0.68rem; }
+.sc-k { color: var(--muted); font-size: var(--fs-xs); }
 .sc-v { font-family: var(--mono); font-variant-numeric: tabular-nums; }
 
 /* ═══════════════════════════════════════════════
@@ -1139,7 +1147,7 @@ td.col-score {
   padding: 8px 10px;
 }
 
-.dd-k { font-size: 0.68rem; color: var(--muted); margin-bottom: 2px; }
+.dd-k { font-size: var(--fs-xs); color: var(--muted); margin-bottom: 2px; }
 .dd-v { font-family: var(--mono); font-size: 0.9rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 
 /* graduation highlight in deep-dive */
@@ -1188,10 +1196,15 @@ td.col-score {
     grid-template-columns: 1fr;
   }
 
+  /* 100px min + tighter side padding leaves ~84px of content, enough for the
+     longest label ("Setup/Rec" + its icon = 79px) without wrapping. At the old
+     80px the labels clipped once the type scale moved to a 12px floor. */
   .summary-cards {
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     gap: 6px;
   }
+
+  .stat-card { padding: 10px 8px; }
 
   .stat-card-val { font-size: 1.2rem; }
 
@@ -1407,7 +1420,7 @@ td.col-score {
 
 /* "Alpha" / "החזק ביותר" — emphasis, not a direction, so it takes the accent. */
 .explainer-card-badge {
-  font-size: 0.65rem;
+  font-size: var(--fs-xs);
   font-weight: 700;
   padding: 2px 7px;
   border-radius: var(--radius-sm);
@@ -1462,7 +1475,7 @@ td.col-score {
 }
 
 .explainer-card-note {
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   color: var(--muted);
   font-style: italic;
   margin: 0;
@@ -1500,7 +1513,7 @@ td.col-score {
 }
 
 .explainer-score-detail {
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   color: var(--muted);
   line-height: 1.5;
 }
@@ -1584,13 +1597,13 @@ td.col-score {
 
 .explainer-legend-term {
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--accent);
 }
 
 .explainer-legend-def {
-  font-size: 0.73rem;
+  font-size: var(--fs-xs);
   color: var(--muted);
   line-height: 1.5;
 }
@@ -1601,7 +1614,7 @@ td.col-score {
 
 .explainer-legend-tag {
   display: inline-block;
-  font-size: 0.62rem;
+  font-size: var(--fs-xs);
   font-weight: 600;
   color: var(--amber);
   background: rgba(255, 107, 53, 0.14);
@@ -1631,7 +1644,7 @@ td.col-score {
 .explainer-research-card--lose .explainer-research-stat { color: var(--down); }
 
 .explainer-research-detail {
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: var(--muted);
   line-height: 1.5;
 }
@@ -1656,7 +1669,7 @@ td.col-score {
   caption-side: top;
   text-align: right;
   padding: 10px 14px;
-  font-size: 0.78rem;
+  font-size: var(--fs-sm);
   font-weight: 700;
   color: var(--muted);
   border-bottom: 1px solid var(--border);
@@ -1672,7 +1685,7 @@ td.col-score {
 .explainer-table thead th {
   color: var(--muted);
   font-weight: 600;
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   background: var(--surface2);
 }
 
@@ -1692,7 +1705,7 @@ td.col-score {
 .explainer-table .et-sub {
   font-family: var(--sans);
   color: var(--muted);
-  font-size: 0.7rem;
+  font-size: var(--fs-xs);
 }
 
 .explainer-table .et-good {
@@ -1703,14 +1716,14 @@ td.col-score {
 .explainer-table .wl-live {
   font-family: var(--sans);
   color: var(--up);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   white-space: nowrap;
 }
 
 .explainer-table .wl-aged {
   font-family: var(--sans);
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: var(--fs-xs);
   white-space: nowrap;
 }
 
@@ -1718,7 +1731,7 @@ td.col-score {
   padding-right: 26px;
   color: var(--muted);
   font-family: var(--sans);
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
 }
 
 .explainer-table tr.et-total td {
@@ -1743,7 +1756,7 @@ td.col-score {
   }
 
   .explainer-table {
-    font-size: 0.73rem;
+    font-size: var(--fs-xs);
   }
 
   .explainer-table th,
@@ -1806,4 +1819,61 @@ td.col-score {
 .stat-card:hover,
 .explainer-card:hover {
   border-color: var(--xsh-primary);
+}
+
+/* ═══════════════════════════════════════════════
+   TOUCH TARGETS (mobile)
+   Every control is ≥44x44 on touch widths. Desktop keeps the compact
+   36px rhythm — a dense table earns that, a thumb does not.
+═══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .header-tab,
+  .date-picker-btn,
+  .date-nav-btn,
+  .cal-nav,
+  .btn-close,
+  .btn-expand,
+  .btn-show-more,
+  .ctrl-input,
+  .ctrl-select,
+  .williamsr-tv-primary summary,
+  .dd-tv-link {
+    min-height: 44px;
+  }
+
+  /* the link is a block with its own padding — centre the label in the taller box */
+  .dd-tv-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .date-nav-btn,
+  .cal-nav,
+  .btn-close,
+  .btn-expand {
+    min-width: 44px;
+  }
+
+  /* the checkbox itself stays small; the label row carries the target */
+  .ctrl-checkbox {
+    min-height: 44px;
+    align-items: center;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+   REDUCED MOTION
+   The system mandates 300ms transitions throughout; honour the OS
+   preference to switch them off. Chart.js already runs animation:false.
+═══════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
