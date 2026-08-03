@@ -1,3 +1,7 @@
+# NOTE: the workflow name is pinned. scripts/sync-tv-watchlist.ts locates the
+# latest artifact with `gh run list --workflow="Lean Radar - Daily Scan"`, so
+# renaming this to Gondar silently breaks the TradingView sync. Rename both in
+# the same commit if it ever changes. Display strings below are already Gondar.
 name: Lean Radar - Daily Scan
 
 # Runs on the `stable` branch only — sends a stripped-down 3-signal report
@@ -70,7 +74,7 @@ jobs:
       #
       # If no prior artifact exists (first run, all-runs pruned, etc.)
       # the step warns and the Graduated section degrades to empty.
-      - name: Download previous Lean Radar snapshot
+      - name: Download previous Gondar snapshot
         uses: dawidd6/action-download-artifact@v6
         continue-on-error: true
         with:
@@ -103,7 +107,7 @@ jobs:
           echo "lean snapshots now present:"
           ls results/lean-*.json 2>/dev/null || echo "(none yet — first run or no prior artifact)"
 
-      - name: Run Lean Radar
+      - name: Run Gondar
         env:
           FINNHUB_API_KEY: ${{ secrets.FINNHUB_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
@@ -138,11 +142,11 @@ jobs:
           TOT=$(jq 'length' "results/dashboard-${DATE}.json")
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
-            --data-urlencode "text=🪶 Lean ${DATE}: ${HI} בשכנוע גבוה · ${TOT} סיגנלים → https://radar-dashboard-c9o.pages.dev"
+            --data-urlencode "text=Gondar ${DATE}: ${HI} בשכנוע גבוה · ${TOT} סיגנלים → https://radar-dashboard-c9o.pages.dev"
 
       # Persist the full per-run snapshot (lean-{date}.json + raw scan files)
       # as a year-retained artifact for retrospective debugging.
-      - name: Upload Lean Radar artifacts
+      - name: Upload Gondar artifacts
         if: success() || failure()
         uses: actions/upload-artifact@v4
         with:
@@ -159,5 +163,5 @@ jobs:
         run: |
           if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
             curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
-              -d "chat_id=${TELEGRAM_CHAT_ID}&text=⚠️ 🪶 Lean Radar failed. Check GitHub Actions on stable branch."
+              -d "chat_id=${TELEGRAM_CHAT_ID}&text=Gondar scan failed. Check GitHub Actions on stable branch."
           fi

@@ -3,7 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Lean Radar — Dashboard</title>
+  <title>GONDAR — Dashboard</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+  >
+  <link
+    rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
+  >
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
@@ -14,8 +25,18 @@
   ════════════════════════════════════════ -->
   <header class="site-header" role="banner">
     <div class="header-brand">
-      <span class="brand-icon" aria-hidden="true">🪶</span>
-      <span class="brand-name">Lean Radar</span>
+      <!-- XSHEVA staircase glyph — brand mark, always currentColor/primary -->
+      <svg
+        class="brand-mark"
+        viewBox="0 0 48 48"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+      >
+        <path d="M4 4H17.3334V17.3334H30.6666V30.6666H44V44H4V4Z" fill="currentColor"/>
+      </svg>
+      <span class="brand-name">GONDAR</span>
+      <span class="brand-by">XSHEVA</span>
     </div>
 
     <!-- View tabs -->
@@ -26,21 +47,21 @@
         role="tab"
         aria-selected="true"
         aria-controls="view-signals"
-      >📡 סיגנלים</button>
+      ><span class="material-symbols-outlined" aria-hidden="true">radar</span>סיגנלים</button>
       <button
         class="header-tab"
         id="tab-watchlist"
         role="tab"
         aria-selected="false"
         aria-controls="view-watchlist"
-      >📺 Watchlist</button>
+      ><span class="material-symbols-outlined" aria-hidden="true">list_alt</span>Watchlist</button>
       <button
         class="header-tab"
         id="tab-explainer"
         role="tab"
         aria-selected="false"
         aria-controls="view-explainer"
-      >❓ איך זה עובד</button>
+      ><span class="material-symbols-outlined" aria-hidden="true">help</span>איך זה עובד</button>
     </nav>
 
     <!-- Date picker control group -->
@@ -59,7 +80,7 @@
         aria-expanded="false"
         aria-controls="cal-popover"
       >
-        <span aria-hidden="true">📅</span>
+        <span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>
         <span id="selected-date">—</span>
         <span class="date-picker-caret" aria-hidden="true">▾</span>
       </button>
@@ -108,8 +129,8 @@
       </div>
       <div class="chart-wrap chart-wrap--fragility" id="fragility-wrap" hidden>
         <div class="chart-title-row">
-          <p class="chart-title">🟣 Purple Fragility <span class="chart-subtitle">אופוריה (סף 1.0) + מיצוי — תיאורי בלבד · 🔴 חציית Alert · 🟡 חציית Watch (core3, נשלחת בטלגרם) · ⚪ climax בלבד (תיאורי, ללא הודעה) · ראו "איך זה עובד"</span></p>
-          <button class="btn-expand" id="btn-expand-fragility" aria-label="הגדל גרף" title="הגדל גרף">⛶</button>
+          <p class="chart-title"><span class="material-symbols-outlined" aria-hidden="true">speed</span>Purple Fragility <span class="chart-subtitle">אופוריה (סף 1.0) + מיצוי — תיאורי בלבד · <span class="mk mk--alert" aria-hidden="true"></span>חציית Alert · <span class="mk mk--watch" aria-hidden="true"></span>חציית Watch (core3, נשלחת בטלגרם) · <span class="mk mk--climax" aria-hidden="true"></span>climax בלבד (תיאורי, ללא הודעה) · ראו "איך זה עובד"</span></p>
+          <button class="btn-expand" id="btn-expand-fragility" aria-label="הגדל גרף" title="הגדל גרף"><span class="material-symbols-outlined" aria-hidden="true">open_in_full</span></button>
         </div>
         <div class="chart-box">
           <canvas id="fragility-chart" aria-label="גרף ציון שבירות ומיצוי" role="img"></canvas>
@@ -117,7 +138,7 @@
       </div>
       <div class="chart-wrap chart-wrap--williamsr" id="williamsr-wrap" hidden>
         <div class="chart-title-row">
-          <p class="chart-title">📉 Williams %R <span class="chart-subtitle">מד תזמון-שוק על SPY ו-QQQ שבועי (14) — לא לכל מניה, ולא קשור לציון ה-Fragility למעלה</span></p>
+          <p class="chart-title"><span class="material-symbols-outlined" aria-hidden="true">trending_down</span>Williams %R <span class="chart-subtitle">מד תזמון-שוק על SPY ו-QQQ שבועי (14) — לא לכל מניה, ולא קשור לציון ה-Fragility למעלה</span></p>
         </div>
         <p class="williamsr-explainer">
           <b>מה זה אומר:</b> כשהקו יורד מתחת ל-<b class="wr-legend-panic">‑80</b> — השוק נכנס ל"פאניקה קיצונית". היסטורית (2006–היום, 44 מקרים ב-SPY) זה הוביל לתשואה חיובית ב-77% מהמקרים, אבל <b>רק תוך 8–26 שבועות</b>, לא מיד — ו-77% מהמקרים גם ירדו לשפל נוסף לפני זה. זו לא נקודת "לקנות עכשיו", אלא איתות "תתחיל לשים לב". מעל <b class="wr-legend-overbought">‑20</b> = overbought — ב-QQQ, ‎10+‎ שבועות רצופים באזור הזה קדמו לנפילת השבבים ביולי 2026. פירוט מלא ומחקר ה-backtest — ראו "איך זה עובד".
@@ -125,8 +146,8 @@
         <!-- The real TradingView charts — this IS what the indicator looks like.
              Collapsible (open by default) so their portrait aspect ratio doesn't force a
              huge fixed block — see .williamsr-tv-img max-height in styles.css. -->
-        <details class="williamsr-tv-primary" open>
-          <summary>📺 TradingView — SPY, הגרף האמיתי (מתעדכן כל יום ראשון)</summary>
+        <details class="williamsr-tv-primary">
+          <summary><span class="material-symbols-outlined" aria-hidden="true">monitor</span>TradingView — SPY, הגרף האמיתי (מתעדכן כל יום ראשון)</summary>
           <img
             src="/assets/williams-r-spy-weekly.png"
             alt="SPY שבועי עם Williams %R ב-TradingView"
@@ -137,8 +158,8 @@
             פתח את הגרף החי ב-TradingView ↗
           </a>
         </details>
-        <details class="williamsr-tv-primary" open>
-          <summary>📺 TradingView — QQQ, הגרף האמיתי (מתעדכן כל יום ראשון)</summary>
+        <details class="williamsr-tv-primary">
+          <summary><span class="material-symbols-outlined" aria-hidden="true">monitor</span>TradingView — QQQ, הגרף האמיתי (מתעדכן כל יום ראשון)</summary>
           <img
             src="/assets/williams-r-qqq-weekly.png"
             alt="QQQ שבועי עם Williams %R ב-TradingView"
@@ -171,18 +192,20 @@
         <option>TASE</option>
         <option>Foreign</option>
       </select>
+      <!-- Native <option> renders text only — no icon font, no markup. Plain
+           labels here are the on-system choice, not a dropped marker. -->
       <select id="f-signal" class="ctrl-select" aria-label="סינון לפי סיגנל">
         <option value="">כל הסיגנלים</option>
-        <option value="setupFull">🎯 Setup Full</option>
-        <option value="setupClose">👀 Setup Close</option>
-        <option value="setupRecovery">🚀 Setup Recovery</option>
-        <option value="breakout">📈 Breakout</option>
-        <option value="highVolume">🔥 High Volume</option>
-        <option value="pullback">📉 Pullback</option>
-        <option value="creep">🐢 Creep</option>
-        <option value="nearBreakout">⏳ Near Breakout</option>
-        <option value="nearHighVol">⏳ Near High Vol</option>
-        <option value="nearPullback">⏳ Near Pullback</option>
+        <option value="setupFull">Setup Full</option>
+        <option value="setupClose">Setup Close</option>
+        <option value="setupRecovery">Setup Recovery</option>
+        <option value="breakout">Breakout</option>
+        <option value="highVolume">High Volume</option>
+        <option value="pullback">Pullback</option>
+        <option value="creep">Creep</option>
+        <option value="nearBreakout">Near Breakout</option>
+        <option value="nearHighVol">Near High Vol</option>
+        <option value="nearPullback">Near Pullback</option>
       </select>
       <label class="ctrl-checkbox" for="f-stage2">
         <input type="checkbox" id="f-stage2">
@@ -190,11 +213,11 @@
       </label>
       <label class="ctrl-checkbox" for="f-grad">
         <input type="checkbox" id="f-grad">
-        <span>🎓 Grad בלבד</span>
+        <span><span class="material-symbols-outlined" aria-hidden="true">school</span>Grad בלבד</span>
       </label>
       <label class="ctrl-checkbox" for="f-near">
         <input type="checkbox" id="f-near">
-        <span>⏳ הצג רשימת מעקב שקטה</span>
+        <span><span class="material-symbols-outlined" aria-hidden="true">hourglass_empty</span>הצג רשימת מעקב שקטה</span>
       </label>
       <span class="ctrl-count" id="row-count" aria-live="polite" aria-atomic="true"></span>
     </section>
@@ -230,57 +253,62 @@
   <div id="view-watchlist" role="tabpanel" aria-labelledby="tab-watchlist" hidden>
     <article class="explainer" aria-label="Watchlist נוכחי ב-TradingView">
       <div class="explainer-hero">
-        <div class="explainer-title">📺 מה נמצא עכשיו על TradingView</div>
+        <div class="explainer-title"><span class="material-symbols-outlined" aria-hidden="true">monitor</span>מה נמצא עכשיו על TradingView</div>
         <div class="explainer-subtitle" id="watchlist-meta">טוען…</div>
       </div>
       <!-- Lifecycle docs — how these lists are built, refreshed, and pruned -->
       <section class="explainer-section" aria-labelledby="wl-howto">
-        <h2 class="explainer-h2" id="wl-howto">🔄 איך הרשימות נבנות — ומתי הן מתעדכנות</h2>
+        <h2 class="explainer-h2" id="wl-howto"><span class="material-symbols-outlined" aria-hidden="true">sync</span>איך הרשימות נבנות — ומתי הן מתעדכנות</h2>
         <p class="explainer-prose">
-          שתי הרשימות נכתבות ע"י <strong>סריקת ה-Lean</strong>, לא ע"י הדשבורד. הדשבורד רק מציג
+          שתי הרשימות נכתבות ע"י <strong>סריקת ה-Gondar</strong>, לא ע"י הדשבורד. הדשבורד רק מציג
           את מה שכבר יושב על TradingView.
+        </p>
+        <p class="explainer-prose explainer-prose--note">
+          שתי הרשימות עדיין נקראות <code>Lean Radar - Breakouts</code> ו-<code>Lean Radar - Near</code>
+          — אלה השמות בפועל בחשבון ה-TradingView, והסנכרון מאתר אותן לפי השם המדויק.
+          שינוי השם דורש לשנות אותו גם ב-TradingView וגם ב-<code>sync-tv-watchlist.ts</code> באותו רגע.
         </p>
         <div class="explainer-score-grid">
           <div class="explainer-score-item explainer-score-item--pos">
-            <span class="explainer-score-label">📈 Lean Radar - Breakouts — רשימת פעולה</span>
-            <span class="explainer-score-detail">🎓 Graduated שהסיגנל שלהן היום הוא breakout אמיתי + פריצות קונסולידציה אמיתיות. אלה המניות להסתכל עליהן <em>היום</em>.</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">trending_up</span>Lean Radar - Breakouts — רשימת פעולה</span>
+ <span class="explainer-score-detail"> Graduated שהסיגנל שלהן היום הוא breakout אמיתי + פריצות קונסולידציה אמיתיות. אלה המניות להסתכל עליהן <em>היום</em>.</span>
           </div>
           <div class="explainer-score-item explainer-score-item--pos">
-            <span class="explainer-score-label">⏳ Lean Radar - Near — רשימת מעקב</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">hourglass_empty</span>Lean Radar - Near — רשימת מעקב</span>
             <span class="explainer-score-detail">nearConsolidation בלבד — עד 2% מהפיבוט, כלומר יום-יומיים לפני פריצה. נועדה לתפוס את המעבר.</span>
           </div>
         </div>
         <p class="explainer-prose explainer-prose--note">
           Pullback ו-High Volume <strong>לא</strong> נכנסים לרשימות האלה בכוונה — ארכיטיפ מסחר אחר
-          (קנייה בירידה / הקשר נפח). הם מופיעים בדוח הטלגרם ובלשונית 📡 סיגנלים.
+ (קנייה בירידה / הקשר נפח). הם מופיעים בדוח הטלגרם ובלשונית סיגנלים.
         </p>
 
         <h3 class="explainer-h3">⏱️ קצב העדכון</h3>
         <p class="explainer-prose">
-          אחרי <strong>כל סריקת Lean מוצלחת</strong> (20:15 UTC, ושוב 23:45 UTC לסגירות המתוקנות,
+          אחרי <strong>כל סריקת Gondar מוצלחת</strong> (20:15 UTC, ושוב 23:45 UTC לסגירות המתוקנות,
           ימים ב׳–ו׳) רץ אוטומטית ה-tv-sync: מוריד את קובץ היעד מהארטיפקט של הסריקה, מסנכרן אותו
           לתוך TradingView, ושומר snapshot ל-<code>results/tv-state.json</code>. הלשונית הזאת קוראת
           בדיוק את הקובץ הזה (מטמון 5 דקות), ולכן "עודכן לאחרונה" בכותרת = <strong>הסנכרון האחרון
           שהצליח</strong>. אם התאריך שם ישן ביומיים — הסנכרון נכשל, לא השוק נרדם.
         </p>
 
-        <h3 class="explainer-h3">🧹 מה מוריד מנייה מהרשימה</h3>
+        <h3 class="explainer-h3"><span class="material-symbols-outlined" aria-hidden="true">cleaning_services</span>מה מוריד מנייה מהרשימה</h3>
         <p class="explainer-prose">
           זו הנקודה החשובה: הסנכרון הוא <strong>מצטבר (additive)</strong>. מנייה <em>לא</em> יורדת
           מהרשימה רק בגלל שהיום היא לא נדלקה מחדש. יש בדיוק <strong>שני</strong> מסלולי הסרה:
         </p>
         <div class="explainer-score-grid">
           <div class="explainer-score-item explainer-score-item--neg">
-            <span class="explainer-score-label">⏳ גיזום ותק — 14 יום</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">hourglass_empty</span>גיזום ותק — 14 יום</span>
             <span class="explainer-score-detail">אם הראדאר לא סימן את המנייה שוב <strong>לאותה רשימה</strong> במשך 14 יום, הסנכרון הבא מסיר אותה.</span>
           </div>
           <div class="explainer-score-item explainer-score-item--neg">
-            <span class="explainer-score-label">🩹 גיזום בריאות — שבירה של ‎8%‎</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">healing</span>גיזום בריאות — שבירה של ‎8%‎</span>
             <span class="explainer-score-detail">בדיקת הבריאות רצה אוטומטית לפני כל סנכרון, מסמנת מנייה שירדה ‎≥8%‎ מתחת למחיר האיתות, והסנכרון מסיר אותה באותה ריצה — אלא אם הראדאר סימן אותה מחדש באותו יום. פעם אחת למנייה. <strong>פעיל מ-2026-07-27</strong> (עד אז המנגנון היה מתועד אבל לא רץ בפועל).</span>
           </div>
         </div>
 
-        <h3 class="explainer-h3">📖 איך לקרוא את הטבלה</h3>
+        <h3 class="explainer-h3"><span class="material-symbols-outlined" aria-hidden="true">menu_book</span>איך לקרוא את הטבלה</h3>
         <p class="explainer-prose">
           העמודה <strong>"איתות ראשון"</strong> היא התאריך הראשון שבו המנייה נכנסה לרשימה —
           <strong>לא חותמת רעננות</strong>. מנייה עם תאריך מלפני שבוע נמצאת שם כי היא עדיין לא
@@ -294,11 +322,11 @@
         </p>
         <div class="explainer-score-grid">
           <div class="explainer-score-item explainer-score-item--pos">
-            <span class="explainer-score-label">🟢 נדלק היום</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span>נדלק היום</span>
             <span class="explainer-score-detail">הראדאר סימן את המנייה שוב בסריקה האחרונה — לצד התווית מופיע הסיגנל שבגללו. שים לב שהוא לא בהכרח אותו סיגנל שהכניס אותה לרשימה.</span>
           </div>
           <div class="explainer-score-item explainer-score-item--neg">
-            <span class="explainer-score-label">⚪ ותק בלבד</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">radio_button_unchecked</span>ותק בלבד</span>
             <span class="explainer-score-detail">המנייה ברשימה כי היא עוד לא התיישנה ולא נשברה — <strong>לא</strong> כי היא נדלקה היום. זו בדיוק ההתרעה מלפני שבועיים שכבר לא בהכרח רלוונטית.</span>
           </div>
         </div>
@@ -319,14 +347,14 @@
     <article class="explainer" aria-label="איך זה עובד">
 
       <header class="explainer-hero">
-        <h1 class="explainer-title">איך Lean Radar עובד?</h1>
-        <p class="explainer-subtitle">מקור הדאטה, הלוגיקה מאחורי כל סיגנל, שכבות ה-Setup, עמודת ה-RS, הציון, ומדדי ה-Purple Fragility וה-Capitulation — הכל כאן. מחזור החיים של רשימות ה-TradingView מתועד בלשונית 📺 Watchlist. עודכן 2026-07-27.</p>
+        <h1 class="explainer-title">איך Gondar עובד?</h1>
+ <p class="explainer-subtitle">מקור הדאטה, הלוגיקה מאחורי כל סיגנל, שכבות ה-Setup, עמודת ה-RS, הציון, ומדדי ה-Purple Fragility וה-Capitulation — הכל כאן. מחזור החיים של רשימות ה-TradingView מתועד בלשונית Watchlist. עודכן 2026-08-03.</p>
       </header>
 
       <!-- Open items — deliberately first: these are the things that need a human
            decision later, and they are easy to forget once they scroll away. -->
       <section class="explainer-section" aria-labelledby="ex-open">
-        <h2 class="explainer-h2" id="ex-open">📌 פתוח לבדיקה בהמשך</h2>
+        <h2 class="explainer-h2" id="ex-open"><span class="material-symbols-outlined" aria-hidden="true">push_pin</span>פתוח לבדיקה בהמשך</h2>
         <p class="explainer-prose">
           דברים שנשארו במכוון פתוחים — לא באגים, אלא החלטות שדורשות עוד דאטה או עוד זמן.
           מה שיש לו בדיקה אוטומטית מסומן; השאר תלוי בך. עודכן 2026-07-27.
@@ -334,7 +362,7 @@
 
         <div class="explainer-score-grid">
           <div class="explainer-score-item explainer-score-item--neg">
-            <span class="explainer-score-label">🔁 כיול מחדש של Fragility</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>כיול מחדש של Fragility</span>
             <span class="explainer-score-detail">
               המחקר מ-2026-07-27 נשען על <strong>2 אירועים בלבד</strong> (אוקטובר–נובמבר 2025,
               מאי–יוני 2026). צריך עוד <strong>2–3 אירועים בלתי-תלויים</strong> — לא עוד התרעות:
@@ -344,7 +372,7 @@
           </div>
 
           <div class="explainer-score-item">
-            <span class="explainer-score-label">⚪ אימות חי של climax</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">radio_button_unchecked</span>אימות חי של climax</span>
             <span class="explainer-score-detail">
               השינוי נבדק על 252 שורות היסטוריות, אבל עוד לא ראינו אותו חי.
               בחצייה הבאה של <strong>climax בלבד</strong> מצופה: עיגול אפור חלול בגרף,
@@ -353,7 +381,7 @@
           </div>
 
           <div class="explainer-score-item">
-            <span class="explainer-score-label">⚠️ הכלל כתוב פעמיים</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">warning</span>הכלל כתוב פעמיים</span>
             <span class="explainer-score-detail">
               כלל ה-Alert/Watch מקודד גם במנוע (<code>purpleFragility.ts</code>, ענף <code>main</code>)
               וגם בדאשבורד (<code>app.js</code>, ענף <code>stable</code>). הותאמו ידנית ב-2026-07-27,
@@ -362,7 +390,7 @@
           </div>
 
           <div class="explainer-score-item">
-            <span class="explainer-score-label">📊 שיעורי הבסיס אינם קבועים</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">bar_chart</span>שיעורי הבסיס אינם קבועים</span>
             <span class="explainer-score-detail">
               המספרים ‎21%‎ / ‎31%‎ / ‎41%‎ נמדדו בחלון תנודתי במיוחד (הסל ירד ‎21.9%‎ מהשיא בסופו).
               בשנה רגועה הם ייראו אחרת. <strong>לחשב מחדש בכל כיול — לא להתייחס אליהם כקבועים.</strong>
@@ -370,7 +398,7 @@
           </div>
 
           <div class="explainer-score-item">
-            <span class="explainer-score-label">🧪 QQQ כקו ייחוס — לבדיקה חוזרת</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">science</span>QQQ כקו ייחוס — לבדיקה חוזרת</span>
             <span class="explainer-score-detail">
               QQQ נבחר כי הוא הצמוד ביותר לסל (‎r=0.821‎) והחזק ביותר בסף המשמעותי.
               הפער מול ‎^IXIC‎ קטן ומתהפך לפי הסף — <strong>לא להחליף אלא אם כיול עתידי
@@ -379,11 +407,11 @@
           </div>
 
           <div class="explainer-score-item">
-            <span class="explainer-score-label">🔒 מה לא נוגעים בו</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">lock</span>מה לא נוגעים בו</span>
             <span class="explainer-score-detail">
               <code>FRAGILITY_THRESHOLD = 1.0</code> — הטווח ‎0.9–1.2‎ נותן ‎3–4x‎ ב-‎p&lt;0.01‎,
               כלומר רמה יציבה ולא מקרית. הסף ‎1.1‎ נראה טוב יותר אבל על ‎8‎ אירועים מול ‎10‎ —
-              זו התאמת-יתר לשני אירועים. גם כלל ה-🔴 Alert והרכב הסל נעולים.
+ זו התאמת-יתר לשני אירועים. גם כלל ה- Alert והרכב הסל נעולים.
             </span>
           </div>
         </div>
@@ -398,7 +426,7 @@
         <!-- Second block: operational/infra open items from the two-radar review
              (2026-07-27). Kept inside the same section on purpose — two competing
              "open items" panels is how a follow-up list starts getting ignored. -->
-        <h3 class="explainer-h3">🧭 ומהצד התפעולי — מה שנשאר פתוח מסקירת שני הראדארים</h3>
+        <h3 class="explainer-h3"><span class="material-symbols-outlined" aria-hidden="true">explore</span>ומהצד התפעולי — מה שנשאר פתוח מסקירת שני הראדארים</h3>
         <p class="explainer-prose">
           לא מדדים אלא תשתית: מה שנבדק, מה שתוקן, ומה שעדיין לא נסגר.
           מקור מלא: <code>cabinet/outputs/2026-07-26-two-radar-improvement.md</code>.
@@ -411,14 +439,14 @@
             </thead>
             <tbody>
               <tr>
-                <td><strong>אין השוואה עדכנית Smart מול Lean</strong></td>
+                <td><strong>אין השוואה עדכנית Smart מול Gondar</strong></td>
                 <td>ההשוואה היחידה (מאי 2026) בוטלה — נמדדה לפני שער המומנטום, הסרת lowRiskEntry, דירוג RS ושכבת ה-creep. כרגע <em>אין</em> תשובה מבוססת-נתונים ל"מי מהם עדיף".</td>
                 <td>שתי הרצות replay מלאות (‎~600 מניות × 250 ימים) ואז <code>compare-radars-6mo.ts</code>. עבודה מפוקחת, לא ריצה ברקע.</td>
               </tr>
               <tr>
                 <td><strong>גיזום ה-8% עוד לא רץ באמת</strong></td>
                 <td>המנגנון פעיל מ-2026-07-27, אבל מאז אף מנייה לא נשברה — מסלול ההסרה עדיין לא הופעל בפרודקשן, רק בבדיקה מקומית.</td>
-                <td>בדוח הבריאות היומי בטלגרם: כשתופיע מנייה תחת "❌ נשברו", לוודא שירדה מהרשימה בסנכרון של אותו יום.</td>
+ <td>בדוח הבריאות היומי בטלגרם: כשתופיע מנייה תחת " נשברו", לוודא שירדה מהרשימה בסנכרון של אותו יום.</td>
               </tr>
               <tr>
                 <td><strong>יומן ה-OOS עדיין צעיר</strong></td>
@@ -438,7 +466,7 @@
               <tr>
                 <td><strong>סל 10 המניות — review שנתי</strong></td>
                 <td>ההרכב נעול. ה-review הבא ב-2027, וברירת המחדל שלו "לא נוגעים" — כל שינוי מאפס את הרשומה החיה.</td>
-                <td>סעיף <a href="#ex-basket">🧺 סל 10 המניות</a> — הטריגרים והפרוטוקול המלא.</td>
+ <td>סעיף <a href="#ex-basket"> סל 10 המניות</a> — הטריגרים והפרוטוקול המלא.</td>
               </tr>
             </tbody>
           </table>
@@ -447,21 +475,44 @@
 
       <!-- Pipeline -->
       <section class="explainer-section" aria-labelledby="ex-pipeline">
-        <h2 class="explainer-h2" id="ex-pipeline">🔄 מקור הדאטה והצינור</h2>
+        <h2 class="explainer-h2" id="ex-pipeline"><span class="material-symbols-outlined" aria-hidden="true">sync</span>מקור הדאטה והצינור</h2>
         <p class="explainer-prose">
-          <strong>Yahoo Finance</strong> (נרות יומיים) ← <strong>GitHub Actions</strong> מריץ את ה-Lean Radar כל יום מסחר
+          <strong>Yahoo Finance</strong> (נרות יומיים) ← <strong>GitHub Actions</strong> מריץ את ה-Gondar כל יום מסחר
           ← כותב את הסיגנלים ל-<strong>Cloudflare D1</strong> ← הדאשבורד קורא משם בזמן אמת.
         </p>
       </section>
 
       <!-- Signals -->
       <section class="explainer-section" aria-labelledby="ex-signals">
-        <h2 class="explainer-h2" id="ex-signals">📡 הסיגנלים</h2>
+        <h2 class="explainer-h2" id="ex-signals"><span class="material-symbols-outlined" aria-hidden="true">radar</span>הסיגנלים</h2>
+        <p class="explainer-prose">
+          <strong>הצבע בטבלה = איכות נמדדת, לא קטגוריה</strong> (מ-2026-08-03). האייקון אומר
+          <em>איזה</em> סיגנל זה, הצבע אומר <em>כמה הוא שווה</em> לפי הבקטסט. לכן Breakout אפור
+          ולא ירוק — הקופי שלו עצמו אומר "edge שלילי, מתחת ל-baseline".
+        </p>
+        <div class="explainer-score-grid">
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label"><span class="badge badge--strong">ירוק</span> — שכבה חזקה</span>
+            <span class="explainer-score-detail">Pullback · Creep · Setup Full / Close / Recovery — כל אלה מנצחים את ה-baseline במחקר השנתיים.</span>
+          </div>
+          <div class="explainer-score-item">
+            <span class="explainer-score-label"><span class="badge badge--moderate">כתום</span> — הקשר בלבד</span>
+            <span class="explainer-score-detail">High Volume — "משהו קורה", בלי טענה מבוססת לכיוון.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--neg">
+            <span class="explainer-score-label"><span class="badge badge--weak">אפור מתאר</span> — edge שלילי</span>
+            <span class="explainer-score-detail">Breakout — מתחת ל-baseline, משקל נמוך בציון. לא אדום כי הוא לא מזיק, פשוט לא מוסיף.</span>
+          </div>
+          <div class="explainer-score-item">
+            <span class="explainer-score-label"><span class="badge badge--low">דהוי</span> — רשימת מעקב</span>
+            <span class="explainer-score-detail">Near-* — מוסתר כברירת מחדל, למעקב ולא לפעולה.</span>
+          </div>
+        </div>
         <div class="explainer-cards">
 
           <div class="explainer-card explainer-card--strong">
             <div class="explainer-card-head">
-              <span class="explainer-card-icon" aria-hidden="true">📉</span>
+              <span class="explainer-card-icon material-symbols-outlined" aria-hidden="true">trending_down</span>
               <h3 class="explainer-card-title">Pullback — הסיגנל המרכזי</h3>
               <span class="explainer-card-badge">Alpha</span>
             </div>
@@ -478,7 +529,7 @@
 
           <div class="explainer-card explainer-card--moderate">
             <div class="explainer-card-head">
-              <span class="explainer-card-icon" aria-hidden="true">🔥</span>
+              <span class="explainer-card-icon material-symbols-outlined" aria-hidden="true">local_fire_department</span>
               <h3 class="explainer-card-title">High Volume</h3>
             </div>
             <p class="explainer-card-body">
@@ -489,7 +540,7 @@
 
           <div class="explainer-card explainer-card--weak">
             <div class="explainer-card-head">
-              <span class="explainer-card-icon" aria-hidden="true">📈</span>
+              <span class="explainer-card-icon material-symbols-outlined" aria-hidden="true">trending_up</span>
               <h3 class="explainer-card-title">Breakout</h3>
               <span class="explainer-card-badge explainer-card-badge--warn">Edge שלילי</span>
             </div>
@@ -501,7 +552,7 @@
 
           <div class="explainer-card explainer-card--strong">
             <div class="explainer-card-head">
-              <span class="explainer-card-icon" aria-hidden="true">🐢</span>
+              <span class="explainer-card-icon material-symbols-outlined" aria-hidden="true">stairs</span>
               <h3 class="explainer-card-title">Creep — הזוחל השקט</h3>
             </div>
             <p class="explainer-card-body">
@@ -513,7 +564,7 @@
 
           <div class="explainer-card explainer-card--low">
             <div class="explainer-card-head">
-              <span class="explainer-card-icon" aria-hidden="true">⏳</span>
+              <span class="explainer-card-icon material-symbols-outlined" aria-hidden="true">hourglass_empty</span>
               <h3 class="explainer-card-title">Near — רשימת מעקב שקטה</h3>
             </div>
             <p class="explainer-card-body">
@@ -528,9 +579,9 @@
 
       <!-- Smart Setup tiers -->
       <section class="explainer-section" aria-labelledby="ex-setup">
-        <h2 class="explainer-h2" id="ex-setup">🎯 שכבות ה-Smart Setup</h2>
+        <h2 class="explainer-h2" id="ex-setup"><span class="material-symbols-outlined" aria-hidden="true">gps_fixed</span>שכבות ה-Smart Setup</h2>
         <p class="explainer-prose">
-          לצד סיגנלי ה-Lean, הדשבורד מציג את איתותי ה-<strong>Momentum Setup</strong> של ה-Smart Radar —
+          לצד סיגנלי ה-Gondar, הדשבורד מציג את איתותי ה-<strong>Momentum Setup</strong> של ה-Smart Radar —
           אחרי חבילת החידוד של יולי 2026 (replay של שנתיים, 599 מניות): <strong>שער מומנטום</strong>
           (תשואת 3 חודשים ≥ +20%) הפך תנאי חובה, אחרי שהתגלה שבלעדיו ה-Setup לא הוסיף כלום מעל ה-baseline.
         </p>
@@ -538,7 +589,7 @@
 
           <div class="explainer-card explainer-card--strong">
             <div class="explainer-card-head">
-              <span class="explainer-card-icon" aria-hidden="true">🎯</span>
+              <span class="explainer-card-icon material-symbols-outlined" aria-hidden="true">gps_fixed</span>
               <h3 class="explainer-card-title">Setup Full</h3>
               <span class="explainer-card-badge">החזק ביותר</span>
             </div>
@@ -551,7 +602,7 @@
 
           <div class="explainer-card explainer-card--strong">
             <div class="explainer-card-head">
-              <span class="explainer-card-icon" aria-hidden="true">👀</span>
+              <span class="explainer-card-icon material-symbols-outlined" aria-hidden="true">visibility</span>
               <h3 class="explainer-card-title">Setup Close</h3>
             </div>
             <p class="explainer-card-body">
@@ -564,7 +615,7 @@
 
           <div class="explainer-card explainer-card--strong">
             <div class="explainer-card-head">
-              <span class="explainer-card-icon" aria-hidden="true">🚀</span>
+              <span class="explainer-card-icon material-symbols-outlined" aria-hidden="true">rocket_launch</span>
               <h3 class="explainer-card-title">Setup Recovery</h3>
             </div>
             <p class="explainer-card-body">
@@ -575,7 +626,7 @@
 
         </div>
         <p class="explainer-prose explainer-prose--note">
-          כלל הכניסה: <strong>איתות Setup + RS ≥ 80</strong> · RS ≥ 90 🔥 = הכי חזק.
+ כלל הכניסה: <strong>איתות Setup + RS ≥ 80</strong> · RS ≥ 90 = הכי חזק.
           <br>הנתונים ההיסטוריים (יוני–יולי 2026) חושבו ב-backfill; מאז, כל סריקה יומית של ה-Smart
           מזרימה את איתותי ה-Setup וה-RS לדשבורד אוטומטית.
         </p>
@@ -583,19 +634,98 @@
 
       <!-- RS -->
       <section class="explainer-section" aria-labelledby="ex-rs">
-        <h2 class="explainer-h2" id="ex-rs">💪 עמודת RS — עוצמה יחסית</h2>
+        <h2 class="explainer-h2" id="ex-rs"><span class="material-symbols-outlined" aria-hidden="true">fitness_center</span>עמודת RS — עוצמה יחסית</h2>
         <p class="explainer-prose">
           <strong>RS Percentile</strong> = תשואת 3 החודשים של המנייה מעל SPY, מדורגת מול כל שאר
           המניות ברדאר באותו יום (0–100). זהו המדד היחיד ששרד את מחקר הציונים על שנתיים
-          (10,736 אפיזודות): <strong>RS ‏90–100 🔥 → ‏75% הצלחה, חציון +17.9%</strong> מול
+ (10,736 אפיזודות): <strong>RS ‏90–100 → ‏75% הצלחה, חציון +17.9%</strong> מול
           68% / +8.3% ב-RS ‏50–69 — והוא עבד גם בשנה השורית וגם בשנה המדשדשת.
           97% ממניות ה-+100% הגיעו ל-RS ≥ 80 כבר באפיזודה השנייה שלהן.
         </p>
       </section>
 
+      <!-- Score vs RS — the practical "which column do I read" answer -->
+      <section class="explainer-section" aria-labelledby="ex-which">
+        <h2 class="explainer-h2" id="ex-which"><span class="material-symbols-outlined" aria-hidden="true">compare_arrows</span>Score או RS — במה להסתכל?</h2>
+        <p class="explainer-prose">
+          <strong>התשובה הקצרה: RS, לא Score</strong> — אבל רק כדי לדרג <em>בתוך</em> שכבת סיגנל,
+          ורק כשמד ה-Fragility רגוע. אף אחד מהשניים אינו טריגר קנייה בפני עצמו.
+        </p>
+
+        <h3 class="explainer-h3">מה אומר המחקר ההיסטורי (שנתיים, 10,736 אפיזודות)</h3>
+        <p class="explainer-prose">
+          המדרג של ה-Score כמעט שטוח, של ה-RS תלול פי כמה. זה ההבדל כולו:
+        </p>
+        <div class="explainer-table-wrap">
+          <table class="explainer-table">
+            <caption>פער בין הרצועה הנמוכה לגבוהה — שנתיים, ווטצ'ליסט</caption>
+            <thead>
+              <tr><th>עמודה</th><th>רצועה נמוכה</th><th>רצועה גבוהה</th><th>פער ב-win</th><th>פער בחציון</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Score</td>
+                <td>&lt;50 — 67.5% / +9.3%</td>
+                <td>80+ — 70.9% / +11.5%</td>
+                <td>3.4 נק׳</td>
+                <td>+2.2%</td>
+              </tr>
+              <tr class="et-total">
+                <td><b>RS</b></td>
+                <td>50–69 — 67.9% / +8.3%</td>
+                <td class="et-good"><b>90–100 — 75.1% / +17.9%</b></td>
+                <td class="et-good"><b>7.2 נק׳</b></td>
+                <td class="et-good"><b>+9.6%</b></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h3 class="explainer-h3">ומה קרה בפועל בדאטה החי (יוני–אוגוסט 2026)</h3>
+        <p class="explainer-prose">
+          נבדקו <strong>539 שורות סיגנל</strong> מ-8 ימי מסחר מלאים (2026-06-08 עד 06-17) מול
+          מחירי Yahoo אמיתיים, בתשואה של 21 ו-35 ימי מסחר קדימה, <strong>בניכוי QQQ</strong>.
+          התוצאה מפתיעה וחשובה:
+        </p>
+        <div class="explainer-score-grid">
+          <div class="explainer-score-item explainer-score-item--neg">
+            <span class="explainer-score-label">RS ‎90–100‎ הפסידו למדד</span>
+            <span class="explainer-score-detail">‎−5.8%‎ מתחת ל-QQQ ב-21 יום, <strong>‎−15.4%‎ ב-35 יום</strong>. שיעור הצלחה ‎14.7%‎ בלבד.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--neg">
+            <span class="explainer-score-label">Score ‎70–85‎ גם הפסידו</span>
+            <span class="explainer-score-detail">‎−12.1%‎ מתחת ל-QQQ ב-35 יום, ‎8.9%‎ הצלחה. גם כאן המדרג התהפך.</span>
+          </div>
+          <div class="explainer-score-item explainer-score-item--pos">
+            <span class="explainer-score-label">דווקא RS ‎50–70‎ ניצחו</span>
+            <span class="explainer-score-detail">‎+10.2%‎ מעל QQQ ב-35 יום, ‎64%‎ הצלחה — המובילים נשברו, הבינוניים החזיקו.</span>
+          </div>
+        </div>
+
+        <h3 class="explainer-h3">למה זה קרה — וזו הנקודה החשובה</h3>
+        <p class="explainer-prose">
+          זו לא הוכחה ש-RS "לא עובד". זה בדיוק <strong>מפולת מומנטום</strong>: RS מדרג את מובילי
+          המומנטום, ובהתפרקות מומנטום הם בהגדרה נופלים הכי חזק. והראיה החותכת:
+          <strong>מד ה-Fragility היה מעל הסף ‎1.0‎ בכל אחד משמונת ימי המדגם</strong>, ושלח
+          התרעות Alert אמיתיות ב-06-12, 06-15, 06-18 ו-06-22 — בדיוק לפני הנפילה שנמדדה כאן.
+        </p>
+        <p class="explainer-prose explainer-prose--note">
+          <strong>כלל העבודה שנגזר מזה:</strong> קודם מסתכלים על ה-<strong>Fragility</strong>
+          (איזה משטר שוק), אחר כך על <strong>שכבת הסיגנל</strong> (מה הארכיטיפ), ורק אז על
+          <strong>RS</strong> כדי לדרג בתוך השכבה. ה-Score נשאר שימושי כמיון ברירת-מחדל של
+          הטבלה, אבל הוא <em>לא</em> העמודה שמפרידה בין מנצח למפסיד — לא בשנתיים ההיסטוריות
+          ולא בדאטה החי.
+        </p>
+        <p class="explainer-prose explainer-prose--note">
+          <strong>מגבלות המדידה החיה:</strong> 8 ימי מסחר, אירוע שוק אחד, ‎n=533‎ ל-21 יום
+          ו-‎314‎ ל-35 יום. זה מספיק כדי להדגים את <em>אופן הכישלון</em> של RS, ולא מספיק כדי
+          לבטל את מחקר השנתיים. הרצה מלאה חוזרת אחרי משטר שוק שונה תיתן תמונה מאוזנת יותר.
+        </p>
+      </section>
+
       <!-- Score -->
       <section class="explainer-section" aria-labelledby="ex-score">
-        <h2 class="explainer-h2" id="ex-score">🎯 ציון ה-Confluence</h2>
+        <h2 class="explainer-h2" id="ex-score"><span class="material-symbols-outlined" aria-hidden="true">gps_fixed</span>ציון ה-Confluence</h2>
         <p class="explainer-prose">
           הציון מורכב ממספר רכיבים — <strong>לחיצה על כל שורה בטבלה פותחת פירוק מלא של הציון
           רכיב-רכיב</strong>. נבדק על שנת replay מלאה (3,763 אפיזודות): מדרגה אמיתית —
@@ -623,24 +753,24 @@
 
       <!-- Cross-day insights -->
       <section class="explainer-section" aria-labelledby="ex-crossday">
-        <h2 class="explainer-h2" id="ex-crossday">📅 תובנות חוצות-ימים</h2>
+        <h2 class="explainer-h2" id="ex-crossday"><span class="material-symbols-outlined" aria-hidden="true">calendar_month</span>תובנות חוצות-ימים</h2>
         <div class="explainer-cards explainer-cards--row">
           <div class="explainer-insight-card">
-            <span class="explainer-insight-icon" aria-hidden="true">🎓</span>
+            <span class="explainer-insight-icon material-symbols-outlined" aria-hidden="true">school</span>
             <div>
               <strong>Graduation</strong>
               <p>מנייה שעברה מ"כמעט-סיגנל" לסיגנל אמיתי ביום הבא — הקוהורט האיכותי. גבול זהב בטבלה.</p>
             </div>
           </div>
           <div class="explainer-insight-card">
-            <span class="explainer-insight-icon" aria-hidden="true">📅</span>
+            <span class="explainer-insight-icon material-symbols-outlined" aria-hidden="true">calendar_month</span>
             <div>
               <strong>Streak</strong>
               <p>כמה ימים ברצף המנייה מופיעה על הראדאר — מנייה עקבית היא סיגנל בפני עצמו.</p>
             </div>
           </div>
           <div class="explainer-insight-card">
-            <span class="explainer-insight-icon" aria-hidden="true">📈</span>
+            <span class="explainer-insight-icon material-symbols-outlined" aria-hidden="true">trending_up</span>
             <div>
               <strong>Score Momentum</strong>
               <p>שינוי הציון מול אתמול (▲/▼). מנייה שציונה עולה מיום ליום שווה תשומת-לב.</p>
@@ -651,12 +781,12 @@
 
       <!-- Purple Fragility -->
       <section class="explainer-section" aria-labelledby="ex-fragility">
-        <h2 class="explainer-h2" id="ex-fragility">🟣 Purple Fragility — מד האופוריה</h2>
+        <h2 class="explainer-h2" id="ex-fragility"><span class="material-symbols-outlined" aria-hidden="true">speed</span>Purple Fragility — מד האופוריה</h2>
         <p class="explainer-prose">
           מדד ברמת <strong>השוק</strong> (לא ברמת מנייה): ציון שבירוּת יומי על סל קבוע של
           <strong>10 מניות שבבים/AI</strong> (SMTC, AMKR, CRDO, IFX, MRVL, MU, ONTO, SEDG, SNDK, TSM) —
           הקבוצה שמובילה את הראלי, ולכן משמשת חיישן מוקדם. ההרכב <strong>נעול</strong> —
-          למה, ומה יגרום לו בכל זאת להשתנות, בסעיף <a href="#ex-basket">🧺 סל 10 המניות</a> למטה.
+ למה, ומה יגרום לו בכל זאת להשתנות, בסעיף <a href="#ex-basket"> סל 10 המניות</a> למטה.
           הרעיון: נפילות גדולות לא מגיעות משום מקום —
           קודם מופיע פרופיל של <strong>אופוריה</strong>: כולם בפנים, נדחפים בכוח, ומישהו גדול מוכר לתוך החוזק.
         </p>
@@ -703,15 +833,15 @@
         </p>
         <div class="explainer-score-grid">
           <div class="explainer-score-item explainer-score-item--neg">
-            <span class="explainer-score-label">🔴 Alert</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">error</span>Alert</span>
             <span class="explainer-score-detail">mean6 ≥ 1.0 <strong>וגם</strong> הסל קרוב לשיא הרץ שלו (indexNearHigh) — לא מספיק לחצות 1.0 לבד</span>
           </div>
           <div class="explainer-score-item explainer-score-item--neg">
-            <span class="explainer-score-label">🟡 Watch</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">warning</span>Watch</span>
             <span class="explainer-score-detail">core3 ≥ 1.0 — הזרוע היחידה ששולחת הודעה בטלגרם (דיוק 81%)</span>
           </div>
           <div class="explainer-score-item">
-            <span class="explainer-score-label">⚪ climax בלבד</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">radio_button_unchecked</span>climax בלבד</span>
             <span class="explainer-score-detail">climax ≥ 1.5 וגם קרוב לשיא — מסומן בגרף בעיגול אפור חלול, <strong>בלי הודעה</strong> (דיוק 33%)</span>
           </div>
         </div>
@@ -762,7 +892,7 @@
 
       <!-- Williams %R — market-timing gauge (SPY + QQQ weekly), separate from the basket-level Fragility score above -->
       <section class="explainer-section" aria-labelledby="ex-williamsr">
-        <h2 class="explainer-h2" id="ex-williamsr">📉 Williams %R — מד תזמון-שוק (SPY + QQQ שבועי)</h2>
+        <h2 class="explainer-h2" id="ex-williamsr"><span class="material-symbols-outlined" aria-hidden="true">trending_down</span>Williams %R — מד תזמון-שוק (SPY + QQQ שבועי)</h2>
         <p class="explainer-prose">
           מדד ברמת <strong>השוק הרחב</strong> (לא ברמת מנייה, ולא קשור לסל ה-Fragility למעלה) —
           שכפול של אינדיקטור ששימש ב-<a href="https://x.com/TheRonnieVShow/status/2083202402186911864" target="_blank" rel="noopener">ציוץ של RonnieV</a>
@@ -786,11 +916,11 @@
         </p>
         <div class="explainer-score-grid">
           <div class="explainer-score-item explainer-score-item--pos">
-            <span class="explainer-score-label">🟢 ‑80 ומטה — פאניקה קיצונית</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">check_circle</span>‑80 ומטה — פאניקה קיצונית</span>
             <span class="explainer-score-detail">היסטורית (2006–היום, 44 מקרים) win-rate ‎70–77%‎ תוך 8–26 שבועות — אבל <strong>לא מיידי</strong></span>
           </div>
           <div class="explainer-score-item explainer-score-item--neg">
-            <span class="explainer-score-label">🔴 ‑20 ומעלה — Overbought</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">error</span>‑20 ומעלה — Overbought</span>
             <span class="explainer-score-detail">האזור השני של הסקאלה — לא נבדק לעומק במחקר הזה, מוצג להשלמת התמונה</span>
           </div>
         </div>
@@ -830,7 +960,7 @@
 
       <!-- The basket: why it's locked and when it would change -->
       <section class="explainer-section" aria-labelledby="ex-basket">
-        <h2 class="explainer-h2" id="ex-basket">🧺 סל 10 המניות — למה הוא נעול, ומתי בכל זאת נחליף</h2>
+        <h2 class="explainer-h2" id="ex-basket"><span class="material-symbols-outlined" aria-hidden="true">shopping_basket</span>סל 10 המניות — למה הוא נעול, ומתי בכל זאת נחליף</h2>
         <p class="explainer-prose">
           הסל מוגדר בקובץ <code>config/purple-list.json</code> (גרסה 3, עודכן 2026-07-22), ואותן
           10 מניות משרתות גם את ה-<strong>Fragility</strong> וגם את ה-<strong>Capitulation</strong>.
@@ -838,7 +968,7 @@
           יהיו שווים משהו.
         </p>
 
-        <h3 class="explainer-h3">🔒 למה נעול</h3>
+        <h3 class="explainer-h3"><span class="material-symbols-outlined" aria-hidden="true">lock</span>למה נעול</h3>
         <p class="explainer-prose">
           כל רכיב מנורמל כ-Z מול ההיסטוריה של <strong>הסל עצמו</strong> מ-2022 (חלון מתרחב).
           החלפת מנייה אחת כותבת מחדש את כל ההיסטוריה של המדד — גם הציון של יוני 2026 משתנה
@@ -855,7 +985,7 @@
           </div>
         </div>
 
-        <h3 class="explainer-h3">🔧 מה כן השתנה — בלי לגעת בהרכב</h3>
+        <h3 class="explainer-h3"><span class="material-symbols-outlined" aria-hidden="true">build</span>מה כן השתנה — בלי לגעת בהרכב</h3>
         <p class="explainer-prose">
           ה-<code>changeLog</code> בקובץ מבדיל בין שני סוגי שינוי. <strong>תיקוני מקור-נתונים</strong>:
           IFX עברה מה-ADR הדליל IFNNY ללisting המקורי IFX.DE ‏(2026-07-20, ~פי-7 מחזור), ו-SNDK
@@ -864,7 +994,7 @@
           באף אחד מהם ההרכב לא השתנה — אותן 10 מניות מהיום הראשון.
         </p>
 
-        <h3 class="explainer-h3">🔁 מתי בכל זאת מחליפים</h3>
+        <h3 class="explainer-h3"><span class="material-symbols-outlined" aria-hidden="true">restart_alt</span>מתי בכל זאת מחליפים</h3>
         <p class="explainer-prose">
           לא לפי לוח זמנים אלא לפי טריגר. שלושה מצבים מצדיקים לפתוח את השאלה:
         </p>
@@ -888,7 +1018,7 @@
           תמיד ייראה מנבא, ובזמן אמת הוא לא יהיה.
         </p>
 
-        <h3 class="explainer-h3">📋 הפרוטוקול להחלפה</h3>
+        <h3 class="explainer-h3"><span class="material-symbols-outlined" aria-hidden="true">assignment</span>הפרוטוקול להחלפה</h3>
         <p class="explainer-prose">כשבכל זאת מחליטים להחליף — ארבעת השלבים האלה הם חבילה אחת:</p>
         <div class="explainer-score-grid">
           <div class="explainer-score-item explainer-score-item--pos">
@@ -919,7 +1049,7 @@
 
       <!-- Purple Capitulation -->
       <section class="explainer-section" aria-labelledby="ex-capitulation">
-        <h2 class="explainer-h2" id="ex-capitulation">🩵 Capitulation Score — מד המיצוי</h2>
+        <h2 class="explainer-h2" id="ex-capitulation"><span class="material-symbols-outlined" aria-hidden="true">waves</span>Capitulation Score — מד המיצוי</h2>
         <p class="explainer-prose">
           השאלה ההפוכה מה-Fragility: לא <em>"האם השוק בשל לנפילה?"</em> אלא
           <strong>"האם הנפילה כבר מוצתה — האם המוכרים נגמרו?"</strong> מחושב על אותו סל 10 המניות,
@@ -959,7 +1089,7 @@
 
       <!-- Differences vs the parallel system + our rationale -->
       <section class="explainer-section" aria-labelledby="ex-parallel">
-        <h2 class="explainer-h2" id="ex-parallel">🔀 למה הגרסה שלנו שונה ממערכת מקבילה</h2>
+        <h2 class="explainer-h2" id="ex-parallel"><span class="material-symbols-outlined" aria-hidden="true">alt_route</span>למה הגרסה שלנו שונה ממערכת מקבילה</h2>
         <p class="explainer-prose">
           קיימת מערכת מקבילה (בפייתון) שמודדת בדיוק את אותו רעיון על אותו <strong>סל-ליבה של 10 מניות</strong> —
           אישוש חוצה-מערכות נחמד: אותה נוסחה (ממוצע 6 ציוני-Z) ואותה מסקנה איכותית
@@ -986,7 +1116,7 @@
               </tr>
               <tr>
                 <td>שכבות אזהרה</td>
-                <td><strong>דו-שכבתי</strong> 🔴 Alert + 🟡 Watch</td>
+ <td><strong>דו-שכבתי</strong> Alert + Watch</td>
                 <td>אזהרה יחידה</td>
                 <td>Alert נדיר ומדויק (חצייה מעל 1.0 <em>וגם</em> קרוב-לשיא), Watch מוקדם ורחב (core3/climax) — שתי רמות במקום אחת.</td>
               </tr>
@@ -1020,7 +1150,7 @@
 
       <!-- Research calibration -->
       <section class="explainer-section" aria-labelledby="ex-research">
-        <h2 class="explainer-h2" id="ex-research">🔬 הכיול — למה זה ככה?</h2>
+        <h2 class="explainer-h2" id="ex-research"><span class="material-symbols-outlined" aria-hidden="true">biotech</span>הכיול — למה זה ככה?</h2>
         <p class="explainer-prose">
           כל סף במערכת נמדד על replay של <strong>599 מניות × שנתיים</strong> (145k+ ימי מסחר),
           עבר בדיקות חוסן (פיצול חצאי-שנה, כניסה ביום עוקב, ריכוזיות) וולידציה עצמאית
@@ -1044,22 +1174,22 @@
 
         <div class="explainer-research-grid">
           <div class="explainer-research-card explainer-research-card--win">
-            <div class="explainer-research-header">📉 Pullback</div>
+            <div class="explainer-research-header"><span class="material-symbols-outlined" aria-hidden="true">trending_down</span>Pullback</div>
             <div class="explainer-research-stat">+12% חציון</div>
             <div class="explainer-research-detail">ל-3 חודשים · 77% הצלחה · פי-3 מעל ה-baseline</div>
           </div>
           <div class="explainer-research-card explainer-research-card--win">
-            <div class="explainer-research-header">⚡ שער המומנטום <span class="explainer-legend-tag">סף כניסה, לא תוצאה</span></div>
+            <div class="explainer-research-header"><span class="material-symbols-outlined" aria-hidden="true">bolt</span>שער המומנטום <span class="explainer-legend-tag">סף כניסה, לא תוצאה</span></div>
             <div class="explainer-research-stat">מומנטום 3ח' ≥ +20%</div>
             <div class="explainer-research-detail">Setup בלי השער = אפס יתרון מעל baseline · איתו: <strong>חציון +15.7%</strong>, ‎−56%‎ רעש</div>
           </div>
           <div class="explainer-research-card explainer-research-card--win">
-            <div class="explainer-research-header">💪 RS ≥ 90</div>
+            <div class="explainer-research-header"><span class="material-symbols-outlined" aria-hidden="true">fitness_center</span>RS ≥ 90</div>
             <div class="explainer-research-stat">75% הצלחה</div>
             <div class="explainer-research-detail">המדד היחיד ששרד גם בשנה מדשדשת · הציון המשוקלל של ה-Smart הוסר</div>
           </div>
           <div class="explainer-research-card explainer-research-card--lose">
-            <div class="explainer-research-header">📈 Breakout</div>
+            <div class="explainer-research-header"><span class="material-symbols-outlined" aria-hidden="true">trending_up</span>Breakout</div>
             <div class="explainer-research-stat">Edge שלילי</div>
             <div class="explainer-research-detail">מתחת ל-baseline · עיוור למפלצות (29/30 בלי אף breakout) · משקל נמוך</div>
           </div>
@@ -1069,7 +1199,7 @@
           הורדת משקל ה-breakout בציון.
         </p>
 
-        <h3 class="explainer-h3">📊 טבלת הסטטיסטיקות המלאה</h3>
+        <h3 class="explainer-h3"><span class="material-symbols-outlined" aria-hidden="true">bar_chart</span>טבלת הסטטיסטיקות המלאה</h3>
         <p class="explainer-prose">
           כל מדד נמדד באפיזודות (dedup 21 יום בין איתותים על אותה מנייה), חלון תשואה של 63 ימי מסחר
           קדימה. Baseline = תשואת יום אקראי מאותה אוכלוסייה באותה תקופה — כך שה-lift אמין גם כשהמספרים
@@ -1128,14 +1258,14 @@
             </thead>
             <tbody>
               <tr>
-                <td>🎯 Setup Full</td>
+ <td> Setup Full</td>
                 <td class="et-good">78.8%</td>
                 <td class="et-good">+15.7%</td>
                 <td class="et-good">83.2%</td>
                 <td>303</td>
               </tr>
               <tr>
-                <td>👀 Setup Close</td>
+ <td> Setup Close</td>
                 <td class="et-good">78.3%</td>
                 <td class="et-good">+18.9%</td>
                 <td class="et-good">84.6%</td>
@@ -1149,7 +1279,7 @@
                 <td>91</td>
               </tr>
               <tr>
-                <td>🚀 Setup Recovery</td>
+ <td> Setup Recovery</td>
                 <td class="et-good">87.5%</td>
                 <td class="et-good">+47.0%</td>
                 <td>—</td>
@@ -1176,7 +1306,7 @@
               <tr><td>Score 80+</td><td>70.9%</td><td>+11.5%</td><td>77.2%</td></tr>
               <tr><td>RS 50–69</td><td>67.9%</td><td>+8.3%</td><td>66.0%</td></tr>
               <tr><td>RS 70–89</td><td>~69%</td><td>~+12%</td><td>~76%</td></tr>
-              <tr class="et-total"><td><b>RS 90–100 🔥</b></td><td class="et-good"><b>75.1%</b></td><td class="et-good"><b>+17.9%</b></td><td class="et-good"><b>87.4%</b></td></tr>
+ <tr class="et-total"><td><b>RS 90–100 </b></td><td class="et-good"><b>75.1%</b></td><td class="et-good"><b>+17.9%</b></td><td class="et-good"><b>87.4%</b></td></tr>
             </tbody>
           </table>
         </div>
@@ -1241,7 +1371,7 @@
     <div class="chart-modal-inner">
       <div class="chart-title-row">
         <p class="chart-title" id="chart-modal-title"></p>
-        <button class="btn-close" id="btn-close-chart-modal" aria-label="סגור">✕</button>
+        <button class="btn-close" id="btn-close-chart-modal" aria-label="סגור"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
       </div>
       <div class="chart-modal-box">
         <canvas id="chart-modal-canvas"></canvas>

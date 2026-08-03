@@ -1,33 +1,95 @@
 /* ═══════════════════════════════════════════════
-   CSS VARIABLES — dark fintech palette
+   GONDAR — XSHEVA design system
+   Tokens mirror `colors_and_type.css` from the Xsheva
+   Design System project. One accent (#FF6B35) on deep
+   space navy; no secondary palette.
 ═══════════════════════════════════════════════ */
 :root {
-  --bg:       #0b0e14;
-  --surface:  #131824;
-  --surface2: #1b2130;
-  --border:   #242c3a;
-  --text:     #e6edf3;
-  --muted:    #8b95a5;
-  --up:       #3fb950;
-  --down:     #f85149;
-  --accent:   #2f81f7;
-  --amber:    #d29922;
-  --gold:     #e3b341;
+  /* ---------- XSHEVA brand ---------- */
+  --xsh-primary:      #FF6B35;
+  --xsh-primary-dark: #E55A00;
+  --xsh-primary-10:   rgba(255, 107, 53, 0.10);
+  --xsh-primary-20:   rgba(255, 107, 53, 0.20);
+  --xsh-primary-25:   rgba(255, 107, 53, 0.25);
 
-  /* score band backgrounds (dark-appropriate, not neon) */
-  --score-red:    rgba(248, 81,  73,  0.20);
-  --score-amber:  rgba(210, 153, 34,  0.22);
-  --score-green1: rgba(63,  185, 80,  0.18);
-  --score-green2: rgba(63,  185, 80,  0.32);
+  --xsh-bg:            #101622;
+  --xsh-bg-elev:       #1c1f27;
+  --xsh-bg-header:     #111318;
+  --xsh-bg-banner:     #151923;
+  --xsh-border:        #282e39;
+  --xsh-border-strong: #3b4354;
 
-  --mono: ui-monospace, "SF Mono", Menlo, "Cascadia Mono", monospace;
-  --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --xsh-fg:   #ffffff;
+  --xsh-fg-2: #cbd5e1;
+  --xsh-fg-3: #9da6b9;
+  --xsh-fg-4: #64748b;
 
-  --radius-sm: 4px;
-  --radius:    8px;
-  --radius-lg: 12px;
+  --xsh-success: #4ade80;
+  --xsh-error:   #f87171;
+
+  --xsh-font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --xsh-track-tight:  -0.02em;
+  --xsh-track-wider:  0.1em;
+
+  --xsh-ease:     cubic-bezier(0.4, 0, 0.2, 1);
+  --xsh-dur-fast: 150ms;
+  --xsh-dur:      300ms;
+
+  --xsh-shadow-cta:  0 10px 25px -5px rgba(255, 107, 53, 0.25);
+  --xsh-shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3);
+
+  /* ---------- Dashboard aliases ----------
+     The dashboard's own semantic names, remapped onto the brand
+     tokens above. Green/red survive as *data encoding* (up/down,
+     pass/fail) via the system's own semantic tokens — everything
+     that was decorative (blue accent, amber, gold) collapses onto
+     the single orange accent. */
+  --bg:       var(--xsh-bg);
+  --surface:  var(--xsh-bg-elev);
+  --surface2: var(--xsh-bg-banner);
+  --border:   var(--xsh-border);
+  --text:     var(--xsh-fg);
+  --muted:    var(--xsh-fg-3);
+  --up:       var(--xsh-success);
+  --down:     var(--xsh-error);
+  --accent:   var(--xsh-primary);
+  --amber:    var(--xsh-primary);
+  --gold:     var(--xsh-primary);
+
+  /* Score bands. The score is *sequential* data, so it gets a single-hue
+     accent ramp rather than four hues. The old red/amber/green scale had two
+     adjacent bands land ~10 RGB apart once composited on this background —
+     unreadable. Green and red stay where they encode direction (returns). */
+  --score-b1: rgba(255, 107, 53, 0.05);  /* < 55  */
+  --score-b2: rgba(255, 107, 53, 0.14);  /* 55-70 */
+  --score-b3: rgba(255, 107, 53, 0.26);  /* 70-85 */
+  --score-b4: rgba(255, 107, 53, 0.40);  /* 85+   */
+
+  /* Space Grotesk everywhere — no serif, no mono (tabular figures
+     carry the numeric alignment the mono stack used to provide). */
+  --mono: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --sans: var(--xsh-font-display);
+
+  /* XSHEVA radii: deliberately small and technical */
+  --radius-xs: 2px;   /* buttons, inputs */
+  --radius-sm: 4px;   /* chips */
+  --radius:    8px;   /* cards */
+  --radius-lg: 12px;  /* large panels */
 
   --panel-w: 340px;
+}
+
+/* Tabular figures on every numeric surface — the dashboard used a
+   mono stack for column alignment; Space Grotesk gets there with
+   font-feature-settings instead. */
+.header-meta,
+.date-picker-btn,
+table,
+.num-up, .num-down,
+.stat-card-value,
+.sc-v {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
 }
 
 /* ═══════════════════════════════════════════════
@@ -62,7 +124,10 @@ button { font-family: inherit; }
   justify-content: space-between;
   gap: 12px;
   padding: 10px 20px;
-  background: var(--surface);
+  /* The system's one durable use of blur: translucent header over content. */
+  background: rgba(17, 19, 24, 0.90);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -76,14 +141,92 @@ button { font-family: inherit; }
   gap: 8px;
 }
 
-.brand-icon { font-size: 1.25rem; }
+/* XSHEVA staircase glyph — the one place the accent is used as a fill. */
+.brand-mark {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--xsh-primary);
+}
 
+/* Wordmark is always all-caps, heavy, tight-tracked. */
 .brand-name {
+  font-family: var(--xsh-font-display);
   font-size: 1.1rem;
   font-weight: 700;
-  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  letter-spacing: var(--xsh-track-tight);
   color: var(--text);
 }
+
+/* Endorsement line — the product is Gondar, the house is XSHEVA. */
+.brand-by {
+  font-family: var(--xsh-font-display);
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: var(--xsh-track-wider);
+  color: var(--xsh-fg-4);
+  padding-inline-start: 8px;
+  margin-inline-start: 2px;
+  border-inline-start: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════
+   MATERIAL SYMBOLS
+   The system's only icon set. Outlined weight, never filled.
+   Sized in em so an icon always tracks its parent's type.
+═══════════════════════════════════════════════ */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined', sans-serif;
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  font-size: 1.15em;
+  line-height: 1;
+  vertical-align: -0.18em;
+  flex-shrink: 0;
+  /* icons sit next to text far more often than not */
+  margin-inline-end: 0.3em;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+/* Icon-only controls carry no trailing gap. */
+.btn-close .material-symbols-outlined,
+.btn-expand .material-symbols-outlined,
+.date-nav-btn .material-symbols-outlined,
+.cal-nav .material-symbols-outlined,
+.delta-new .material-symbols-outlined {
+  margin-inline-end: 0;
+}
+
+/* RS ≥ 90 marker — accent, never larger than the number it follows. */
+.rs-flame {
+  font-size: 0.95em;
+  color: var(--xsh-primary);
+  margin-inline-end: 0;
+  margin-inline-start: 0.15em;
+}
+
+/* ═══════════════════════════════════════════════
+   FRAGILITY MARKER LEGEND
+   Mirrors the Chart.js point styles exactly: solid red = Alert,
+   solid white = Watch/core3, hollow slate = climax-only.
+═══════════════════════════════════════════════ */
+.mk {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: var(--radius-full, 9999px);
+  margin-inline-end: 4px;
+  vertical-align: 1px;
+}
+
+.mk--alert  { background: rgba(248, 113, 113, 0.95); }
+.mk--watch  { background: rgba(255, 255, 255, 0.95); }
+.mk--climax { background: transparent; border: 1.2px solid rgba(157, 166, 185, 0.8); }
+
 
 .header-meta {
   font-family: var(--mono);
@@ -122,7 +265,7 @@ button { font-family: inherit; }
 .date-picker-btn:hover,
 .date-picker-btn[aria-expanded="true"] {
   border-color: var(--accent);
-  background: rgba(47, 129, 247, 0.08);
+  background: rgba(255, 107, 53, 0.08);
 }
 
 .date-picker-btn:focus-visible {
@@ -273,7 +416,7 @@ button { font-family: inherit; }
 }
 
 .cal-day[data-has-data="true"]:hover {
-  background: rgba(47, 129, 247, 0.15);
+  background: rgba(255, 107, 53, 0.15);
   color: var(--accent);
 }
 
@@ -284,7 +427,7 @@ button { font-family: inherit; }
 
 /* Selected day */
 .cal-day[data-selected="true"] {
-  background: rgba(47, 129, 247, 0.25);
+  background: rgba(255, 107, 53, 0.25);
   color: var(--accent);
   box-shadow: inset 0 0 0 1px var(--accent);
 }
@@ -306,12 +449,12 @@ button { font-family: inherit; }
   color: var(--muted);
 }
 
-/* Green dot when score70 > 0 */
+/* Accent dot when score70 > 0 — presence marker, not a direction. */
 .cal-day-dot {
   width: 4px;
   height: 4px;
   border-radius: 50%;
-  background: var(--up);
+  background: var(--xsh-primary);
   position: absolute;
   bottom: 3px;
   left: 50%;
@@ -369,8 +512,10 @@ main {
   white-space: nowrap;
 }
 
-.stat-card--highlight .stat-card-val { color: var(--up); }
-.stat-card--accent .stat-card-val    { color: var(--accent); }
+/* Both are "this is the number to look at first" — green here encoded nothing
+   directional, so it collapses onto the single accent like the rest. */
+.stat-card--highlight .stat-card-val,
+.stat-card--accent .stat-card-val { color: var(--xsh-primary); }
 
 /* chart */
 .chart-wrap {
@@ -389,7 +534,7 @@ main {
 
 .chart-wrap--fragility {
   grid-column: 1 / -1;   /* full-width row under cards + score chart */
-  border-color: rgba(163, 113, 247, 0.35);
+  border-color: rgba(255, 107, 53, 0.35);
 }
 
 /* Chart.js with maintainAspectRatio:false needs an explicitly sized box. */
@@ -429,7 +574,7 @@ main {
   transition: border-color 0.12s, color 0.12s;
 }
 
-.btn-expand:hover { border-color: rgba(163, 113, 247, 0.6); color: var(--text); }
+.btn-expand:hover { border-color: rgba(255, 107, 53, 0.6); color: var(--text); }
 
 /* ═══════════════════════════════════════════════
    CHART MODAL (expanded view)
@@ -480,7 +625,7 @@ main {
 ═══════════════════════════════════════════════ */
 .chart-wrap--williamsr {
   grid-column: 1 / -1;
-  border-color: rgba(210, 153, 34, 0.35);
+  border-color: rgba(255, 107, 53, 0.35);
 }
 
 .williamsr-explainer {
@@ -679,7 +824,6 @@ td.col-signals { text-align: start; white-space: nowrap; }
   align-items: center;
   gap: 3px;
   padding: 2px 7px;
-  border-radius: 20px;
   font-family: var(--sans);
   font-size: 0.68rem;
   font-weight: 600;
@@ -693,21 +837,50 @@ td.col-signals { text-align: start; white-space: nowrap; }
   padding: 3px 9px;
 }
 
-/* by backtested signal quality, not category — see
-   docs/plans/dashboard-color-semantics-audit.md (2026-08-03) */
-.badge--strong      { background: rgba(63, 185, 80, 0.18); color: var(--up);     border-color: rgba(63, 185, 80, 0.30); }
-.badge--moderate    { background: rgba(210,153, 34, 0.18); color: var(--amber);  border-color: rgba(210,153, 34, 0.30); }
-.badge--weak        { background: rgba(248, 81, 73, 0.18); color: var(--down);   border-color: rgba(248, 81, 73, 0.30); }
-.badge--low         { background: rgba(139,149,165, 0.14); color: var(--muted);  border-color: rgba(139,149,165, 0.22); }
+/* By backtested signal quality, not category — tiers from
+   docs/plans/dashboard-color-semantics-audit.md (2026-08-03), rendered in the
+   XSHEVA palette. The icon carries the signal's category, the colour carries
+   how much it has actually been worth.
+
+   This is the one place the single-accent rule is deliberately relaxed: a
+   dense table needs a quality ramp, and flattening four tiers to one hue
+   destroys the information the table exists to convey. */
+.badge--strong {
+  background: rgba(74, 222, 128, 0.16);
+  color: var(--xsh-success);
+  border-color: rgba(74, 222, 128, 0.35);
+}
+
+.badge--moderate {
+  background: rgba(255, 107, 53, 0.14);
+  color: var(--xsh-primary);
+  border-color: rgba(255, 107, 53, 0.32);
+}
+
+/* Neutral outline, not red: breakout is below baseline, not harmful, and it
+   appears often enough that a red badge would shout on every other row.
+   Text sits a step brighter than `low` so the two neutral tiers stay
+   distinguishable — they'd otherwise resolve to the same slate. */
+.badge--weak {
+  background: transparent;
+  color: var(--xsh-fg-2);
+  border-color: var(--xsh-border-strong);
+}
+
+/* Faintest — the silent watchlist, hidden by default. */
+.badge--low {
+  background: rgba(157, 166, 185, 0.10);
+  color: var(--muted);
+  border-color: rgba(157, 166, 185, 0.20);
+}
 
 /* confluence counter */
 .conf-tag {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(47, 129, 247, 0.22);
+  background: rgba(255, 107, 53, 0.22);
   color: var(--accent);
-  border-radius: 10px;
   font-family: var(--mono);
   font-size: 0.65rem;
   font-weight: 700;
@@ -717,11 +890,12 @@ td.col-signals { text-align: start; white-space: nowrap; }
   cursor: help;
 }
 
-/* graduation badge — gold, prominent */
+/* Graduation badge — the quality cohort. Solid accent on white text is the
+   system's "filled tile" state; nothing else in the table gets it. */
 .badge--grad {
-  background: rgba(227, 179, 65, 0.18);
-  color: var(--gold);
-  border-color: rgba(227, 179, 65, 0.45);
+  background: var(--xsh-primary);
+  color: #ffffff;
+  border-color: var(--xsh-primary);
   font-size: 0.73rem;
   padding: 3px 9px;
 }
@@ -732,9 +906,8 @@ td.col-signals { text-align: start; white-space: nowrap; }
   align-items: center;
   gap: 2px;
   padding: 1px 5px;
-  border-radius: 10px;
-  background: rgba(139, 149, 165, 0.12);
-  border: 1px solid rgba(139, 149, 165, 0.20);
+  background: rgba(157, 166, 185, 0.12);
+  border: 1px solid rgba(157, 166, 185, 0.20);
   font-family: var(--mono);
   font-size: 0.63rem;
   color: var(--muted);
@@ -863,7 +1036,6 @@ td.col-score {
   background: var(--surface);
   color: var(--muted);
   border: 1px dashed var(--border);
-  border-radius: 8px;
   padding: 10px 22px;
   font-size: 0.85rem;
   cursor: pointer;
@@ -976,8 +1148,8 @@ td.col-score {
   align-items: center;
   gap: 8px;
   padding: 8px 12px;
-  background: rgba(227, 179, 65, 0.12);
-  border: 1px solid rgba(227, 179, 65, 0.35);
+  background: rgba(255, 107, 53, 0.12);
+  border: 1px solid rgba(255, 107, 53, 0.35);
   border-radius: var(--radius);
   margin-bottom: 14px;
   font-size: 0.82rem;
@@ -989,8 +1161,8 @@ td.col-score {
   display: block;
   text-align: center;
   padding: 10px;
-  background: rgba(47, 129, 247, 0.12);
-  border: 1px solid rgba(47, 129, 247, 0.35);
+  background: rgba(255, 107, 53, 0.12);
+  border: 1px solid rgba(255, 107, 53, 0.35);
   border-radius: var(--radius);
   color: var(--accent);
   font-weight: 600;
@@ -999,7 +1171,7 @@ td.col-score {
 }
 
 .dd-tv-link:hover {
-  background: rgba(47, 129, 247, 0.22);
+  background: rgba(255, 107, 53, 0.22);
   text-decoration: none;
 }
 
@@ -1110,7 +1282,7 @@ td.col-score {
 .header-tab--active {
   color: var(--accent);
   border-color: var(--accent);
-  background: rgba(47, 129, 247, 0.10);
+  background: rgba(255, 107, 53, 0.10);
 }
 
 .header-tab:focus-visible {
@@ -1205,11 +1377,11 @@ td.col-score {
   border-inline-start: 3px solid var(--border);
 }
 
-/* by backtested signal quality, not category — see
-   docs/plans/dashboard-color-semantics-audit.md (2026-08-03) */
-.explainer-card--strong    { border-inline-start-color: var(--up); }
-.explainer-card--moderate  { border-inline-start-color: var(--amber); }
-.explainer-card--weak      { border-inline-start-color: var(--down); }
+/* Same quality tiers as the table badges, so the explainer cards and the
+   rows they describe cannot drift apart. */
+.explainer-card--strong    { border-inline-start-color: var(--xsh-success); }
+.explainer-card--moderate  { border-inline-start-color: var(--xsh-primary); }
+.explainer-card--weak      { border-inline-start-color: var(--xsh-border-strong); }
 .explainer-card--low       { border-inline-start-color: var(--muted); }
 
 .explainer-card-head {
@@ -1223,6 +1395,7 @@ td.col-score {
 .explainer-card-icon {
   font-size: 1.1rem;
   flex-shrink: 0;
+  color: var(--xsh-primary);
 }
 
 .explainer-card-title {
@@ -1232,21 +1405,22 @@ td.col-score {
   flex: 1;
 }
 
+/* "Alpha" / "החזק ביותר" — emphasis, not a direction, so it takes the accent. */
 .explainer-card-badge {
   font-size: 0.65rem;
   font-weight: 700;
   padding: 2px 7px;
-  border-radius: 20px;
-  background: rgba(63, 185, 80, 0.18);
-  color: var(--up);
-  border: 1px solid rgba(63, 185, 80, 0.30);
+  border-radius: var(--radius-sm);
+  background: rgba(255, 107, 53, 0.18);
+  color: var(--xsh-primary);
+  border: 1px solid rgba(255, 107, 53, 0.35);
   white-space: nowrap;
 }
 
 .explainer-card-badge--warn {
-  background: rgba(248, 81, 73, 0.15);
+  background: rgba(248, 113, 113, 0.15);
   color: var(--down);
-  border-color: rgba(248, 81, 73, 0.30);
+  border-color: rgba(248, 113, 113, 0.30);
 }
 
 .explainer-card-body {
@@ -1312,7 +1486,11 @@ td.col-score {
   border-inline-start: 3px solid var(--border);
 }
 
-.explainer-score-item--pos { border-inline-start-color: var(--up); }
+/* Categorisation, not market data: `--pos` is "this is the emphasised item",
+   so it takes the single accent rather than green. Green stays reserved for
+   actual up/down encoding (returns, score bands, pass/fail). `--neg` keeps
+   red because it flags a genuine caution. */
+.explainer-score-item--pos { border-inline-start-color: var(--xsh-primary); }
 .explainer-score-item--neg { border-inline-start-color: var(--down); }
 
 .explainer-score-label {
@@ -1342,6 +1520,7 @@ td.col-score {
   font-size: 1.4rem;
   flex-shrink: 0;
   margin-top: 1px;
+  color: var(--xsh-primary);
 }
 
 .explainer-insight-card strong {
@@ -1375,13 +1554,13 @@ td.col-score {
 }
 
 .explainer-research-card--win {
-  border-color: rgba(63, 185, 80, 0.35);
-  background: rgba(63, 185, 80, 0.06);
+  border-color: rgba(74, 222, 128, 0.35);
+  background: rgba(74, 222, 128, 0.06);
 }
 
 .explainer-research-card--lose {
-  border-color: rgba(248, 81, 73, 0.30);
-  background: rgba(248, 81, 73, 0.05);
+  border-color: rgba(248, 113, 113, 0.30);
+  background: rgba(248, 113, 113, 0.05);
 }
 
 /* Terminology legend — win63 vs חציון vs hit10 are three different kinds
@@ -1425,8 +1604,8 @@ td.col-score {
   font-size: 0.62rem;
   font-weight: 600;
   color: var(--amber);
-  background: rgba(210, 153, 34, 0.14);
-  border: 1px solid rgba(210, 153, 34, 0.3);
+  background: rgba(255, 107, 53, 0.14);
+  border: 1px solid rgba(255, 107, 53, 0.3);
   border-radius: var(--radius-sm);
   padding: 2px 6px;
   margin-right: 6px;
@@ -1543,7 +1722,7 @@ td.col-score {
 }
 
 .explainer-table tr.et-total td {
-  background: rgba(63, 185, 80, 0.06);
+  background: rgba(74, 222, 128, 0.06);
   font-weight: 700;
 }
 
@@ -1580,3 +1759,51 @@ td.col-score {
 ::-webkit-scrollbar-track { background: var(--bg); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+/* ═══════════════════════════════════════════════
+   XSHEVA SHAPE LANGUAGE
+   Radii are deliberately small and technical: buttons and inputs
+   2px, chips 4px, cards 8–12px. Stated once here rather than
+   scattered through every component rule.
+═══════════════════════════════════════════════ */
+.date-picker-btn,
+.date-nav-btn,
+.cal-nav,
+.cal-day,
+.btn-close,
+.btn-expand,
+.btn-show-more,
+.ctrl-input,
+.ctrl-select,
+.header-tab {
+  border-radius: var(--radius-xs);
+}
+
+.badge,
+.streak-chip,
+.conf-tag {
+  border-radius: var(--radius-sm);
+}
+
+/* Hover on dark is a single-colour border state-change — no fill, no
+   translate, no scale. 300ms ease, per the system's motion rule. */
+.date-picker-btn,
+.date-nav-btn,
+.cal-nav,
+.btn-close,
+.btn-expand,
+.btn-show-more,
+.ctrl-input,
+.ctrl-select,
+.header-tab,
+.stat-card,
+.explainer-card {
+  transition: border-color var(--xsh-dur) var(--xsh-ease),
+              color var(--xsh-dur) var(--xsh-ease),
+              background var(--xsh-dur) var(--xsh-ease);
+}
+
+.stat-card:hover,
+.explainer-card:hover {
+  border-color: var(--xsh-primary);
+}
