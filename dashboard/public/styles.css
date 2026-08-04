@@ -175,9 +175,9 @@ button { font-family: inherit; }
   text-transform: uppercase;
   letter-spacing: var(--xsh-track-wider);
   color: var(--xsh-fg-4);
-  padding-inline-start: 8px;
-  margin-inline-start: 2px;
-  border-inline-start: 1px solid var(--border);
+  padding-inline-end: 8px;
+  margin-inline-end: 2px;
+  border-inline-end: 1px solid var(--border);
 }
 
 /* ═══════════════════════════════════════════════
