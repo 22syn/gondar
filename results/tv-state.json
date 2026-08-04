@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-03",
+  "updatedAt": "2026-08-04",
   "watchlists": {
     "Lean Radar - Breakouts": [
       {
@@ -49,6 +49,14 @@
       {
         "ticker": "EWI",
         "signalDate": "2026-08-03"
+      },
+      {
+        "ticker": "EWQ",
+        "signalDate": "2026-08-04"
+      },
+      {
+        "ticker": "ACWX",
+        "signalDate": "2026-08-04"
       }
     ],
     "Lean Radar - Near": [
@@ -60,6 +68,10 @@
         "ticker": "DLN",
         "signalDate": "2026-07-31",
         "exchange": "LSE"
+      },
+      {
+        "ticker": "BAC",
+        "signalDate": "2026-08-04"
       }
     ]
   }
