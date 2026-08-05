@@ -1,0 +1,46 @@
+version: 2
+
+# ci.yml runs `npm audit --audit-level=high` as continue-on-error with a note to "review
+# periodically" — but nothing forced that review, so the exception was permanent in practice.
+# Dependabot is what actually forces it.
+#
+# Tuned for a single maintainer: weekly, minor+patch grouped into one PR so a quiet week is
+# one PR or none. Majors still arrive individually because they need reading.
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: sunday
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # The MCP sub-package carries its own lockfile and is not covered by the root entry.
+  - package-ecosystem: npm
+    directory: /mcp-tv-sync
+    schedule:
+      interval: weekly
+      day: sunday
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: chore(deps)
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+
+  # Keeps actions/checkout, setup-node etc. current — including their security patches.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: sunday
+    open-pull-requests-limit: 2
+    commit-message:
+      prefix: chore(ci)
+    groups:
+      actions:
+        patterns: ["*"]
