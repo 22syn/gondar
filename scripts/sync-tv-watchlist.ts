@@ -146,6 +146,19 @@ function recordFirstSeen(watchlistName: string, symbols: string[]): Record<strin
 // Written to ~/telegram-mcp/data/tv-state.json for the health-check.
 const STATE_SNAPSHOT: Record<string, Array<{ ticker: string; signalDate: string; exchange?: string }>> = {};
 
+type TvStateWatchlists = typeof STATE_SNAPSHOT;
+
+/** Previously persisted watchlists, so a skipped list keeps its last known
+ *  contents instead of disappearing from the snapshot. */
+function loadPreviousState(tvStatePath: string): TvStateWatchlists {
+    try {
+        const raw = JSON.parse(fs.readFileSync(tvStatePath, 'utf8')) as { watchlists?: TvStateWatchlists };
+        return raw.watchlists ?? {};
+    } catch {
+        return {};
+    }
+}
+
 function exchangeOf(rawTarget: string): string | undefined {
     // Map a "TASE:RMLI" style prefix to an exchange tag the health-check understands.
     const m = rawTarget.match(/^([A-Z]+):/);
@@ -1170,12 +1183,17 @@ async function main() {
                 : path.join(os.homedir(), 'telegram-mcp', 'data', 'tv-state.json');
             try {
                 fs.mkdirSync(path.dirname(tvStatePath), { recursive: true });
+                // Carry forward lists this run did not touch. A list whose
+                // source file is missing (scan didn't emit it, artifact not
+                // published yet) is skipped, not emptied — dropping it here
+                // would tell the dashboard the list is empty while the symbols
+                // are still sitting in TradingView.
                 fs.writeFileSync(
                     tvStatePath,
                     JSON.stringify(
                         {
                             updatedAt: new Date().toISOString().slice(0, 10),
-                            watchlists: STATE_SNAPSHOT,
+                            watchlists: { ...loadPreviousState(tvStatePath), ...STATE_SNAPSHOT },
                         },
                         null,
                         2
