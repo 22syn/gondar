@@ -41,10 +41,11 @@ test('invalid watchlist throws', () => {
   assert.throws(() => buildArgs({ watchlist: 'Nope' }), /invalid watchlist/i);
 });
 
-test('WATCHLISTS lists the two canonical lists', () => {
+test('WATCHLISTS lists the three canonical lists', () => {
   assert.deepEqual(WATCHLISTS, [
     'Lean Radar - Breakouts',
     'Lean Radar - Near',
+    'Lean Radar - Creep',
   ]);
 });
 

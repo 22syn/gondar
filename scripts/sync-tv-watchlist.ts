@@ -9,6 +9,7 @@
  *
  *   1. Lean Radar - Breakouts ← tv-breakouts-latest.txt  (Lean workflow)
  *   2. Lean Radar - Near     ← tv-near-latest.txt        (Lean workflow)
+ *   3. Lean Radar - Creep    ← tv-creep-latest.txt       (Lean workflow)
  *
  * Smart Radar - BUY/WATCH were dropped from TradingView sync (2026-07-25) —
  * Smart Radar's Telegram report is unaffected, only its TV watchlists.
@@ -214,6 +215,11 @@ const DEFAULT_TARGETS: SyncTarget[] = [
         name: 'Lean Radar - Near',
         workflow: 'Lean Radar - Daily Scan',
     },
+    {
+        file: path.join(PROJECT_ROOT, 'results', 'tv-creep-latest.txt'),
+        name: 'Lean Radar - Creep',
+        workflow: 'Lean Radar - Daily Scan',
+    },
 ];
 
 // ─── Log helper ─────────────────────────────────────────────────────
@@ -301,6 +307,28 @@ function recordSeenTickers(historyPath: string, symbols: string[]): void {
         h[key] = today;
     }
     saveHistory(historyPath, h);
+}
+
+/** Give every TV symbol we have no record of a last-seen date of today, so it
+ *  enters the staleness clock instead of living forever.
+ *
+ *  Without this, a single loss of the ~/.cache history (the CI cache artifact
+ *  expiring or a fresh runner) made every symbol already in TV permanently
+ *  unprunable — findStaleTickers skips unknown keys. That is how "Lean Radar -
+ *  Near" reached 49 stale symbols while tv-state.json still tracked 3
+ *  (found + wiped 2026-08-05). Adopting them costs one extra prune cycle. */
+function adoptUntrackedTickers(historyPath: string, currentInTv: string[]): number {
+    const h = loadHistory(historyPath);
+    const today = new Date().toISOString().slice(0, 10);
+    let adopted = 0;
+    for (const s of currentInTv) {
+        const key = s.split(':').pop()!.toUpperCase();
+        if (h[key]) continue;
+        h[key] = today;
+        adopted++;
+    }
+    if (adopted > 0) saveHistory(historyPath, h);
+    return adopted;
 }
 
 function findStaleTickers(historyPath: string, currentInTv: string[], days: number): string[] {
@@ -706,6 +734,8 @@ async function syncWatchlist(
 
     const historyPath = historyPathFor(watchlistName);
     recordSeenTickers(historyPath, target);
+    const adopted = adoptUntrackedTickers(historyPath, current);
+    if (adopted > 0) log(`🕰️  adopted ${adopted} untracked TV symbol(s) into the staleness clock`);
     const firstSeen = recordFirstSeen(watchlistName, target);
 
     // Build exchange map from the raw target list (e.g. "TASE:RMLI" → RMLI: TASE),
