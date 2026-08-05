@@ -149,7 +149,7 @@ button { font-family: inherit; }
   gap: 8px;
 }
 
-/* XSHEVA staircase glyph — the one place the accent is used as a fill. */
+/* XSHEVA ribbon glyph — the one place the accent is drawn as a stroke. */
 .brand-mark {
   width: 20px;
   height: 20px;
