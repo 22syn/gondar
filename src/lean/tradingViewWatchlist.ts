@@ -1,7 +1,7 @@
 /**
- * Smart Volume Radar — Lean Radar TradingView watchlist writer (two-list model).
+ * Smart Volume Radar — Lean Radar TradingView watchlist writer (three-list model).
  *
- * Emits TWO separate watchlist files per scan, mirroring two TradingView
+ * Emits THREE separate watchlist files per scan, mirroring three TradingView
  * watchlists kept distinct:
  *
  *   1. "Lean Radar - Breakouts" — high-conviction ACTION list
@@ -14,9 +14,16 @@
  *      Files:    tv-near-{date}.txt + tv-near-latest.txt
  *      Use:     stocks 1-2 days from breakout; daily check for transitions
  *
+ *   3. "Lean Radar - Creep" — QUIET LEADERS list
+ *      Contents: 🐢 Creep (Stage 2, low RVOL, positive 63d momentum)
+ *      Files:    tv-creep-{date}.txt + tv-creep-latest.txt
+ *      Use:     slow accumulators to track before they show up loud
+ *
  * Pullback and Volume signals are intentionally NOT included — those are
  * different trade archetypes (buy-on-dip / volume-context), shown in the
- * Telegram report but kept out of these breakout-focused watchlists.
+ * Telegram report and the dashboard but kept out of TradingView (2026-08-05:
+ * they're the two largest tiers, ~120 and ~85 tickers per fortnight, and put
+ * the watchlists back into the unreadable state this split was made to fix).
  *
  * Back-compat: tv-watchlist-latest.txt is kept as a copy of the breakouts
  * file (for callers that haven't migrated yet).
@@ -56,6 +63,10 @@ export function toTradingViewSymbol(svrTicker: string): string {
             return `${prefix}:${base}`;
         }
     }
+    // US class shares: Yahoo writes MOG-A / BRK-B, TradingView writes MOG.A / BRK.B.
+    // Only a single trailing letter class qualifies — real tickers with hyphens
+    // elsewhere (none in the universe today) must not be rewritten.
+    if (/^[A-Z]+-[A-Z]$/.test(svrTicker)) return svrTicker.replace('-', '.');
     return svrTicker;
 }
 
@@ -72,6 +83,12 @@ export interface NearEntry {
     svrTicker: string;
     tvSymbol: string;
     kind: NearKind;
+    detail: string;
+}
+export interface CreepEntry {
+    svrTicker: string;
+    tvSymbol: string;
+    kind: 'creep';
     detail: string;
 }
 
@@ -128,6 +145,28 @@ export function buildNearList(result: LeanScanResult): NearEntry[] {
     return out;
 }
 
+/** Build the CREEP list: quiet Stage-2 leaders grinding up on low RVOL.
+ *  A separate archetype from breakouts — held apart on purpose so the
+ *  breakout lists stay a clean "act today" surface. */
+export function buildCreepList(result: LeanScanResult): CreepEntry[] {
+    const seen = new Set<string>();
+    const out: CreepEntry[] = [];
+
+    // ?? [] — snapshots/fixtures written before the creep tier existed.
+    for (const r of result.creep ?? []) {
+        if (seen.has(r.stock.ticker)) continue;
+        out.push({
+            svrTicker: r.stock.ticker,
+            tvSymbol: toTradingViewSymbol(r.stock.ticker),
+            kind: 'creep',
+            detail: `mom63 ${r.signal.mom63.toFixed(1)}%, ${r.signal.pctFromAth.toFixed(1)}% from ATH`,
+        });
+        seen.add(r.stock.ticker);
+    }
+
+    return out;
+}
+
 function writeListFile(
     dir: string,
     dateStamp: string,
@@ -158,6 +197,7 @@ function writeListFile(
 export interface WatchlistWriteResult {
     breakouts: { dated: string; latest: string; count: number };
     near: { dated: string; latest: string; count: number };
+    creep: { dated: string; latest: string; count: number };
     /** Back-compat: tv-watchlist-latest.txt = breakouts file. */
     legacyLatestPath: string;
 }
@@ -169,6 +209,7 @@ export function writeTradingViewWatchlist(
 ): WatchlistWriteResult {
     const breakouts = buildBreakoutsList(result);
     const near = buildNearList(result);
+    const creep = buildCreepList(result);
 
     const bResult = writeListFile(
         resultsDir,
@@ -187,6 +228,15 @@ export function writeTradingViewWatchlist(
         near
     );
 
+    const cResult = writeListFile(
+        resultsDir,
+        scanDate,
+        'tv-creep',
+        'Lean Radar — Creep (QUIET LEADERS)',
+        '🐢 Creep — Stage 2, low RVOL, grinding up',
+        creep
+    );
+
     // Back-compat: keep tv-watchlist-latest.txt = breakouts content
     const legacyLatest = path.join(resultsDir, 'tv-watchlist-latest.txt');
     fs.copyFileSync(bResult.latest, legacyLatest);
@@ -194,6 +244,7 @@ export function writeTradingViewWatchlist(
     return {
         breakouts: bResult,
         near: nResult,
+        creep: cResult,
         legacyLatestPath: legacyLatest,
     };
 }
