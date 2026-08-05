@@ -53,6 +53,10 @@
       {
         "ticker": "ACWX",
         "signalDate": "2026-08-04"
+      },
+      {
+        "ticker": "WBS",
+        "signalDate": "2026-08-05"
       }
     ],
     "Lean Radar - Near": [
@@ -73,121 +77,124 @@
     "Lean Radar - Creep": [
       {
         "ticker": "EAT",
-        "signalDate": "2026-07-27"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "TSEM",
-        "signalDate": "2026-07-27",
-        "exchange": "TASE"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "BLMN",
-        "signalDate": "2026-07-29"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "TXRH",
-        "signalDate": "2026-07-29"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "ASH",
-        "signalDate": "2026-07-30"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "DAL",
-        "signalDate": "2026-07-30"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "DDOG",
-        "signalDate": "2026-07-30"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "OKTA",
-        "signalDate": "2026-07-30"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "UAL",
-        "signalDate": "2026-07-30"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "CAKE",
-        "signalDate": "2026-07-31"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "CRWD",
-        "signalDate": "2026-07-31"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "FTNT",
-        "signalDate": "2026-07-31"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "NET",
-        "signalDate": "2026-07-31"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "PANW",
-        "signalDate": "2026-07-31"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "S",
-        "signalDate": "2026-07-31"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "SNOW",
-        "signalDate": "2026-07-31"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "CHEF",
-        "signalDate": "2026-08-03"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "DELL",
-        "signalDate": "2026-08-03"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "DIN",
-        "signalDate": "2026-08-03"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "EZJ",
-        "signalDate": "2026-08-03",
+        "signalDate": "2026-08-05",
         "exchange": "LSE"
       },
       {
         "ticker": "MOG.A",
-        "signalDate": "2026-08-03"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "AAL",
-        "signalDate": "2026-08-04"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "CRS",
-        "signalDate": "2026-08-04"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "CSCO",
-        "signalDate": "2026-08-04"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "GE",
-        "signalDate": "2026-08-04"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "HPE",
-        "signalDate": "2026-08-04"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "JETS",
-        "signalDate": "2026-08-04"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "PBF",
-        "signalDate": "2026-08-04"
+        "signalDate": "2026-08-05"
       },
       {
         "ticker": "SAFRY",
-        "signalDate": "2026-08-04"
+        "signalDate": "2026-08-05"
+      },
+      {
+        "ticker": "GLBE",
+        "signalDate": "2026-08-05"
       }
     ]
   }
