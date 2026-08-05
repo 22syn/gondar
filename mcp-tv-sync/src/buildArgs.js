@@ -4,6 +4,7 @@
 const WATCHLISTS = [
   'Lean Radar - Breakouts',
   'Lean Radar - Near',
+  'Lean Radar - Creep',
 ];
 
 function assertWatchlist(name) {

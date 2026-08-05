@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "gondar-dashboard",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "cd dashboard && npm run dev"],
+      "port": 8788
+    }
+  ]
+}
