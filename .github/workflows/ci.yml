@@ -6,34 +6,101 @@ on:
   pull_request:
     branches: [main, develop]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Split into parallel jobs. Previously all steps shared one job in the order
+# lint → build → test, so a lint failure skipped build and test entirely — that cost a
+# full day of red CI on 2026-07-26 without ever revealing whether the code actually worked.
 jobs:
-  lint-build-test:
+  lint:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
+      - run: npm ci
+      - run: npm run lint
 
-      - name: Install dependencies
-        run: npm ci
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
 
-      - name: Security audit (informational — does not block)
-        # All current high/critical findings are in transitive dev-dep chains
-        # (jest/eslint/googleapis). Production runtime path is not exposed to
-        # untrusted XML/template input. Failures here are reported but won't
-        # block CI; review periodically and run `npm audit fix` when safe.
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test
+
+  # The mcp-tv-sync sub-package ships its own `node --test` suite (32 tests) that no
+  # workflow has ever run.
+  test-mcp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+      - run: npm --prefix mcp-tv-sync ci
+      - run: npm run test:mcp
+
+  # Non-blocking visibility. These surface known debt rather than gate merges:
+  #  - typecheck: src/ is clean, but scripts/ and tests/ (excluded from tsconfig.json)
+  #    carry 57 errors — mostly Playwright page.evaluate() DOM types and node16 import
+  #    extensions in test files.
+  #  - lint:all: the `lint` gate above only globs src/**; scripts/ and tests/ add
+  #    40 errors / 66 warnings, largely unused-vars that likely indicate dead code.
+  #  - npm audit: current high/critical findings are transitive dev-dep chains.
+  # Each should be driven to zero and then promoted into its blocking job above.
+  code-health:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+
+      - name: Typecheck (src + scripts + tests)
+        run: npm run typecheck
+        continue-on-error: true
+
+      - name: Lint (src + scripts + tests)
+        run: npm run lint:all
+        continue-on-error: true
+
+      - name: Security audit
         run: npm audit --audit-level=high
         continue-on-error: true
 
-      - name: Lint
-        run: npm run lint
-
-      - name: Build
-        run: npm run build
-
-      - name: Test
-        run: npm run test
+  secrets-scan:
+    uses: 22syn/ci-templates/.github/workflows/node-ci.yml@main
+    with:
+      run-lint: false
+      run-test: false
+      run-build: false
+      run-secrets-scan: true

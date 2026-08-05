@@ -6,12 +6,13 @@
 
 /**
  * Get the last US trading day as YYYY-MM-DD.
- * - Weekend (Sat/Sun) → Friday
- * - Weekday before 16:00 ET → previous weekday
  * - Weekday at/after 16:00 ET → today
+ * - Weekday before 16:00 ET → the previous trading day
+ * - Weekend → the preceding Friday
+ *
+ * @param now Instant to resolve from. Defaults to the current time; injectable for tests.
  */
-export function getLastTradingDay(): string {
-    const now = new Date();
+export function getLastTradingDay(now: Date = new Date()): string {
     const nyParts = new Intl.DateTimeFormat('en-US', {
         timeZone: 'America/New_York',
         year: 'numeric',
@@ -19,32 +20,33 @@ export function getLastTradingDay(): string {
         day: '2-digit',
         hour: 'numeric',
         hour12: false,
-        weekday: 'long',
     }).formatToParts(now);
 
     const get = (type: string): string => nyParts.find((p) => p.type === type)?.value ?? '';
-    const weekday = get('weekday');
-    const hour = parseInt(get('hour'), 10) || 0;
-    const year = get('year');
-    const month = get('month');
-    const day = get('day');
+    // `hour12: false` can render midnight as "24" depending on ICU version; fold it to 0 so
+    // midnight isn't mistaken for after-close.
+    const hour = (parseInt(get('hour'), 10) || 0) % 24;
 
-    // Weekend: use Friday
-    if (weekday === 'Saturday' || weekday === 'Sunday') {
-        const friday = new Date(now);
-        const dayOfWeek = friday.getUTCDay();
-        const diff = dayOfWeek === 0 ? 2 : dayOfWeek === 6 ? 1 : 0;
-        friday.setUTCDate(friday.getUTCDate() - diff);
-        return friday.toISOString().slice(0, 10);
-    }
+    // Anchor a UTC-midnight Date on the NEW YORK calendar date. Everything below is then
+    // pure calendar arithmetic on that anchor. The previous implementation mixed a NY-derived
+    // weekday with UTC date arithmetic, and the two disagree for ~4-5 hours every evening —
+    // which is how Sunday 20:00 ET returned Monday, and Monday morning returned Sunday.
+    const day = new Date(Date.UTC(
+        Number(get('year')),
+        Number(get('month')) - 1,
+        Number(get('day')),
+    ));
 
-    // Weekday before 4pm ET: use previous trading day
+    // Before 16:00 ET the session hasn't closed, so today isn't a completed trading day yet.
     if (hour < 16) {
-        const prev = new Date(now);
-        prev.setUTCDate(prev.getUTCDate() - 1);
-        return prev.toISOString().slice(0, 10);
+        day.setUTCDate(day.getUTCDate() - 1);
     }
 
-    // Weekday at/after 4pm ET: use today (NY date from formatToParts)
-    return `${year}-${month}-${day}`;
+    // Walk back off Saturday/Sunday. This is the step the old weekday/UTC mix could skip
+    // entirely, letting a weekend date reach the scan.
+    while (day.getUTCDay() === 0 || day.getUTCDay() === 6) {
+        day.setUTCDate(day.getUTCDate() - 1);
+    }
+
+    return day.toISOString().slice(0, 10);
 }
