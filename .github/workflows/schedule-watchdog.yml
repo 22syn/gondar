@@ -1,0 +1,105 @@
+name: Schedule watchdog
+
+# Every scheduled workflow here alerts on FAILURE. None of them alert when they simply
+# never run — and a scan that stops firing is silent by definition: no red run, no Telegram
+# message, just no data. Two ways that happens in practice:
+#
+#   1. GitHub disables cron schedules after 60 days of repo inactivity.
+#   2. A branch/gate mistake stops a workflow from triggering (the `stable` gate class of
+#      bug already documented in daily-scan-lean.yml).
+#
+# This job checks each scheduled workflow is still active AND has run recently.
+#
+# KNOWN LIMIT: the watchdog is itself a scheduled workflow, so the 60-day inactivity
+# disable would take it down too. It is not self-protecting. It does catch cases 2 and any
+# single-workflow stall, which is the common failure. A true external dead-man's switch
+# would need a third-party ping service.
+
+on:
+  schedule:
+    # 07:00 UTC daily — well before the 20:15 UTC scans, so it reports on the day before.
+    - cron: '0 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check scheduled workflows are alive
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          # workflow-file:max-age-days
+          #  - daily scans run Mon-Fri, so a Monday check sees Friday's run: 4 days of slack.
+          #  - weeklies get 10 days, i.e. one missed occurrence plus margin.
+          # tv-sync is deliberately absent: it is workflow_run-triggered off the Lean scan,
+          # so it legitimately does not run when Lean fails — and Lean already alerts.
+          WORKFLOWS="daily-scan.yml:4 daily-scan-lean.yml:4 weekly-stats-refresh.yml:10 weekly-analysis.yml:10"
+
+          PROBLEMS=""
+          NOW=$(date -u +%s)
+
+          for entry in $WORKFLOWS; do
+            wf="${entry%%:*}"
+            max_days="${entry##*:}"
+
+            state=$(gh api "repos/$REPO/actions/workflows/$wf" --jq '.state' 2>/dev/null || echo "missing")
+            if [ "$state" = "missing" ]; then
+              PROBLEMS="${PROBLEMS}• ${wf}: not found%0A"
+              continue
+            fi
+            if [ "$state" != "active" ]; then
+              # disabled_inactivity is the 60-day auto-disable; disabled_manually is a human.
+              PROBLEMS="${PROBLEMS}• ${wf}: DISABLED (${state})%0A"
+              continue
+            fi
+
+            last=$(gh api "repos/$REPO/actions/workflows/$wf/runs?per_page=1" --jq '.workflow_runs[0].created_at // empty' 2>/dev/null || echo "")
+            if [ -z "$last" ]; then
+              PROBLEMS="${PROBLEMS}• ${wf}: has never run%0A"
+              continue
+            fi
+
+            age_days=$(( (NOW - $(date -u -d "$last" +%s)) / 86400 ))
+            if [ "$age_days" -gt "$max_days" ]; then
+              PROBLEMS="${PROBLEMS}• ${wf}: last run ${age_days}d ago (limit ${max_days}d)%0A"
+            fi
+            echo "$wf: state=$state last_run=${age_days}d ago (limit ${max_days}d)"
+          done
+
+          if [ -n "$PROBLEMS" ]; then
+            echo "problems=$PROBLEMS" >> "$GITHUB_OUTPUT"
+            echo "::error::Scheduled workflows are not running as expected"
+          else
+            echo "All scheduled workflows are active and recent."
+          fi
+
+      - name: Alert on Telegram
+        if: steps.check.outputs.problems != ''
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_ENGINE_CHAT_ID }}
+          PROBLEMS: ${{ steps.check.outputs.problems }}
+        run: |
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              -d "chat_id=${TELEGRAM_CHAT_ID}" \
+              --data-urlencode "text=⏰ Radar schedule watchdog — a scheduled workflow has stopped running:
+          ${PROBLEMS}
+          Check GitHub Actions." >/dev/null
+          else
+            echo "⚠️ Telegram secrets not set, skipping notification"
+          fi
+
+      - name: Fail the run so it is visible in Actions too
+        if: steps.check.outputs.problems != ''
+        run: exit 1
