@@ -14,7 +14,7 @@
  * `cls` encodes BACKTESTED QUALITY, not signal category — see
  * docs/plans/dashboard-color-semantics-audit.md (2026-08-03). Breakout is
  * documented in the explainer tab itself as negative-edge, so it's 'weak',
- * not the 'strong' green it used to share with Setup Full.
+ * not the 'strong' green it used to share with Stage 2 Full.
  *
  * `icon` is a Material Symbols Outlined ligature — the XSHEVA system bans
  * emoji and unicode-as-icon, so every marker resolves through the icon
@@ -28,13 +28,13 @@ const SIGNAL_META = {
   breakout:      { label: 'Breakout',     icon: 'trending_up',     cls: 'weak' },
   highVolume:    { label: 'High Volume',  icon: 'bolt',            cls: 'moderate' },
   pullback:      { label: 'Pullback',     icon: 'trending_down',   cls: 'strong' },
-  creep:         { label: 'Creep',        icon: 'stairs',          cls: 'strong' },
+  creep:         { label: 'Stairstep',    icon: 'stairs',          cls: 'strong' },
   nearBreakout:  { label: 'Near Break',   icon: 'hourglass_empty', cls: 'low' },
   nearHighVol:   { label: 'Near HiVol',   icon: 'hourglass_empty', cls: 'low' },
   nearPullback:  { label: 'Near Pull',    icon: 'hourglass_empty', cls: 'low' },
   // Smart-Setup tiers (momentum-gated package, backfilled 2026-07-09)
-  setupFull:     { label: 'Setup Full',   icon: 'gps_fixed',       cls: 'strong' },
-  setupClose:    { label: 'Setup Close',  icon: 'visibility',      cls: 'strong' },
+  setupFull:     { label: 'Stage 2 Full',   icon: 'gps_fixed',       cls: 'strong' },
+  setupClose:    { label: 'Stage 2 Close',  icon: 'visibility',      cls: 'strong' },
   setupRecovery: { label: 'Recovery',     icon: 'rocket_launch',   cls: 'strong' },
 };
 
@@ -464,26 +464,28 @@ function renderCards() {
 
   // [label, value, extraClass, iconLigature] — icon omitted for pure totals.
   const defs = [
-    // RS≥80 / ≥90 share Setup Full's green "highlight" — RS is the entry gate
+    // RS≥80 / ≥90 share Stage 2 Full's green "highlight" — RS is the entry gate
     // (≥80) and the strongest cohort (≥90); see the "Score או RS" explainer
     // section. Score≥70 was dropped: its 2-year gradient is nearly flat
     // (67.5%→70.9% win) and the 2026-08-03 live study found it carries no
     // information beyond RS, so a Score threshold card asserted a quality
     // cut-off the data does not support.
-    ['סה"כ',        s.total,       '',                      null],
-    ['Setup Full',  s.setup_full,  'stat-card--highlight',  'gps_fixed'],
-    ['Setup/Rec',   s.setup_other, '',                      'visibility'],
-    ['Breakout',    s.breakout,    '',                      'trending_up'],
-    ['High Vol',    s.high_volume, '',                      'bolt'],
-    ['Pullback',    s.pullback,    '',                      'trending_down'],
-    ['Creep',       s.creep,       '',                      'stairs'],
-    ['Near',        s.near_all,    '',                      'hourglass_empty'],
-    ['RS≥80',       s.rs80 ?? 0,   'stat-card--highlight',  'fitness_center'],
-    ['RS≥90',       s.rs90 ?? 0,   'stat-card--highlight',  'local_fire_department'],
+    ['סה"כ',          s.total,       '',                      null,                    null],
+    ['Stage 2 Full',  s.setup_full,  'stat-card--highlight',  'gps_fixed',              null],
+    ['Setup/Rec',     s.setup_other, '',                      'visibility',             null],
+    ['Breakout',      s.breakout,    '',                      'trending_up',            null],
+    ['High Vol',      s.high_volume, '',                      'bolt',                   null],
+    ['Pullback',      s.pullback,    '',                      'trending_down',          null],
+    ['Stairstep',     s.creep,       '',                      'stairs',                 null],
+    ['Near',          s.near_all,    '',                      'hourglass_empty',        null],
+    // RS is ranked within OUR watchlist (63d alpha vs SPY), not IBD's
+    // full-market 12-month weighted RS Rating — same name, narrower universe.
+    ['RS≥80',         s.rs80 ?? 0,   'stat-card--highlight',  'fitness_center',         'RS: percentile rank within our watchlist, not IBD\'s market-wide RS Rating'],
+    ['RS≥90',         s.rs90 ?? 0,   'stat-card--highlight',  'local_fire_department',  'RS: percentile rank within our watchlist, not IBD\'s market-wide RS Rating'],
   ];
 
-  container.innerHTML = defs.map(([lbl, val, extra, icon]) => `
-    <div class="stat-card ${extra}" role="listitem">
+  container.innerHTML = defs.map(([lbl, val, extra, icon, title]) => `
+    <div class="stat-card ${extra}" role="listitem"${title ? ` title="${title}"` : ''}>
       <span class="stat-card-val">${val ?? 0}</span>
       <span class="stat-card-lbl">${icon ? iconHTML(icon) : ''}${lbl}</span>
     </div>`).join('');

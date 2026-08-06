@@ -196,13 +196,13 @@
            labels here are the on-system choice, not a dropped marker. -->
       <select id="f-signal" class="ctrl-select" aria-label="סינון לפי סיגנל">
         <option value="">כל הסיגנלים</option>
-        <option value="setupFull">Setup Full</option>
-        <option value="setupClose">Setup Close</option>
+        <option value="setupFull">Stage 2 Full</option>
+        <option value="setupClose">Stage 2 Close</option>
         <option value="setupRecovery">Setup Recovery</option>
         <option value="breakout">Breakout</option>
         <option value="highVolume">High Volume</option>
         <option value="pullback">Pullback</option>
-        <option value="creep">Creep</option>
+        <option value="creep">Stairstep</option>
         <option value="nearBreakout">Near Breakout</option>
         <option value="nearHighVol">Near High Vol</option>
         <option value="nearPullback">Near Pullback</option>
@@ -440,7 +440,7 @@
             <tbody>
               <tr>
                 <td><strong>אין השוואה עדכנית Smart מול Gondar</strong></td>
-                <td>ההשוואה היחידה (מאי 2026) בוטלה — נמדדה לפני שער המומנטום, הסרת lowRiskEntry, דירוג RS ושכבת ה-creep. כרגע <em>אין</em> תשובה מבוססת-נתונים ל"מי מהם עדיף".</td>
+                <td>ההשוואה היחידה (מאי 2026) בוטלה — נמדדה לפני שער המומנטום, הסרת lowRiskEntry, דירוג RS ושכבת ה-Stairstep. כרגע <em>אין</em> תשובה מבוססת-נתונים ל"מי מהם עדיף".</td>
                 <td>שתי הרצות replay מלאות (‎~600 מניות × 250 ימים) ואז <code>compare-radars-6mo.ts</code>. עבודה מפוקחת, לא ריצה ברקע.</td>
               </tr>
               <tr>
@@ -493,7 +493,7 @@
         <div class="explainer-score-grid">
           <div class="explainer-score-item explainer-score-item--pos">
             <span class="explainer-score-label"><span class="badge badge--strong">ירוק</span> — שכבה חזקה</span>
-            <span class="explainer-score-detail">Pullback · Creep · Setup Full / Close / Recovery — כל אלה מנצחים את ה-baseline במחקר השנתיים.</span>
+            <span class="explainer-score-detail">Pullback · Stairstep · Stage 2 Full / Close / Recovery — כל אלה מנצחים את ה-baseline במחקר השנתיים.</span>
           </div>
           <div class="explainer-score-item">
             <span class="explainer-score-label"><span class="badge badge--moderate">כתום</span> — הקשר בלבד</span>
@@ -553,7 +553,7 @@
           <div class="explainer-card explainer-card--strong">
             <div class="explainer-card-head">
               <span class="explainer-card-icon material-symbols-outlined" aria-hidden="true">stairs</span>
-              <h3 class="explainer-card-title">Creep — הזוחל השקט</h3>
+              <h3 class="explainer-card-title">Stairstep — הזוחל השקט</h3>
             </div>
             <p class="explainer-card-body">
               מגמה מתמשכת <strong>בלי</strong> ווליום דרמטי: Stage 2, מומנטום 3 חודשים ≥ +30%,
@@ -590,7 +590,7 @@
           <div class="explainer-card explainer-card--strong">
             <div class="explainer-card-head">
               <span class="explainer-card-icon material-symbols-outlined" aria-hidden="true">gps_fixed</span>
-              <h3 class="explainer-card-title">Setup Full</h3>
+              <h3 class="explainer-card-title">Stage 2 Full</h3>
               <span class="explainer-card-badge">החזק ביותר</span>
             </div>
             <p class="explainer-card-body">
@@ -603,7 +603,7 @@
           <div class="explainer-card explainer-card--strong">
             <div class="explainer-card-head">
               <span class="explainer-card-icon material-symbols-outlined" aria-hidden="true">visibility</span>
-              <h3 class="explainer-card-title">Setup Close</h3>
+              <h3 class="explainer-card-title">Stage 2 Close</h3>
             </div>
             <p class="explainer-card-body">
               RVOL ≥ 1.5 + שער מומנטום + (קרוב לשיא <em>או</em> ליד SMA21).
@@ -641,6 +641,11 @@
  (10,736 אפיזודות): <strong>RS ‏90–100 → ‏75% הצלחה, חציון +17.9%</strong> מול
           68% / +8.3% ב-RS ‏50–69 — והוא עבד גם בשנה השורית וגם בשנה המדשדשת.
           97% ממניות ה-+100% הגיעו ל-RS ≥ 80 כבר באפיזודה השנייה שלהן.
+        </p>
+        <p class="explainer-prose explainer-prose--note">
+          <strong>שימו לב:</strong> זהו <em>לא</em> ה-RS Rating של IBD (1–99, מול כל השוק,
+          משוקלל על 12 חודשים). ה-RS כאן מדורג רק מול הווטצ'ליסט שלנו (~100–300 מניות)
+          על בסיס תשואת 63 יום מול SPY — אותו שם, יקום שונה.
         </p>
       </section>
 
@@ -734,7 +739,7 @@
         <div class="explainer-score-grid">
           <div class="explainer-score-item explainer-score-item--pos">
             <span class="explainer-score-label">בסיס לפי סיגנל</span>
-            <span class="explainer-score-detail">Setup Full 60 · Recovery 55 · Pullback 50 · Creep 42 · Setup Close 40 · High Vol 30 · Breakout 12</span>
+            <span class="explainer-score-detail">Stage 2 Full 60 · Recovery 55 · Pullback 50 · Stairstep 42 · Stage 2 Close 40 · High Vol 30 · Breakout 12</span>
           </div>
           <div class="explainer-score-item explainer-score-item--pos">
             <span class="explainer-score-label">נפח + Stage 2 + קרבה לפיבוט</span>
@@ -1195,7 +1200,7 @@
           </div>
         </div>
         <p class="explainer-prose explainer-prose--note">
-          לכן: שער מומנטום על ה-Setup וה-pullback · Creep לזוחלים השקטים · RS כעמודת הדירוג ·
+          לכן: שער מומנטום על ה-Setup וה-pullback · Stairstep לזוחלים השקטים · RS כעמודת הדירוג ·
           הורדת משקל ה-breakout בציון.
         </p>
 
@@ -1258,14 +1263,14 @@
             </thead>
             <tbody>
               <tr>
- <td> Setup Full</td>
+ <td> Stage 2 Full</td>
                 <td class="et-good">78.8%</td>
                 <td class="et-good">+15.7%</td>
                 <td class="et-good">83.2%</td>
                 <td>303</td>
               </tr>
               <tr>
- <td> Setup Close</td>
+ <td> Stage 2 Close</td>
                 <td class="et-good">78.3%</td>
                 <td class="et-good">+18.9%</td>
                 <td class="et-good">84.6%</td>
