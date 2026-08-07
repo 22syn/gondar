@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar — Champion Score layer (2026-05-06).
+ * Gondar — Champion Score layer (2026-05-06).
  *
  * Inspired by championscan.com after research session 2026-05-06.
  * This layer pairs the existing tier-based momentum signal with two

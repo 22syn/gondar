@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - Display Formatters
+ * Gondar - Display Formatters
  * Consistent formatting for RVOL and price changes using config.formatPrecision.
  */
 

@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar — Relative Strength percentile (Phase 2, 2026-05-07).
+ * Gondar — Relative Strength percentile (Phase 2, 2026-05-07).
  *
  * Inspired by championscan.com's "RS Percentile" column. The classic IBD formula
  * is "% outperformance vs all stocks in the universe over 3 months", normalized

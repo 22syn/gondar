@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - Type Definitions
+ * Gondar - Type Definitions
  * Core interfaces for stock data, news, and RVOL results
  */
 

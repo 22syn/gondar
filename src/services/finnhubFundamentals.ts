@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar — Finnhub Fundamentals (Phase 3, 2026-05-07).
+ * Gondar — Finnhub Fundamentals (Phase 3, 2026-05-07).
  *
  * Two endpoints:
  *   /calendar/earnings?from=...&to=...&symbol=X — upcoming earnings dates

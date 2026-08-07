@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar — Pure Acceleration Logic (Phase 3, 2026-05-07).
+ * Gondar — Pure Acceleration Logic (Phase 3, 2026-05-07).
  *
  * Compute the YoY-growth-rate trajectory from a series of quarterly values.
  * Pure & synchronous — no fs, no API. Extracted from `finnhubFundamentals.ts`

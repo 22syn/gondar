@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - Market Data Service
+ * Gondar - Market Data Service
  * Uses direct HTTP requests to avoid library-specific rate limiting issues
  */
 

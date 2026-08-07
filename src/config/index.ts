@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - Configuration Loader
+ * Gondar - Configuration Loader
  * Loads environment variables and watchlist configuration (Google Sheets)
  */
 

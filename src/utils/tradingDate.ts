@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - Trading Date Utility
+ * Gondar - Trading Date Utility
  * Returns the last US trading day (NYSE/NASDAQ) for scan consistency.
  * Phase 1: weekends only; no holiday calendar.
  */

@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - Telegram Bot Service
+ * Gondar - Telegram Bot Service
  * Sends formatted reports via Telegram Bot API
  */
 
@@ -549,7 +549,7 @@ export function formatDailyReport(
 ): string {
     const gradSection = formatGraduationSection(graduations);
     if (topSignals.length === 0) {
-        const empty = `📊 <b>Smart Volume Radar</b>\n📅 ${date}\n\n📭 אין מניות אקטיביות היום (BUY / WATCH / CAUTION).\n\n<i>הסורק רץ תקין — פשוט אין כיום מניה שעוברת את הקריטריונים.</i>`;
+        const empty = `📊 <b>Gondar</b>\n📅 ${date}\n\n📭 אין מניות אקטיביות היום (BUY / WATCH / CAUTION).\n\n<i>הסורק רץ תקין — פשוט אין כיום מניה שעוברת את הקריטריונים.</i>`;
         return gradSection ? gradSection + empty : empty;
     }
 

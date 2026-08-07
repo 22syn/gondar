@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - Newlogic Tags
+ * Gondar - Newlogic Tags
  * Replaces Setup (Full/Close) with independent tags.
  */
 

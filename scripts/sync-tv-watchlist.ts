@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Smart Volume Radar — TradingView watchlist sync (Lean Radar only).
+ * Gondar — TradingView watchlist sync (Lean Radar only).
  *
  * Runs via the tv-sync.yml GitHub Actions workflow, triggered after
  * "Lean Radar - Daily Scan" completes. Pulls the latest tv-*.txt files

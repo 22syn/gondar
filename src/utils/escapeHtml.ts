@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - HTML escaping for user/API content in Telegram
+ * Gondar - HTML escaping for user/API content in Telegram
  * Prevents XSS when embedding user content in HTML.
  */
 export function escapeHtml(text: string): string {

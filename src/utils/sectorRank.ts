@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar — Dynamic Sector Rank (Phase 4B, 2026-05-09).
+ * Gondar — Dynamic Sector Rank (Phase 4B, 2026-05-09).
  *
  * Inspired by championscan.com's "Top Groups" panel. Static sector labels
  * (from the Google Sheet watchlist) become a dynamic ranking based on the

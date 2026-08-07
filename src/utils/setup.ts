@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar — Momentum Edition: setup brain.
+ * Gondar — Momentum Edition: setup brain.
  *
  * Single source of truth for the Stage 2 Momentum Breakout criteria:
  *   1. RVOL              — projectedRvol >= regime-aware threshold

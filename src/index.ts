@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - Main Entry Point
+ * Gondar - Main Entry Point
  * Orchestrates the daily stock volume scan and reporting
  */
 
@@ -86,7 +86,7 @@ function checkMarketStatus(): MarketStatus {
  * Main execution function
  */
 async function main(): Promise<void> {
-    logger.info('🚀 Smart Volume Radar starting...');
+    logger.info('🚀 Gondar starting...');
     const startTime = Date.now();
 
     try {
@@ -94,7 +94,7 @@ async function main(): Promise<void> {
         const marketStatus = checkMarketStatus();
         if (!marketStatus.isOpen && marketStatus.message && process.env.FORCE_SCAN !== 'true') {
             logger.info(marketStatus.message);
-            await sendTelegramMessage(`📊 Smart Volume Radar\n\n${marketStatus.message}\nNo scan performed.`);
+            await sendTelegramMessage(`📊 Gondar\n\n${marketStatus.message}\nNo scan performed.`);
             return;
         } else if (process.env.FORCE_SCAN === 'true') {
             logger.info(`${marketStatus.message} - FORCING scan using last available data.`);
@@ -216,7 +216,7 @@ async function main(): Promise<void> {
         logger.info(`✅ Fetched data for ${stocks.length}/${tickers.length} stocks`);
 
         if (stocks.length === 0) {
-            await sendTelegramMessage('❌ Smart Volume Radar: No stock data available. Check API status.');
+            await sendTelegramMessage('❌ Gondar: No stock data available. Check API status.');
             return;
         }
 
@@ -593,7 +593,7 @@ async function main(): Promise<void> {
 
         // Try to notify via Telegram
         try {
-            await sendTelegramMessage(`❌ Smart Volume Radar failed:\n\n${errorMessage}`);
+            await sendTelegramMessage(`❌ Gondar failed:\n\n${errorMessage}`);
         } catch {
             logger.error('Failed to send error notification to Telegram');
         }

@@ -15,7 +15,7 @@ const TOOL_DEFINITIONS = [
   {
     name: 'tv_sync',
     description:
-      'Sync Smart Volume Radar watchlists to TradingView via the repo\'s `npm run tv-sync`. ' +
+      'Sync Gondar watchlists to TradingView via the repo\'s `npm run tv-sync`. ' +
       'Identical to a manual run. Use dryRun to preview the add/remove diff without writing.',
     inputSchema: {
       type: 'object',

@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - RVOL Calculator
+ * Gondar - RVOL Calculator
  * Calculates Relative Volume and identifies high-volume signals
  */
 

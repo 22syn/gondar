@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar — Monitor Tracker.
+ * Gondar — Monitor Tracker.
  *
  * Manages the lifecycle of tracked tickers:
  *

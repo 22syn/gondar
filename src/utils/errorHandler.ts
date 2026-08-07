@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - Error Handler Utility
+ * Gondar - Error Handler Utility
  * Graceful error handling with retry logic
  */
 

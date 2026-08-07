@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Smart Volume Radar — populate the universe sheet from a friend's shared TradingView
+ * Gondar — populate the universe sheet from a friend's shared TradingView
  * watchlists (one watchlist per sector). Runs in CI before the daily scan, or manually
  * via `npm run sync-friend-watchlists`. No browser/login — reads public share pages.
  *

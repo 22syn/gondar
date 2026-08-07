@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - Scan Results Persistence
+ * Gondar - Scan Results Persistence
  * Builds StoredScanResult and writes to disk for evaluation scripts.
  */
 

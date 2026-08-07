@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar — New scan-result schema writer.
+ * Gondar — New scan-result schema writer.
  *
  * Serializes a full scan (all stocks, including level='none') to
  * `results/scan-YYYY-MM-DD.json`. Format defined in types/index.ts::ScanResultDay.

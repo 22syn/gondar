@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar — Ticker Classification Service
+ * Gondar — Ticker Classification Service
  *
  * Originally housed the daily LLM commentary feature (4 providers: OpenAI,
  * Perplexity, Gemini, Groq + per-stock analysis + summary). That feature

@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar — daily Setup → D1 ingest (dashboard integration).
+ * Gondar — daily Setup → D1 ingest (dashboard integration).
  *
  * Writes the day's Momentum-Setup signals + RS percentiles to the radar
  * dashboard's D1, into two tables the Smart pipeline OWNS EXCLUSIVELY:

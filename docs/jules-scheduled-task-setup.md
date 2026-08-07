@@ -9,7 +9,7 @@ Weekly (e.g. Monday 00:00 UTC)
 ## Prompt (paste into Jules task)
 
 ```
-Smart Volume Radar — Standards Sweep
+Gondar — Standards Sweep
 
 Read docs/standards-for-ci.md (vault export). Scan for violations:
 - console.log → replace with logger

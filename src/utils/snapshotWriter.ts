@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar — Snapshot Writer (2026-05-10).
+ * Gondar — Snapshot Writer (2026-05-10).
  *
  * Writes a full per-run debug snapshot for either scanner:
  *

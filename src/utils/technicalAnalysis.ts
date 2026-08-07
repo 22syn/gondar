@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - Technical Analysis Utility
+ * Gondar - Technical Analysis Utility
  * Calculates SMA, RSI, ATH, and consolidation metrics from price history
  */
 

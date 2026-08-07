@@ -93,7 +93,7 @@ The watchlist is loaded from a **Google Sheet** at each run. You manage symbols 
 ## Sample Output
 
 ```
-📊 Smart Volume Radar
+📊 Gondar
 📅 2026-02-01 | 12 Signals Found
 ━━━━━━━━━━━━━━━━━━━━━━
 

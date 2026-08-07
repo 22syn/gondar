@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar - Logger Utility
+ * Gondar - Logger Utility
  * Consistent logging with timestamps and levels
  */
 

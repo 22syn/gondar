@@ -1,5 +1,5 @@
 /**
- * Smart Volume Radar — Monitor List persistence.
+ * Gondar — Monitor List persistence.
  *
  * Stores the active+historical monitor list as JSON in `results/monitor-list.json`.
  * Read once at scan start, mutated, write once at scan end.
