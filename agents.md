@@ -1,4 +1,4 @@
-# Smart Volume Radar — Agent Setup
+# Gondar — Agent Setup
 
 For Jules and other AI agents working on this repo.
 

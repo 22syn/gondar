@@ -1,4 +1,4 @@
-# Memory — Smart Volume Radar
+# Memory — Gondar
 
 Decisions, resolved issues, and active context across sessions.
 

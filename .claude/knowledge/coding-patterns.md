@@ -1,4 +1,4 @@
-# Smart Volume Radar — Coding Patterns
+# Gondar — Coding Patterns
 
 > Extends `base-coding-standards.md`. Base = universal rules; this = project-specific patterns.
 > Node CLI context exempts base React/state/folder sections.

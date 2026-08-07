@@ -1,4 +1,4 @@
-# Smart Volume Radar
+# Gondar
 
 🚀 **Automated stock volume monitoring system** that identifies unusual trading activity and delivers daily intelligence reports via Telegram.
 

@@ -1,13 +1,13 @@
 > Consolidated 2026-06-02 - merged from the Cowork cabinet. This `.claude/` is the single source of truth. Agent/CI setup lives in `AGENTS.md` (repo root); coding standards in `docs/standards-for-ci.md`.
 
-# Smart Volume Radar — Project Workspace
+# Gondar — Project Workspace
 
 Stock volume monitoring bot. Identifies unusual trading (RVOL), enriches with news, sends formatted reports to Telegram. Before any task, read this file — it has everything you need inline.
 
 **Stack:** Node.js ≥20, TypeScript 5.9, ESM, tsx
 **APIs:** Yahoo Finance (primary), Twelve Data (fallback), Finnhub (news), Telegram Bot
 **CI/CD:** GitHub Actions — daily scan + weekly performance evaluation
-**Project path:** `~/.gemini/antigravity/projects/smart-volume-radar`
+**Repo:** `github.com/22syn/gondar`
 
 ---
 

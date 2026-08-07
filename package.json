@@ -1,5 +1,5 @@
 {
-  "name": "smart-volume-radar",
+  "name": "gondar",
   "version": "1.0.32",
   "description": "Automated stock volume monitoring system with RVOL analysis, news enrichment, and Telegram delivery",
   "type": "module",

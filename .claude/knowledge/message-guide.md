@@ -1,4 +1,4 @@
-# Smart Volume Radar — Complete Message Guide
+# Gondar — Complete Message Guide
 
 Reference for everything shown in the daily Telegram report.
 
