@@ -72,6 +72,14 @@
       {
         "ticker": "BAC",
         "signalDate": "2026-08-04"
+      },
+      {
+        "ticker": "COLO",
+        "signalDate": "2026-08-07"
+      },
+      {
+        "ticker": "SCHW",
+        "signalDate": "2026-08-07"
       }
     ],
     "Lean Radar - Creep": [
@@ -187,6 +195,18 @@
       {
         "ticker": "GLBE",
         "signalDate": "2026-08-05"
+      },
+      {
+        "ticker": "LIND",
+        "signalDate": "2026-08-07"
+      },
+      {
+        "ticker": "FROG",
+        "signalDate": "2026-08-07"
+      },
+      {
+        "ticker": "MDB",
+        "signalDate": "2026-08-07"
       }
     ]
   }
