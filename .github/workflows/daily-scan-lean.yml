@@ -19,6 +19,17 @@ on:
     # (delete-first ingest) with the corrected closing prices.
     - cron: '45 23 * * 1-5'
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Run the full scan + D1 ingest, but send no Telegram report'
+        type: boolean
+        required: false
+        # Defaults to TRUE on purpose. A manual dispatch is nearly always a test,
+        # a catch-up, or a verification run — and before 2026-08-08 there was no
+        # way to exercise this pipeline by hand without messaging the channel,
+        # which meant manual runs either got skipped or produced a confusing
+        # duplicate report. Opt IN to notifying, don't opt out.
+        default: true
 
 jobs:
   scan:
@@ -114,7 +125,10 @@ jobs:
           FORCE_SCAN: 'true'
           # 23:45 UTC refresh run: recompute with settled closes but do NOT
           # re-send the Telegram report (DRY_RUN only gates the send).
-          DRY_RUN: ${{ github.event.schedule == '45 23 * * 1-5' && '1' || '' }}
+          # A manual dispatch with dry_run=true (the default) is silenced the
+          # same way — the scan and the D1 ingest still run in full, which is
+          # exactly what a verification run needs.
+          DRY_RUN: ${{ (github.event.schedule == '45 23 * * 1-5' || inputs.dry_run) && '1' || '' }}
         run: npm run start:lean
 
       # Ingest today's dashboard rows into Cloudflare D1. CF_* come from the
@@ -128,7 +142,13 @@ jobs:
       - name: Telegram dashboard pointer
         # Skip on the 23:45 refresh run — it silently replaces the day's D1
         # rows with settled closes; only the primary 20:15 run notifies.
-        if: success() && env.CF_API_TOKEN != '' && github.event.schedule != '45 23 * * 1-5'
+        # Also skip on a dry-run dispatch: this is the SECOND Telegram path in
+        # the job, so silencing only DRY_RUN above would still have messaged the
+        # channel on every manual verification run.
+        if: >-
+          success() && env.CF_API_TOKEN != ''
+          && github.event.schedule != '45 23 * * 1-5'
+          && !inputs.dry_run
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
