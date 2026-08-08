@@ -1,0 +1,56 @@
+name: D1 Snapshot (read-only)
+
+# Manual-only. Captures a fingerprint of the four D1 tables the GONDAR
+# dashboard reads (fragility_daily, setup_signals, rs_daily, lean_signals)
+# and uploads it as an artifact.
+#
+# Why this exists: the Smart -> Lean ingest migration must be INVISIBLE to the
+# dashboard. Run this BEFORE the migration to capture a baseline, then again
+# after two Lean-only scan days, and diff the two artifacts. Differing content
+# hashes mean the migration changed the data — which is the failure condition.
+#
+# Strictly read-only: scripts/d1-snapshot.ts refuses any statement that is not
+# a SELECT, so this workflow cannot mutate D1.
+on:
+  workflow_dispatch:
+    inputs:
+      dates:
+        description: 'How many recent scan_dates to fingerprint per table'
+        required: false
+        default: '10'
+      label:
+        description: 'Label for the artifact (e.g. before-migration / after-migration)'
+        required: false
+        default: 'baseline'
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+
+      - name: Capture D1 snapshot
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+        run: |
+          npx tsx scripts/d1-snapshot.ts \
+            --dates "${{ inputs.dates }}" \
+            --out "results/d1-snapshot-${{ inputs.label }}.json"
+
+      - name: Upload snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: d1-snapshot-${{ inputs.label }}
+          path: results/d1-snapshot-*.json
+          retention-days: 90
+          overwrite: true
