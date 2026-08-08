@@ -39,7 +39,12 @@ jobs:
         continue-on-error: true
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # This workflow triggers off 'Smart Volume Radar - Daily Scan', so its
+          # notice belongs in the Alpha Engine group — the same destination
+          # daily-scan.yml uses for that scan's own messages. Until 2026-08-08 it
+          # sent to secrets.TELEGRAM_CHAT_ID, which is the LEAN channel: a Smart
+          # failure was being announced in Lean's chat, where it has no context.
+          TELEGRAM_CHAT_ID: ${{ vars.TELEGRAM_ENGINE_CHAT_ID }}
         run: |
           if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
             MSG="🔧 Jules invoked to fix daily scan failure. Track: ${{ github.event.workflow_run.html_url }}"
