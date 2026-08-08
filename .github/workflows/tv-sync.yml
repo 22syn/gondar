@@ -81,12 +81,29 @@ jobs:
       #
       # continue-on-error + the script's own catch: health is advisory. If it
       # fails or Yahoo is down, the sync must still run — it just won't prune.
+      # Telegram is gated to the PRIMARY Lean run only (20:15 UTC). Lean also runs
+      # a 23:45 settled-close refresh, and every Lean completion triggers this
+      # workflow — so until 2026-08-08 the same health report was sent TWICE per
+      # trading day, ~3.5h apart, with near-identical content. The prune queue is
+      # still written on both runs (that part is genuinely useful on the refresh,
+      # which has corrected closes); only the notification is suppressed.
+      #
+      # workflow_dispatch has no triggering run, so TRIGGER_HOUR is empty and the
+      # report sends — a manual run is always an explicit request to see it.
       - name: Watchlist health check (writes prune queue)
         continue-on-error: true
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-        run: node scripts/watchlist-health.mjs --telegram
+          TRIGGER_STARTED_AT: ${{ github.event.workflow_run.run_started_at }}
+        run: |
+          TRIGGER_HOUR="${TRIGGER_STARTED_AT:11:2}"
+          if [ -n "$TRIGGER_HOUR" ] && [ "$TRIGGER_HOUR" -ge 22 ] 2>/dev/null; then
+            echo "Triggered by the ${TRIGGER_HOUR}:xx UTC settled-close Lean run — writing prune queue without Telegram."
+            node scripts/watchlist-health.mjs
+          else
+            node scripts/watchlist-health.mjs --telegram
+          fi
 
       # Decode the TV_COOKIES secret (base64 JSON) and write to temp file.
       - name: Prepare TradingView cookies
