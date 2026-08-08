@@ -16,7 +16,9 @@ import {
     validateConfig,
     getSectorForTicker,
 } from './config/index.js';
-import { fetchAllStocksAsOfDate } from './services/marketData.js';
+import { fetchAllStocksAsOfDate, fetchSpy63dReturn } from './services/marketData.js';
+import { applyRSPercentile } from './utils/rsPercentile.js';
+import { ingestRsToD1 } from './utils/rsD1Ingest.js';
 import { sendTelegramMessage, chunkMessage } from './services/telegramBot.js';
 import { getLastTradingDay } from './utils/tradingDate.js';
 import logger from './utils/logger.js';
@@ -123,6 +125,18 @@ async function main(): Promise<void> {
         // Add sector
         for (const s of stocks) s.sector = getSectorForTicker(s.ticker);
         logger.info(`✅ Fetched ${stocks.length}/${tickers.length} stocks (${failedTickers.length} failed)`);
+
+        // RS percentile across the WHOLE watchlist — rs_daily is a full-universe
+        // snapshot (~633 rows/day), not a signals table, so this must run on the
+        // unfiltered `stocks` array before any signal narrowing below.
+        //
+        // Migrated from the Smart pipeline on `main` 2026-08-08 (slice 1 of 3) so
+        // the Lean scan owns it and Smart can be retired. Parity contract and the
+        // reason the SQL is reproduced exactly: src/utils/rsD1Ingest.ts.
+        const spyReturn63d = await fetchSpy63dReturn(scanDate);
+        applyRSPercentile(stocks, spyReturn63d);
+        const rsCount = stocks.filter((s) => s.rsPercentile != null).length;
+        logger.info(`📈 RS percentile: ${rsCount}/${stocks.length} stocks (SPY 63d ${spyReturn63d ?? 'n/a'})`);
 
         // For consolidation detection we ALSO need the raw OHLC series.
         // Fetch in parallel (p-limit 5 via Promise.all batching to keep things simple).
@@ -271,6 +285,15 @@ async function main(): Promise<void> {
             logger.info('(DRY_RUN=1 — skipping Telegram send)');
             console.log('\n' + message.replace(/<[^>]+>/g, ''));
         }
+
+        // RS snapshot -> D1. Deliberately AFTER the Telegram send: ingestRsToD1
+        // never throws, but a slow D1 must not delay the report either.
+        //
+        // Runs on the 23:45 settled-close refresh too, not just the primary run.
+        // The ingest is DELETE-first per scan_date, so the later run simply
+        // replaces the earlier one with corrected closes — one row set per day
+        // either way, which is what `main` produced with its single daily scan.
+        await ingestRsToD1(stocks, scanDate);
 
         // TradingView watchlist export — daily file with every "approaching
         // breakout" ticker (graduated + real breakouts + near-pivot). Used by
