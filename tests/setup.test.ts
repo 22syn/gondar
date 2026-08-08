@@ -24,6 +24,7 @@ function intelLike(overrides: Partial<StockData> = {}): StockData {
         avwapFromGap: undefined,
         projectedRvol: 3.0,
         marketRegime: 'bull',
+        return63d: 25, // momentumGate ✓ (>= 20%)
         ...overrides,
     };
 }
@@ -69,6 +70,24 @@ describe('evaluateMomentumSetup — core scenarios', () => {
         expect(r.failures).toContain('lowRiskEntry');
         expect(r.failures).toContain('tightness');
         expect(r.failures).toContain('bigMoveToday');
+    });
+
+    it('lowRiskEntry alone no longer grants Close (removed 2026-07-17, 4y replay Δ≈−26pp)', () => {
+        // Near SMA21 (lowRiskEntry ✓) but far from the 52w high (pivotBreakout ✗):
+        // under the pre-2026-07-17 gate `pivot || lowRisk` this was 'close';
+        // now only pivotBreakout promotes.
+        const r = evaluateMomentumSetup(
+            intelLike({
+                lastPrice: 45,
+                sma21: 44, // ~2.3% away → lowRiskEntry ✓
+                ath: 60, // 45 < 60*0.98 → pivotBreakout ✗
+                rvol: 2.0,
+                projectedRvol: 2.0,
+            })
+        );
+        expect(r.criteria.lowRiskEntry).toBe(true);
+        expect(r.criteria.pivotBreakout).toBe(false);
+        expect(r.level).toBe('none');
     });
 
     it('Fake breakout (RVOL 0.8) → NONE, rvolPass fails', () => {
@@ -228,6 +247,8 @@ describe('evaluateMomentumSetup — Recovery Rally tier', () => {
     });
 
     it('Recovery requires RVOL ≥ 2.5 (RVOL 2.0 → Close, not Recovery)', () => {
+        // Non-Stage-2, but momentumGate ✓ + pivot ✓ + rvol ≥ 1.5 → still qualifies
+        // as Close (the ARM/ALAB/MU pattern the Close tier deliberately keeps).
         const r = evaluateMomentumSetup(
             intelLike({
                 rvol: 2.0,
@@ -244,7 +265,7 @@ describe('evaluateMomentumSetup — Recovery Rally tier', () => {
                 priceChange: 8,
             })
         );
-        expect(r.level).toBe('close'); // promoted to Close (RVOL≥1.5+pivot), not Recovery
+        expect(r.level).toBe('close');
     });
 
     it('Recovery requires SMA50 sloping up (flat/down → Close)', () => {
@@ -264,7 +285,7 @@ describe('evaluateMomentumSetup — Recovery Rally tier', () => {
                 priceChange: 8,
             })
         );
-        expect(r.level).toBe('close');
+        expect(r.level).toBe('close'); // momentumGate ✓ + pivot ✓ keeps it in Close
     });
 
     it('Recovery does NOT downgrade Full (Stage 2 stock with high RVOL stays Full)', () => {
@@ -420,5 +441,93 @@ describe('evaluateMomentumSetup — high-conviction bypass (Option B)', () => {
         );
         expect(r.level).not.toBe('full');
         expect(r.highConvictionBypass).toBeUndefined();
+    });
+});
+
+describe('evaluateMomentumSetup — momentum gate (2026-07-09, 1y replay)', () => {
+    it('return63d below 20% blocks Full even when all other criteria pass', () => {
+        const r = evaluateMomentumSetup(intelLike({ return63d: 12 }));
+        expect(r.criteria.momentumGate).toBe(false);
+        expect(r.level).not.toBe('full');
+        expect(r.failures).toContain('momentumGate');
+    });
+
+    it('return63d below 20% blocks Close too (drops to NONE)', () => {
+        // Full-shaped stock, weak 3-month momentum → neither Full nor Close.
+        const r = evaluateMomentumSetup(
+            intelLike({ return63d: 5, rvol: 2.0, projectedRvol: 2.0 })
+        );
+        expect(r.level).toBe('none');
+    });
+
+    it('Missing return63d (short history, e.g. recent IPO) fails the gate', () => {
+        const r = evaluateMomentumSetup(intelLike({ return63d: undefined }));
+        expect(r.criteria.momentumGate).toBe(false);
+        expect(r.level).not.toBe('full');
+    });
+
+    it('return63d exactly 20% passes the gate', () => {
+        const r = evaluateMomentumSetup(intelLike({ return63d: 20 }));
+        expect(r.criteria.momentumGate).toBe(true);
+        expect(r.level).toBe('full');
+    });
+
+    it('Momentum gate does NOT block the Recovery tier', () => {
+        // Recovery evaluates bear-market reversals where 63d return is often still weak.
+        const r = evaluateMomentumSetup(
+            intelLike({
+                return63d: 10,
+                rvol: 3.35,
+                projectedRvol: 3.35,
+                lastPrice: 36.76,
+                sma21: 25,
+                sma50: 24,
+                sma50Slope: 'up',
+                sma200: 30,
+                sma200Slope: 'down',
+                ath: 36.76,
+                daysSinceAth: 1,
+                priceChange: 24,
+            })
+        );
+        expect(r.level).toBe('recovery');
+    });
+});
+
+describe('evaluateMomentumSetup — pivot stays at 2% (0.99 tightening reverted 2026-07-09)', () => {
+    it('Price 1.5% below ATH still counts as pivot breakout (UCTT/SNDK band kept)', () => {
+        const r = evaluateMomentumSetup(intelLike({ lastPrice: 98.5, ath: 100, sma21: 95 }));
+        expect(r.criteria.pivotBreakout).toBe(true);
+        expect(r.level).toBe('full');
+    });
+
+    it('Price 2.5% below ATH fails the pivot', () => {
+        const r = evaluateMomentumSetup(intelLike({ lastPrice: 97.5, ath: 100, sma21: 95 }));
+        expect(r.criteria.pivotBreakout).toBe(false);
+        expect(r.level).not.toBe('full');
+    });
+});
+
+describe('evaluateMomentumSetup — Close keeps high-momentum non-Stage-2 breaks (ARM/ALAB/MU)', () => {
+    it('momentumGate ✓ + pivot ✓ + rvol 2.0 but Stage 2 broken → CLOSE (not none)', () => {
+        // ARM 2026-04-22 pattern: +52% in 21d after firing at rvol 2.0 with SMA200
+        // structure still lagging. Stage 2 is NOT required for Close.
+        const r = evaluateMomentumSetup(
+            intelLike({
+                rvol: 2.0,
+                projectedRvol: 2.0,
+                return63d: 45,
+                lastPrice: 36,
+                sma21: 33,
+                sma50: 30,
+                sma200: 34, // sma50 < sma200 → stage2 fails
+                sma200Slope: 'down',
+                ath: 36,
+                daysSinceAth: 3,
+                priceChange: 2,
+            })
+        );
+        expect(r.criteria.stage2).toBe(false);
+        expect(r.level).toBe('close');
     });
 });
