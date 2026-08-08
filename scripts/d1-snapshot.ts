@@ -35,6 +35,22 @@ function arg(name: string, fallback: string): string {
 const DATE_LIMIT = parseInt(arg('dates', '10'), 10);
 const OUT_PATH = arg('out', 'results/d1-snapshot.json');
 
+/**
+ * Include every row's full payload, not just a content hash.
+ *
+ * Added 2026-08-08 after a hard lesson: hashes DETECT that data changed but
+ * cannot put it back. A verification run of the Lean scan recomputed
+ * 2026-08-07 and replaced lean_signals (149 rows -> 43, because Yahoo revised
+ * that day's volumes hours after the close). The pre-migration baseline held
+ * only hashes, so the original rows were unrecoverable.
+ *
+ * The remaining migration slices write setup_signals and fragility_daily —
+ * tables the dashboard renders directly — so a real restorable backup has to
+ * exist BEFORE they move. Defaults ON: a backup you have to remember to ask
+ * for is not a backup.
+ */
+const WITH_ROWS = !process.argv.includes('--no-rows');
+
 interface D1Config {
     accountId: string;
     databaseId: string;
@@ -88,6 +104,12 @@ interface DateFingerprint {
     scanDate: string;
     rows: number;
     hash: string;
+    /** Full row payloads — present unless --no-rows. This is what makes the
+     *  snapshot restorable by scripts/d1-restore.ts rather than merely
+     *  diffable. Stored verbatim, including `ingested_at`, so a restore
+     *  reproduces the original exactly even though that column is excluded
+     *  from `hash`. */
+    payload?: Row[];
 }
 
 interface TablePresent {
@@ -128,7 +150,9 @@ async function snapshotTable(table: string, cfg: D1Config): Promise<TableSnapsho
             `SELECT * FROM ${table} WHERE scan_date = '${scanDate}' ORDER BY scan_date`,
             cfg
         );
-        perDate.push({ scanDate, rows: Number(d.n), hash: contentHash(rows) });
+        const entry: DateFingerprint = { scanDate, rows: Number(d.n), hash: contentHash(rows) };
+        if (WITH_ROWS) entry.payload = rows;
+        perDate.push(entry);
     }
 
     const allDates = await query(
@@ -169,6 +193,9 @@ async function main(): Promise<void> {
         databaseIdTail: cfg.databaseId.slice(-4),
         dateLimit: DATE_LIMIT,
         hashExcludes: [...HASH_EXCLUDED],
+        // Consumers (and d1-restore.ts) must be able to tell a restorable
+        // backup from a hash-only fingerprint without inspecting every entry.
+        restorable: WITH_ROWS,
         tables,
     };
 
