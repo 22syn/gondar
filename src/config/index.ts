@@ -118,6 +118,7 @@ export interface TickerConfig {
 let tickerCache: TickerConfig[] | null = null;
 let invalidTickersCache: string[] = [];
 let indexSkippedCache: string[] = [];
+let disabledSkippedCache: string[] = [];
 let sectorMap: Map<string, string> | null = null;
 
 function buildSectorMap(tickers: TickerConfig[]): Map<string, string> {
@@ -155,11 +156,20 @@ export interface ParseWatchlistResult {
     invalidSkipped: string[];
     /** Indices skipped – system does not support indices (no volume/RVOL). Not sent to Jules. */
     indexSkipped: string[];
+    /** Tickers with Status = 'disabled' in column C. Skipped entirely – no fetch, no Jules trigger. */
+    disabledSkipped: string[];
 }
 
-/** Known index symbols (Yahoo ^, TASE indices). RVOL not applicable – no volume. */
+/** Known index symbols (Yahoo ^, TASE indices). RVOL not applicable – no volume.
+ *
+ * The hyphenated TA-* forms and the three sector indices below were present on
+ * `main` but missing here, so the Lean scan was fetching four TASE indices as if
+ * they were stocks and failing on all four, every run. Found 2026-08-08 while
+ * verifying the rs_daily migration — see the note on `disabled` below. */
 const KNOWN_INDEX_SYMBOLS = new Set([
     'TABANKS5.TA', 'TA25.TA', 'TA35.TA', 'TA125.TA', 'TA50.TA', 'TA75.TA', 'TA90.TA', 'TA100.TA',
+    'TA-BANKS.TA', 'TA-25.TA', 'TA-35.TA', 'TA-125.TA', 'TA-90.TA', 'TA-75.TA',
+    'TACONSTRUCTION.TA', 'TAINSURANCEPLUS.TA', 'TASME60.TA',
 ].map((s) => s.toUpperCase()));
 
 /** Detect if symbol is an index (not supported – no volume for RVOL). Skip and report, do not trigger Jules. */
@@ -199,11 +209,23 @@ export function parseWatchlistCsv(csv: string): ParseWatchlistResult {
     const tickers: TickerConfig[] = [];
     const invalidSkipped: string[] = [];
     const indexSkipped: string[] = [];
+    const disabledSkipped: string[] = [];
 
     for (let i = startIndex; i < rows.length; i++) {
         const cells = rows[i];
         const symbol = (cells[0] || '').trim();
         if (!symbol) continue;
+        // Column C = Status. 'disabled' means skip entirely: no fetch, no alert.
+        // Ported from `main` 2026-08-08 — this branch had no notion of the column
+        // at all, so a ticker Kobi had explicitly disabled in the sheet (EMBR3.SA)
+        // was still being scanned here every run. Checked BEFORE isIndex/validate
+        // so a disabled row is reported as disabled rather than as invalid.
+        const status = (cells[2] || '').trim().toLowerCase();
+        if (status === 'disabled') {
+            disabledSkipped.push(symbol);
+            logger.info(`⛔ ${symbol}: disabled in watchlist (Status column = "disabled") — skipped`);
+            continue;
+        }
         if (isIndex(symbol)) {
             indexSkipped.push(symbol);
             logger.info(`Index skipped (not supported): "${symbol}"`);
@@ -222,7 +244,7 @@ export function parseWatchlistCsv(csv: string): ParseWatchlistResult {
         throw new Error('Watchlist sheet has no valid ticker rows (Column A = symbol).');
     }
 
-    return { tickers, invalidSkipped, indexSkipped };
+    return { tickers, invalidSkipped, indexSkipped, disabledSkipped };
 }
 
 /**
@@ -235,16 +257,22 @@ export async function fetchAndCacheWatchlist(): Promise<void> {
         throw new Error('GOOGLE_SHEET_ID is required. Set it to your Google Sheet ID (from the sheet URL).');
     }
     const csv = await fetchWatchlistCsv(sheetId);
-    const { tickers, invalidSkipped, indexSkipped } = parseWatchlistCsv(csv);
+    const { tickers, invalidSkipped, indexSkipped, disabledSkipped } = parseWatchlistCsv(csv);
     tickerCache = tickers;
     invalidTickersCache = invalidSkipped;
     indexSkippedCache = indexSkipped;
+    disabledSkippedCache = disabledSkipped;
     sectorMap = null; // invalidate so next getTickers rebuilds
 }
 
 /** Tickers skipped during watchlist parse (invalid format). Call after fetchAndCacheWatchlist(). */
 export function getInvalidTickersFromWatchlist(): string[] {
     return [...invalidTickersCache];
+}
+
+/** Tickers skipped because Status = 'disabled' in column C. Deliberately excluded — not failures. */
+export function getDisabledTickersFromWatchlist(): string[] {
+    return [...disabledSkippedCache];
 }
 
 /** Indices skipped (not supported). Not sent to Jules. Call after fetchAndCacheWatchlist(). */
