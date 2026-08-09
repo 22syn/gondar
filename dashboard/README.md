@@ -56,3 +56,33 @@ database keyed by binding name instead of `database_id`, so the app ends up
 querying an empty one: "no such table: lean_signals"). `--persist-to` and
 `--compatibility-date` are baked into the `dev` script so `db:local:*` and
 `dev` always agree on where local D1 state lives.
+
+## Ticker history — searching across every scan day
+
+The search box does two different things on purpose:
+
+- **typing** filters the day currently on screen (what it always did);
+- **Enter**, the ⏱ button next to it, or "כל ההופעות" in a row's deep-dive
+  looks the ticker up across **every** scan day via `/api/ticker`.
+
+The side panel then answers "when did it last fire", "which day did it jump",
+and lists every appearance — click any date to jump the whole dashboard to
+that day with the ticker pre-filtered.
+
+| Endpoint | Returns |
+|---|---|
+| `GET /api/ticker?t=NVDA` | every appearance of one ticker + last seen, streaks, peak RVOL/day/score, per-signal counts, and prefix `suggestions` when nothing matched |
+| `GET /api/tickers` | every ticker ever scanned, with appearance count and last-seen date — feeds the search box's `<datalist>` (cached 1h) |
+
+`/api/ticker` merges `setup_signals` and `rs_daily` at read time exactly like
+`/api/signals` does, so a setup-only day is not missing from the history.
+
+**Only days the ticker cleared the filter are recorded.** An empty history
+means "never surfaced by a scan", NOT "never moved" — the panel says so
+explicitly, with the window the DB actually covers.
+
+Needs the `idx_lean_ticker` index (`migrations/0003_add_ticker_index.sql`);
+without it every lookup full-scans `lean_signals`. The deploy workflow applies
+`schema.sql` — which is all `CREATE ... IF NOT EXISTS` — before every Pages
+deploy, so the index lands with the code rather than depending on someone
+running the migration by hand.

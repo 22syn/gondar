@@ -11,6 +11,72 @@ export function buildSignalsQuery(p: SignalParams): Query {
   return { sql: `${SELECT} WHERE scan_date = (SELECT MAX(scan_date) FROM lean_signals) ORDER BY score DESC`, params: [] };
 }
 
+/* ─── Ticker history (cross-day lookup) ───────────────────────────────────────
+ *
+ * Everything above answers "what fired on day X". These answer "what happened
+ * to ticker T across every day we ever scanned" — the lookup the dashboard's
+ * search box could not do, because it only ever filtered the loaded day.
+ *
+ * All three tables are queried by ticker alone: one row per date the ticker
+ * cleared the filter. A ticker with zero rows was never surfaced by a scan —
+ * which is NOT the same as "it never moved". See buildTickerMatchQuery.
+ */
+
+/** Every lean row for one ticker, newest first. */
+export function buildTickerLeanQuery(ticker: string): Query {
+  return { sql: `${SELECT} WHERE ticker = ? ORDER BY scan_date DESC`, params: [ticker] };
+}
+
+/** Every setup row for one ticker (merged into the lean rows by mergeSetupRows). */
+export function buildTickerSetupQuery(ticker: string): Query {
+  return {
+    sql: 'SELECT scan_date,ticker,region,sector,sig,rvol,ath_pct,day_pct,stage2,score,price,rs,ingested_at '
+      + 'FROM setup_signals WHERE ticker = ? ORDER BY scan_date DESC',
+    params: [ticker],
+  };
+}
+
+/** Every RS reading for one ticker — present for scanned days with no signal row. */
+export function buildTickerRsQuery(ticker: string): Query {
+  return {
+    sql: 'SELECT scan_date,ticker,rs FROM rs_daily WHERE ticker = ? ORDER BY scan_date DESC',
+    params: [ticker],
+  };
+}
+
+/**
+ * Case-insensitive prefix match over every ticker ever scanned, so a partial
+ * or wrongly-cased query ("nvd") still resolves. Ordered by how recently the
+ * ticker was seen: a name that fired yesterday outranks one last seen in May.
+ */
+export function buildTickerMatchQuery(prefix: string, limit = 8): Query {
+  return {
+    sql: 'SELECT ticker, COUNT(*) AS appearances, MAX(scan_date) AS last_seen '
+      + 'FROM lean_signals WHERE ticker LIKE ? ESCAPE \'\\\' '
+      + 'GROUP BY ticker ORDER BY last_seen DESC, appearances DESC LIMIT ?',
+    params: [`${escapeLike(prefix)}%`, limit],
+  };
+}
+
+/** Distinct tickers with a signal row, for the search box's autocomplete. */
+export function buildTickerListQuery(): Query {
+  return {
+    sql: 'SELECT ticker, COUNT(*) AS appearances, MAX(scan_date) AS last_seen '
+      + 'FROM lean_signals GROUP BY ticker ORDER BY ticker',
+    params: [],
+  };
+}
+
+/** All DISTINCT scan_dates, most recent first — the calendar a history is read against. */
+export function buildAllScanDatesQuery(): Query {
+  return { sql: 'SELECT DISTINCT scan_date FROM lean_signals ORDER BY scan_date DESC', params: [] };
+}
+
+/** Neutralise LIKE wildcards in user input so "A%" cannot match everything. */
+function escapeLike(s: string): string {
+  return s.replace(/[\\%_]/g, (c) => `\\${c}`);
+}
+
 /** Recent DISTINCT scan_dates on/before `day`, most recent first. */
 export function buildRecentDatesQuery(day: string, limit = 12): Query {
   return {

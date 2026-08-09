@@ -183,15 +183,32 @@
          CONTROLS
     ════════════════════════════════════════ -->
     <section class="controls" role="search" aria-label="סינון וחיפוש">
-      <input
-        type="search"
-        id="search"
-        class="ctrl-input"
-        placeholder="חיפוש טיקר…"
-        aria-label="חיפוש לפי טיקר"
-        autocomplete="off"
-        spellcheck="false"
-      >
+      <!-- Two searches in one box, on purpose: typing filters the day on
+           screen (as it always did), Enter / the button looks the ticker up
+           across EVERY scan day via /api/ticker. The datalist is the full
+           scanned universe, so names absent from today still autocomplete. -->
+      <div class="ctrl-search">
+        <input
+          type="search"
+          id="search"
+          class="ctrl-input"
+          placeholder="חיפוש טיקר…"
+          aria-label="חיפוש לפי טיקר — Enter לכל ההיסטוריה"
+          aria-describedby="search-hint"
+          list="ticker-list"
+          autocomplete="off"
+          spellcheck="false"
+        >
+        <button
+          type="button"
+          class="btn-ticker-history"
+          id="btn-ticker-history"
+          aria-label="הצג היסטוריה מלאה של הטיקר"
+          title="היסטוריה מלאה בכל הסריקות (Enter)"
+        ><span class="material-symbols-outlined" aria-hidden="true">history</span></button>
+        <datalist id="ticker-list"></datalist>
+      </div>
+      <span class="ctrl-hint" id="search-hint">Enter = כל ההיסטוריה</span>
       <select id="f-region" class="ctrl-select" aria-label="סינון לפי אזור">
         <option value="">כל האזורים</option>
         <option>US</option>
@@ -247,6 +264,9 @@
     <div class="show-more-wrap" id="show-more-wrap" hidden>
       <button type="button" class="btn-show-more" id="btn-show-more"></button>
     </div>
+
+    <!-- ticker searched but absent from this day → offer the cross-day lookup -->
+    <div class="ticker-miss" id="ticker-miss" role="status" hidden></div>
 
     <!-- loading / empty states -->
     <div class="state-msg" id="state-msg" hidden></div>

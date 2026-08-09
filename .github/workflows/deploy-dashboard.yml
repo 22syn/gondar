@@ -31,4 +31,16 @@ jobs:
         with:
           node-version: 20
       - run: npm ci
+
+      # Apply the D1 schema before the code that depends on it goes live.
+      # schema.sql is entirely CREATE ... IF NOT EXISTS, so this is idempotent
+      # and safe on every deploy — it only ever adds what is missing (it never
+      # drops or rewrites a table, and it touches no rows).
+      #
+      # This exists because the Pages Functions and the D1 schema deploy on
+      # different tracks: /api/ticker needs idx_lean_ticker, and without this
+      # step a deploy would ship the endpoint while every lookup full-scans
+      # lean_signals until someone remembered to run the migration by hand.
+      - run: npx wrangler d1 execute lean-radar --remote --file=schema.sql -y
+
       - run: npx wrangler pages deploy public --project-name radar-dashboard --commit-dirty=true --branch=production
