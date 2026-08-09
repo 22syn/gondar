@@ -628,6 +628,76 @@ main {
 }
 
 /* ═══════════════════════════════════════════════
+   IMAGE LIGHTBOX (zoomed TradingView snapshots)
+   Reuses .chart-modal's shell; only the content box differs — it holds an
+   image scaled to fill the dialog instead of a canvas.
+═══════════════════════════════════════════════ */
+/* `safe center` so an image larger than the box is not clipped at its start
+ * edge (the classic flex-centering + overflow trap) — it scrolls instead. */
+.img-lightbox-box {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  align-items: safe center;
+  justify-content: safe center;
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+}
+
+/* The zoom is "natural size, or bigger if the dialog is taller than the
+ * image" — never smaller. The capture is portrait-ish (~619×637), so on a
+ * phone that means it overflows the narrow dialog and the box pans; capping
+ * it to the width instead would render it no bigger than the thumbnail. */
+.img-lightbox-box img {
+  display: block;
+  margin: auto;
+  width: auto;
+  height: auto;
+  min-height: 100%;
+  max-width: none;
+}
+
+/* The thumbnail is a button so it is keyboard-reachable; strip the chrome. */
+/* Shrink-wrapped to the image (which is centred and narrower than the
+ * container) so the zoom hint sits on the image corner, not the column edge. */
+.img-zoom-btn {
+  display: block;
+  position: relative;
+  width: fit-content;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: zoom-in;
+}
+
+.img-zoom-btn .img-zoom-hint {
+  position: absolute;
+  bottom: 8px;
+  inset-inline-end: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.65);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 0.95rem;
+  opacity: 0.75;
+  transition: opacity var(--xsh-dur) var(--xsh-ease);
+}
+
+.img-zoom-btn:hover .img-zoom-hint,
+.img-zoom-btn:focus-visible .img-zoom-hint { opacity: 1; }
+
+.img-zoom-btn:hover .williamsr-tv-img,
+.img-zoom-btn:focus-visible .williamsr-tv-img { border-color: var(--xsh-primary); }
+
+/* ═══════════════════════════════════════════════
    WILLIAMS %R PANEL (separate from Purple Fragility —
    a market-timing gauge, not a per-ticker one)
 ═══════════════════════════════════════════════ */
@@ -1336,6 +1406,43 @@ td.col-score {
 .explainer-section {
   margin-bottom: 40px;
 }
+
+/* Collapsed-by-default wrapper for a long reference section (watchlist tab):
+   the summary reads as an .explainer-h2, the body is a normal section. */
+.explainer-collapse {
+  margin-bottom: 24px;
+}
+
+.explainer-collapse-summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+  padding: 10px 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  transition: border-color var(--xsh-dur) var(--xsh-ease);
+}
+
+.explainer-collapse-summary:hover { border-color: var(--xsh-primary); }
+
+/* the default disclosure triangle would sit alongside our own chevron */
+.explainer-collapse-summary::-webkit-details-marker { display: none; }
+.explainer-collapse-summary { list-style: none; }
+
+.explainer-collapse-chevron {
+  margin-inline-start: auto;
+  color: var(--muted);
+  transition: transform var(--xsh-dur) var(--xsh-ease);
+}
+
+.explainer-collapse[open] .explainer-collapse-chevron { transform: rotate(180deg); }
+
+.explainer-collapse[open] .explainer-section { margin-top: 20px; }
 
 .explainer-h2 {
   font-size: 1.05rem;

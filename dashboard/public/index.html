@@ -148,24 +148,30 @@
              huge fixed block — see .williamsr-tv-img max-height in styles.css. -->
         <details class="williamsr-tv-primary">
           <summary><span class="material-symbols-outlined" aria-hidden="true">monitor</span>TradingView — SPY, הגרף האמיתי (מתעדכן כל יום ראשון)</summary>
-          <img
-            src="/assets/williams-r-spy-weekly.png"
-            alt="SPY שבועי עם Williams %R ב-TradingView"
-            class="williamsr-tv-img"
-            loading="lazy"
-          >
+          <button type="button" class="img-zoom-btn" aria-label="הגדל את גרף ה-SPY">
+            <img
+              src="/assets/williams-r-spy-weekly.png"
+              alt="SPY שבועי עם Williams %R ב-TradingView"
+              class="williamsr-tv-img"
+              loading="lazy"
+            >
+            <span class="img-zoom-hint" aria-hidden="true"><span class="material-symbols-outlined">zoom_in</span></span>
+          </button>
           <a class="dd-tv-link" href="https://www.tradingview.com/chart/?symbol=SPY&interval=1W" target="_blank" rel="noopener noreferrer">
             פתח את הגרף החי ב-TradingView ↗
           </a>
         </details>
         <details class="williamsr-tv-primary">
           <summary><span class="material-symbols-outlined" aria-hidden="true">monitor</span>TradingView — QQQ, הגרף האמיתי (מתעדכן כל יום ראשון)</summary>
-          <img
-            src="/assets/williams-r-qqq-weekly.png"
-            alt="QQQ שבועי עם Williams %R ב-TradingView"
-            class="williamsr-tv-img"
-            loading="lazy"
-          >
+          <button type="button" class="img-zoom-btn" aria-label="הגדל את גרף ה-QQQ">
+            <img
+              src="/assets/williams-r-qqq-weekly.png"
+              alt="QQQ שבועי עם Williams %R ב-TradingView"
+              class="williamsr-tv-img"
+              loading="lazy"
+            >
+            <span class="img-zoom-hint" aria-hidden="true"><span class="material-symbols-outlined">zoom_in</span></span>
+          </button>
           <a class="dd-tv-link" href="https://www.tradingview.com/chart/?symbol=QQQ&interval=1W" target="_blank" rel="noopener noreferrer">
             פתח את הגרף החי ב-TradingView ↗
           </a>
@@ -256,9 +262,16 @@
         <div class="explainer-title"><span class="material-symbols-outlined" aria-hidden="true">monitor</span>מה נמצא עכשיו על TradingView</div>
         <div class="explainer-subtitle" id="watchlist-meta">טוען…</div>
       </div>
-      <!-- Lifecycle docs — how these lists are built, refreshed, and pruned -->
+      <!-- Lifecycle docs — how these lists are built, refreshed, and pruned.
+           Collapsed by default: the tables are what the tab is for, the docs
+           are reference material you open once and then stop needing. -->
+      <details class="explainer-collapse">
+        <summary class="explainer-collapse-summary">
+          <span class="material-symbols-outlined" aria-hidden="true">sync</span>
+          <span id="wl-howto">איך הרשימות נבנות, מתי הן מתעדכנות, ואיך לקרוא את הטבלה</span>
+          <span class="material-symbols-outlined explainer-collapse-chevron" aria-hidden="true">expand_more</span>
+        </summary>
       <section class="explainer-section" aria-labelledby="wl-howto">
-        <h2 class="explainer-h2" id="wl-howto"><span class="material-symbols-outlined" aria-hidden="true">sync</span>איך הרשימות נבנות — ומתי הן מתעדכנות</h2>
         <p class="explainer-prose">
           שתי הרשימות נכתבות ע"י <strong>סריקת ה-Gondar</strong>, לא ע"י הדשבורד. הדשבורד רק מציג
           את מה שכבר יושב על TradingView.
@@ -335,6 +348,7 @@
           הרשימה עונה על "מה שווה לפתוח בגרף", לא על "מה להחזיק".
         </p>
       </section>
+      </details>
 
       <div id="watchlist-sections"><!-- injected by JS: one table per watchlist --></div>
     </article>
@@ -1380,6 +1394,31 @@
       </div>
       <div class="chart-modal-box">
         <canvas id="chart-modal-canvas"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════════════════════════════════════════
+       IMAGE LIGHTBOX (zoomed TradingView snapshots)
+       Same overlay/dialog shell as the chart modal, but the box holds an
+       <img> the user can also pan/scroll when it overflows the viewport.
+  ════════════════════════════════════════ -->
+  <div class="chart-modal-overlay" id="img-lightbox-overlay" hidden aria-hidden="true"></div>
+  <div
+    id="img-lightbox"
+    class="chart-modal img-lightbox"
+    hidden
+    aria-modal="true"
+    aria-label="תמונה מוגדלת"
+    role="dialog"
+  >
+    <div class="chart-modal-inner">
+      <div class="chart-title-row">
+        <p class="chart-title" id="img-lightbox-title"></p>
+        <button class="btn-close" id="btn-close-img-lightbox" aria-label="סגור"><span class="material-symbols-outlined" aria-hidden="true">close</span></button>
+      </div>
+      <div class="img-lightbox-box">
+        <img id="img-lightbox-img" src="" alt="">
       </div>
     </div>
   </div>

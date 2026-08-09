@@ -816,6 +816,38 @@ function closeFragilityModal() {
   if (modal._escHandler) { document.removeEventListener('keydown', modal._escHandler); modal._escHandler = null; }
 }
 
+/* ─── Image lightbox (zoomed TradingView snapshots) ───────────────────────── */
+
+/**
+ * Opens the zoomed view of a thumbnail image at its natural size.
+ * @param {HTMLImageElement} img the thumbnail that was clicked
+ * @returns {void}
+ */
+function openImgLightbox(img) {
+  const box = $('#img-lightbox');
+  const zoomed = $('#img-lightbox-img');
+  zoomed.src = img.currentSrc || img.src;
+  zoomed.alt = img.alt;
+  $('#img-lightbox-title').textContent = img.alt;
+  box.hidden = false;
+  $('#img-lightbox-overlay').hidden = false;
+  document.body.style.overflow = 'hidden';
+  $('#btn-close-img-lightbox').focus();
+
+  box._escHandler = (e) => { if (e.key === 'Escape') closeImgLightbox(); };
+  document.addEventListener('keydown', box._escHandler);
+}
+
+function closeImgLightbox() {
+  const box = $('#img-lightbox');
+  box.hidden = true;
+  $('#img-lightbox-overlay').hidden = true;
+  // Drop the source so a stale image never flashes on the next open.
+  $('#img-lightbox-img').removeAttribute('src');
+  document.body.style.overflow = '';
+  if (box._escHandler) { document.removeEventListener('keydown', box._escHandler); box._escHandler = null; }
+}
+
 /* ─── Filtering / sorting ─────────────────────────────────────────────────── */
 
 /**
@@ -1411,6 +1443,16 @@ async function boot() {
   $('#btn-expand-fragility').addEventListener('click', openFragilityModal);
   $('#btn-close-chart-modal').addEventListener('click', closeFragilityModal);
   $('#chart-modal-overlay').addEventListener('click', closeFragilityModal);
+
+  // TradingView snapshots — click the thumbnail to view it at full size
+  document.querySelectorAll('.img-zoom-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const img = btn.querySelector('img');
+      if (img) openImgLightbox(img);
+    });
+  });
+  $('#btn-close-img-lightbox').addEventListener('click', closeImgLightbox);
+  $('#img-lightbox-overlay').addEventListener('click', closeImgLightbox);
 
   // Tab navigation: signals ↔ watchlist ↔ explainer
   $('#tab-signals').addEventListener('click', () => switchTab('signals'));
