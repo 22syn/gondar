@@ -21,6 +21,11 @@ interface Source {
     /** Optional explicit sector label; defaults to the watchlist's own name. */
     sector?: string;
     shareUrl: string;
+    /**
+     * Broad membership lists (e.g. the TLV-125 index): their symbols join the universe,
+     * but their name becomes the sector only for symbols in no other watchlist.
+     */
+    universeOnly?: boolean;
 }
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -42,7 +47,7 @@ function loadSources(): Source[] {
             throw new Error(`watchlist-sources[${i}]: "shareUrl" must be a non-empty string`);
         }
         const sector = typeof r.sector === 'string' && r.sector.trim() ? r.sector.trim() : undefined;
-        return { sector, shareUrl: r.shareUrl.trim() };
+        return { sector, shareUrl: r.shareUrl.trim(), universeOnly: r.universeOnly === true };
     });
 }
 
@@ -56,7 +61,9 @@ async function main(): Promise<void> {
     const skipped: string[] = [];
     let failures = 0;
 
-    for (const s of sources) {
+    // Sector lists claim symbols first (in file order); universeOnly lists only mop up.
+    const ordered = [...sources.filter((s) => !s.universeOnly), ...sources.filter((s) => s.universeOnly)];
+    for (const s of ordered) {
         const label = s.sector ?? s.shareUrl;
         try {
             const { name, symbols: tvSymbols } = await fetchSharedWatchlistDetailed(s.shareUrl);
@@ -99,13 +106,19 @@ async function main(): Promise<void> {
         return;
     }
 
-    const { added, alreadyPresent } = await mergeUniverseSheet(sheetId, rows);
+    const { added, updated, alreadyPresent } = await mergeUniverseSheet(sheetId, rows);
     logger.info(
-        `Universe sheet merged: +${added.length} new, ${alreadyPresent} already present ` +
+        `Universe sheet merged: +${added.length} new, ${updated.length} sector updates, ` +
+            `${alreadyPresent} already present ` +
             `(from ${rows.length} resolved across ${sources.length - failures}/${sources.length} sources).`,
     );
     if (added.length > 0) {
         logger.info(`Added: ${added.map((r) => `${r.symbol} [${r.sector}]`).join(', ')}`);
+    }
+    if (updated.length > 0) {
+        logger.info(
+            `Sector updates: ${updated.map((u) => `${u.symbol} [${u.from || '(empty)'}→${u.to}]`).join(', ')}`,
+        );
     }
     if (failures > 0) process.exitCode = 1;
 }
