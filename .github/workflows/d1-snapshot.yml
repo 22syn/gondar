@@ -9,9 +9,28 @@ name: D1 Snapshot (read-only)
 # after two Lean-only scan days, and diff the two artifacts. Differing content
 # hashes mean the migration changed the data — which is the failure condition.
 #
+# It ALSO runs automatically after every Lean scan (2026-08-10). That snapshot is
+# the data source for alpha-engine's GONDAR view: alpha-engine renders GONDAR's
+# own UI, vendored unmodified from `stable`, against static JSON generated from
+# this artifact. It cannot query D1 itself — it has no CF_* credentials — and the
+# live site is behind Cloudflare Access, so an iframe of it cannot carry the auth
+# cookie (third-party cookie blocking). Producing the data here, next to the
+# secrets that already exist, avoids both problems without weakening Access.
+#
+# Deliberately a separate workflow rather than a step inside daily-scan-lean.yml:
+# that workflow checks out `stable`, while scripts/d1-snapshot.ts lives on `main`.
+# Adding it there would mean copying the script to `stable` — creating exactly the
+# kind of cross-branch duplicate that drifted three times during the D1 migration.
+#
 # Strictly read-only: scripts/d1-snapshot.ts refuses any statement that is not
 # a SELECT, so this workflow cannot mutate D1.
 on:
+  # After every successful Lean scan — including the 23:45 settled-close refresh,
+  # so the snapshot reflects corrected closes rather than the 20:15 provisional run.
+  workflow_run:
+    workflows: ['Lean Radar - Daily Scan']
+    types: [completed]
+
   workflow_dispatch:
     inputs:
       dates:
@@ -25,6 +44,10 @@ on:
 
 jobs:
   snapshot:
+    # Skip when the upstream Lean scan failed — a snapshot taken after a failed
+    # scan would show yesterday's data under today's timestamp, which is worse
+    # than no snapshot at all.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -37,20 +60,28 @@ jobs:
           cache: npm
       - run: npm ci
 
+      # A scheduled run has no `inputs`, so both fall back to defaults. 60 dates
+      # rather than 10 on the automatic path: alpha-engine renders GONDAR's own
+      # UI against this, and that UI has a date picker and history charts — 10
+      # days would leave them mostly empty.
       - name: Capture D1 snapshot
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+          DATES: ${{ inputs.dates || '60' }}
+          LABEL: ${{ inputs.label || 'daily' }}
         run: |
           npx tsx scripts/d1-snapshot.ts \
-            --dates "${{ inputs.dates }}" \
-            --out "results/d1-snapshot-${{ inputs.label }}.json"
+            --dates "$DATES" \
+            --out "results/d1-snapshot-${LABEL}.json"
 
       - name: Upload snapshot
         uses: actions/upload-artifact@v4
         with:
-          name: d1-snapshot-${{ inputs.label }}
+          name: d1-snapshot-${{ inputs.label || 'daily' }}
           path: results/d1-snapshot-*.json
+          retention-days: 90
+          overwrite: true
           retention-days: 90
           overwrite: true
