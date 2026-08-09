@@ -906,7 +906,16 @@ function renderTable() {
   $('#row-count').textContent = vr.length === total
     ? `${vr.length} שורות`
     : `${vr.length} מוצגות מתוך ${total}`;
-  showState(vr.length === 0 && !hiddenNearCount ? 'אין תוצאות לסינון הנוכחי' : null);
+  // A ticker search with no rows on this day is the exact case the old search
+  // dead-ended on. Offer the cross-day lookup instead of "אין תוצאות".
+  const q = ($('#search').value || '').trim().toUpperCase();
+  if (vr.length === 0 && !hiddenNearCount && q) {
+    showState(null);
+    showTickerMiss(q);
+  } else {
+    hideTickerMiss();
+    showState(vr.length === 0 && !hiddenNearCount ? 'אין תוצאות לסינון הנוכחי' : null);
+  }
   renderShowMore();
 
   /* — desktop table — */
@@ -1107,6 +1116,37 @@ function scoreBreakdownHTML(r) {
     <div class="dd-grid">${rows}</div>`;
 }
 
+/**
+ * Open the side panel with arbitrary content. Shared by the row deep-dive and
+ * the ticker-history view so both get the same close button, overlay, Escape
+ * handling and focus behaviour.
+ * @param {string} html - must contain a #btn-close-dd button
+ * @param {boolean} [wide] - widen the panel (the history table needs the room)
+ */
+function openPanel(html, wide = false) {
+  const panel   = $('#deepdive');
+  const overlay = $('#deepdive-overlay');
+  panel.classList.toggle('deepdive--wide', wide);
+
+  // Re-opening without closing (row → history) would otherwise stack handlers.
+  if (panel._escHandler) {
+    document.removeEventListener('keydown', panel._escHandler);
+    panel._escHandler = null;
+  }
+
+  $('#deepdive-inner').innerHTML = html;
+  panel.hidden   = false;
+  overlay.hidden = false;
+  overlay.removeAttribute('aria-hidden');
+  panel.scrollTop = 0;
+
+  panel.querySelector('#btn-close-dd').addEventListener('click', closeDeepDive);
+  overlay.addEventListener('click', closeDeepDive, { once: true });
+
+  panel._escHandler = (e) => { if (e.key === 'Escape') closeDeepDive(); };
+  document.addEventListener('keydown', panel._escHandler);
+}
+
 function openDeepDive(r) {
   const tvSymbol = (r.ticker || '').replace(/\./g, '-');
   const tvUrl    = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol)}`;
@@ -1152,7 +1192,7 @@ function openDeepDive(r) {
       <div class="dd-v">${v}</div>
     </div>`).join('');
 
-  $('#deepdive-inner').innerHTML = `
+  openPanel(`
     <button class="btn-close" id="btn-close-dd" aria-label="סגור פאנל">${iconHTML('close')}</button>
     ${gradBanner}
     <div class="dd-ticker">${r.ticker || ''} ${streakNote}</div>
@@ -1160,23 +1200,15 @@ function openDeepDive(r) {
     <div class="dd-badges">${signalBadgesHTML(r)}</div>
     <div class="dd-grid">${gridHTML}</div>
     ${scoreBreakdownHTML(r)}
+    <button type="button" class="dd-history-btn" data-ticker="${r.ticker || ''}">
+      ${iconHTML('history')}כל ההופעות של ${r.ticker || ''} בהיסטוריה
+    </button>
     <a class="dd-tv-link" href="${tvUrl}" target="_blank" rel="noopener noreferrer">
       פתח ב-TradingView ↗
-    </a>`;
+    </a>`);
 
-  const panel   = $('#deepdive');
-  const overlay = $('#deepdive-overlay');
-  panel.hidden   = false;
-  overlay.hidden = false;
-  overlay.removeAttribute('aria-hidden');
-
-  // move focus into panel
-  panel.querySelector('#btn-close-dd').addEventListener('click', closeDeepDive);
-  overlay.addEventListener('click', closeDeepDive, { once: true });
-
-  // trap Escape
-  panel._escHandler = (e) => { if (e.key === 'Escape') closeDeepDive(); };
-  document.addEventListener('keydown', panel._escHandler);
+  const histBtn = $('#deepdive').querySelector('.dd-history-btn');
+  if (histBtn) histBtn.addEventListener('click', () => openTickerHistory(histBtn.dataset.ticker));
 }
 
 function closeDeepDive() {
@@ -1189,6 +1221,251 @@ function closeDeepDive() {
     document.removeEventListener('keydown', panel._escHandler);
     panel._escHandler = null;
   }
+}
+
+/* ─── Ticker history (cross-day search) ───────────────────────────────────── */
+
+/**
+ * Every ticker ever scanned: [{ticker, appearances, last_seen}]. Loaded once,
+ * feeds the search box's <datalist> so names that are NOT in today's scan can
+ * still be typed and looked up.
+ * @type {Array<object>}
+ */
+let tickerIndex = [];
+
+/** Escape a value for interpolation into HTML. Ticker text is user-typed. */
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, (c) => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
+async function loadTickerIndex() {
+  try {
+    const resp = await fetch('/api/tickers');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    tickerIndex = await resp.json();
+  } catch {
+    tickerIndex = []; // autocomplete is a convenience — search still works without it
+    return;
+  }
+  $('#ticker-list').innerHTML = tickerIndex
+    .map((t) => `<option value="${esc(t.ticker)}">${esc(t.last_seen)} · ${t.appearances} הופעות</option>`)
+    .join('');
+}
+
+/**
+ * Inline prompt shown when a ticker search matches nothing on the selected day.
+ * The last-seen date comes from the already-loaded index, so the answer to
+ * "when did it last fire?" appears without a round trip.
+ * @param {string} q - the uppercased search query
+ */
+function showTickerMiss(q) {
+  const el = $('#ticker-miss');
+  const exact = tickerIndex.find((t) => t.ticker === q);
+  const prefix = exact ? [] : tickerIndex.filter((t) => t.ticker.startsWith(q)).slice(0, 6);
+
+  if (exact) {
+    el.innerHTML = `
+      ${iconHTML('history')}
+      <span><strong>${esc(q)}</strong> לא בסריקה של ${esc(selectedDate || '')} —
+      הופיעה לאחרונה ב-<strong>${esc(exact.last_seen)}</strong> (${exact.appearances} הופעות)</span>
+      <button type="button" class="btn-miss" data-ticker="${esc(q)}">${iconHTML('open_in_new')}פתח היסטוריה</button>`;
+  } else if (prefix.length) {
+    el.innerHTML = `
+      ${iconHTML('search')}
+      <span>אין <strong>${esc(q)}</strong> בסריקה של היום. אולי:</span>
+      ${prefix.map((t) => `<button type="button" class="btn-miss" data-ticker="${esc(t.ticker)}">${esc(t.ticker)}<span class="btn-miss-meta">${esc(t.last_seen)}</span></button>`).join('')}`;
+  } else {
+    el.innerHTML = `
+      ${iconHTML('search_off')}
+      <span><strong>${esc(q)}</strong> לא הופיעה באף סריקה.</span>
+      <button type="button" class="btn-miss" data-ticker="${esc(q)}">${iconHTML('open_in_new')}בדוק בהיסטוריה</button>`;
+  }
+
+  el.hidden = false;
+  el.querySelectorAll('.btn-miss').forEach((b) =>
+    b.addEventListener('click', () => openTickerHistory(b.dataset.ticker))
+  );
+}
+
+function hideTickerMiss() {
+  const el = $('#ticker-miss');
+  el.hidden = true;
+  el.innerHTML = '';
+}
+
+/** "לפני 4 ימי סריקה" / "בסריקה האחרונה" */
+function sinceLabel(n) {
+  if (n == null) return '';
+  if (n === 0) return 'בסריקה האחרונה';
+  if (n === 1) return 'לפני יום סריקה אחד';
+  return `לפני ${n} ימי סריקה`;
+}
+
+/** One highlighted appearance ("the day it jumped"), or '' if there is none. */
+function peakCardHTML(label, icon, row, valueHTML) {
+  if (!row) return '';
+  return `
+    <button type="button" class="th-peak" data-date="${esc(row.scan_date)}">
+      <span class="th-peak-label">${iconHTML(icon)}${label}</span>
+      <span class="th-peak-value">${valueHTML}</span>
+      <span class="th-peak-date">${esc(row.scan_date)}</span>
+    </button>`;
+}
+
+function tickerHistoryHTML(h) {
+  const head = `
+    <button class="btn-close" id="btn-close-dd" aria-label="סגור פאנל">${iconHTML('close')}</button>
+    <div class="dd-ticker">${esc(h.ticker)}</div>`;
+
+  // Never scanned into a signal — say exactly that, and over what window, so
+  // it does not read as "this stock never moved". The radar only records days
+  // a name cleared the filter.
+  if (h.total === 0) {
+    const sugg = (h.suggestions || []).length
+      ? `<div class="th-sub">אולי התכוונת:</div>
+         <div class="th-suggest">${h.suggestions.map((s) => `
+           <button type="button" class="th-sugg-btn" data-ticker="${esc(s.ticker)}">
+             ${esc(s.ticker)}<span class="th-sugg-meta">${esc(s.last_seen)}</span>
+           </button>`).join('')}</div>`
+      : '';
+    return `${head}
+      <div class="th-empty">
+        ${iconHTML('search_off')}
+        <p><strong>${esc(h.ticker)}</strong> לא הופיעה באף סריקה.</p>
+        <p class="th-note">
+          ההיסטוריה מכסה ${h.scanned_days} ימי סריקה, ${esc(h.history_from)} → ${esc(h.history_to)}.
+          נרשמים רק ימים שבהם המנייה עברה את הפילטר — היעדר שורה אינו אומר שהיא לא זזה.
+        </p>
+      </div>
+      ${sugg}`;
+  }
+
+  const latest = h.appearances[0];
+  const kv = [
+    ['סה"כ הופעות', h.total],
+    ['הופעה ראשונה', esc(h.first_seen)],
+    ['רצף הכי ארוך', `${h.longest_streak} ימים`],
+    ['רצף אחרון', `${h.latest_streak} ימים`],
+  ].map(([k, v]) => `<div class="dd-kv"><div class="dd-k">${k}</div><div class="dd-v">${v}</div></div>`).join('');
+
+  const signalChips = Object.entries(h.by_signal)
+    .sort((a, b) => b[1] - a[1])
+    .map(([sig, n]) => `<span class="th-chip">${badgeHTML(sig, false)}<span class="th-chip-n">×${n}</span></span>`)
+    .join('');
+
+  const peaks = [
+    peakCardHTML('RVOL שיא', 'bolt', h.peak_rvol, fmtRvol(h.peak_rvol && h.peak_rvol.rvol)),
+    peakCardHTML('היום הכי חזק', 'trending_up', h.peak_day,
+      `<span class="${fmtPctClass(h.peak_day && h.peak_day.day_pct)}">${fmtPct(h.peak_day && h.peak_day.day_pct)}</span>`),
+    peakCardHTML('ציון שיא', 'star', h.peak_score, String((h.peak_score && h.peak_score.score) ?? '—')),
+  ].join('');
+
+  const rows = h.appearances.map((r) => `
+    <tr class="th-row" data-date="${esc(r.scan_date)}" tabindex="0">
+      <td class="th-date">${esc(r.scan_date)}</td>
+      <td class="th-badges">${signalBadgesHTML(r)}</td>
+      <td class="col-mono">${fmtRvol(r.rvol)}</td>
+      <td class="col-mono"><span class="${fmtPctClass(r.day_pct)}">${fmtPct(r.day_pct)}</span></td>
+      <td class="col-mono">${r.rs != null ? r.rs : '—'}</td>
+      <td class="col-mono">${r.score ?? '—'}</td>
+    </tr>`).join('');
+
+  const tvUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(h.ticker.replace(/\./g, '-'))}`;
+
+  return `${head}
+    <div class="dd-sub">${esc(latest.sector || '')}${latest.sector && latest.region ? ' · ' : ''}${esc(latest.region || '')}</div>
+
+    <div class="th-headline">
+      <div class="th-headline-label">${iconHTML('event_available')}הופיעה לאחרונה</div>
+      <div class="th-headline-date">${esc(h.last_seen)}</div>
+      <div class="th-headline-since">${sinceLabel(h.scan_days_since)}</div>
+      <div class="th-headline-badges">${signalBadgesHTML(latest)}</div>
+    </div>
+
+    <div class="dd-grid">${kv}</div>
+    ${peaks ? `<div class="dd-sub" style="margin-top:14px">שיאים</div><div class="th-peaks">${peaks}</div>` : ''}
+    ${signalChips ? `<div class="dd-sub" style="margin-top:14px">סוגי איתות</div><div class="th-chips">${signalChips}</div>` : ''}
+
+    <div class="dd-sub" style="margin-top:14px">כל ההופעות (${h.total}) — לחיצה קופצת לאותו יום</div>
+    <div class="th-table-wrap">
+      <table class="th-table">
+        <thead><tr><th>תאריך</th><th>סיגנלים</th><th>RVOL</th><th>יום%</th><th>RS</th><th>ציון</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <p class="th-note">
+      מוצגים רק ימים שבהם המנייה עברה את פילטר הסריקה, מתוך ${h.scanned_days} ימי סריקה
+      (${esc(h.history_from)} → ${esc(h.history_to)}).
+    </p>
+    <a class="dd-tv-link" href="${tvUrl}" target="_blank" rel="noopener noreferrer">
+      פתח ב-TradingView ↗
+    </a>`;
+}
+
+/**
+ * Look a ticker up across EVERY scan day and show it in the side panel.
+ * @param {string} raw - user-typed or clicked ticker
+ */
+async function openTickerHistory(raw) {
+  const ticker = (raw || '').trim().toUpperCase();
+  if (!ticker) return;
+
+  openPanel(`
+    <button class="btn-close" id="btn-close-dd" aria-label="סגור פאנל">${iconHTML('close')}</button>
+    <div class="dd-ticker">${esc(ticker)}</div>
+    <div class="th-loading">${iconHTML('hourglass_empty')}טוען היסטוריה…</div>`, true);
+
+  let h;
+  try {
+    const resp = await fetch(`/api/ticker?t=${encodeURIComponent(ticker)}`);
+    // 400 = the API rejected the string as a ticker; say that rather than
+    // reporting a transport error the user cannot act on.
+    if (resp.status === 400) throw new Error(`"${ticker}" לא נראה כמו סימבול של מנייה`);
+    if (!resp.ok) throw new Error(`שגיאה בטעינת ההיסטוריה: HTTP ${resp.status}`);
+    h = await resp.json();
+  } catch (err) {
+    openPanel(`
+      <button class="btn-close" id="btn-close-dd" aria-label="סגור פאנל">${iconHTML('close')}</button>
+      <div class="dd-ticker">${esc(ticker)}</div>
+      <div class="th-empty">${iconHTML('error')}<p>${esc(err.message || 'שגיאה בטעינת ההיסטוריה')}</p></div>`, true);
+    return;
+  }
+
+  openPanel(tickerHistoryHTML(h), true);
+
+  const panel = $('#deepdive');
+  panel.querySelectorAll('[data-date]').forEach((el) =>
+    el.addEventListener('click', () => jumpToDay(el.dataset.date, h.ticker))
+  );
+  panel.querySelectorAll('.th-row').forEach((el) =>
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jumpToDay(el.dataset.date, h.ticker); }
+    })
+  );
+  panel.querySelectorAll('.th-sugg-btn').forEach((el) =>
+    el.addEventListener('click', () => openTickerHistory(el.dataset.ticker))
+  );
+}
+
+/**
+ * Jump the whole dashboard to one day with the ticker pre-filtered.
+ * Near-tier rows are revealed on the way in: the ticker may well have been a
+ * near signal that day, and it would otherwise land on an empty table.
+ * @param {string} date
+ * @param {string} ticker
+ */
+async function jumpToDay(date, ticker) {
+  if (!date) return;
+  closeDeepDive();
+  $('#search').value = ticker;
+  showNear = true;
+  $('#f-near').checked = true;
+  // selectDay is a no-op when the day is already loaded — re-render for the
+  // new search filter instead. The calendar popover re-syncs when it opens.
+  if (date === selectedDate) renderTable();
+  else await selectDay(date);
 }
 
 /* ─── Day selection ───────────────────────────────────────────────────────── */
@@ -1394,6 +1671,15 @@ async function boot() {
     $(sel).addEventListener('input', renderTable)
   );
 
+  // Enter in the search box = cross-day ticker lookup, not a day filter.
+  $('#search').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      openTickerHistory($('#search').value);
+    }
+  });
+  $('#btn-ticker-history').addEventListener('click', () => openTickerHistory($('#search').value));
+
   // Near-tier watchlist toggle
   $('#f-near').addEventListener('change', () => {
     showNear = $('#f-near').checked;
@@ -1492,6 +1778,9 @@ async function boot() {
 
   // Current TradingView watchlist — global (not per-day) — load once too.
   loadWatchlist();
+
+  // Ticker autocomplete over the whole scanned universe — also global.
+  loadTickerIndex();
 }
 
 boot();

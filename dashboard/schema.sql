@@ -19,3 +19,5 @@ CREATE TABLE IF NOT EXISTS lean_signals (
 );
 CREATE INDEX IF NOT EXISTS idx_lean_date  ON lean_signals(scan_date);
 CREATE INDEX IF NOT EXISTS idx_lean_score ON lean_signals(score);
+-- Cross-day ticker lookup (/api/ticker). See migrations/0003_add_ticker_index.sql.
+CREATE INDEX IF NOT EXISTS idx_lean_ticker ON lean_signals(ticker);

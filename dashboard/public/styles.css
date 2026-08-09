@@ -1067,7 +1067,11 @@ td.col-score {
   position: fixed;
   inset-block: 0;
   inset-inline-end: 0;
-  width: var(--panel-w);
+  /* 340px fits the row deep-dive's 2-column KV grid. The ticker-history view
+     puts a 6-column table in the same panel, so it may grow to 460px where
+     the viewport allows — below that it stays at --panel-w and the table
+     scrolls inside .th-table-wrap. */
+  width: min(var(--panel-w), 100vw);
   background: var(--surface);
   border-inline-start: 1px solid var(--border);
   z-index: 300;
@@ -1183,6 +1187,259 @@ td.col-score {
   text-decoration: none;
 }
 
+.dd-history-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 9px;
+  margin-bottom: 10px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.dd-history-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ═══════════════════════════════════════════════
+   TICKER HISTORY (cross-day lookup in the panel)
+═══════════════════════════════════════════════ */
+.deepdive--wide { width: min(460px, 100vw); }
+
+.th-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 40px 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.th-empty {
+  padding: 24px 0;
+  color: var(--fg-2, var(--text));
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.th-empty .material-symbols-outlined {
+  font-size: 2rem;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 10px;
+}
+
+.th-note {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+}
+
+/* headline: the answer to "when did it last fire" */
+.th-headline {
+  background: rgba(255, 107, 53, 0.10);
+  border: 1px solid rgba(255, 107, 53, 0.32);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.th-headline-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.th-headline-date {
+  font-family: var(--mono);
+  font-size: 1.25rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.th-headline-since {
+  font-size: 0.82rem;
+  color: var(--accent);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* peak cards — each jumps to that day */
+.th-peaks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.th-peak {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: start;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  color: var(--text);
+  font-family: var(--sans);
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+
+.th-peak:hover { border-color: var(--accent); }
+
+.th-peak-label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.th-peak-value {
+  font-family: var(--mono);
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.th-peak-date {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.th-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.th-chip { display: inline-flex; align-items: center; gap: 3px; }
+
+.th-chip-n {
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* the full appearance list */
+.th-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 10px;
+}
+
+.th-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-xs);
+}
+
+.th-table th {
+  text-align: start;
+  padding: 6px 8px;
+  color: var(--muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.th-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+.th-table tr:last-child td { border-bottom: none; }
+
+.th-row { cursor: pointer; transition: background 0.12s; }
+.th-row:hover, .th-row:focus-visible { background: var(--xsh-primary-10); outline: none; }
+
+.th-date {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.th-badges .badge { font-size: 0.7rem; }
+
+.th-suggest { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.th-sugg-btn,
+.btn-miss {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 9px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.th-sugg-btn:hover,
+.btn-miss:hover { border-color: var(--accent); color: var(--accent); }
+
+.th-sugg-meta,
+.btn-miss-meta { color: var(--muted); font-weight: 400; }
+
+/* ═══════════════════════════════════════════════
+   SEARCH CONTROL + TICKER-MISS PROMPT
+═══════════════════════════════════════════════ */
+.ctrl-search { display: flex; align-items: stretch; gap: 4px; }
+
+.btn-ticker-history {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  min-height: 36px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.btn-ticker-history:hover { border-color: var(--accent); color: var(--accent); }
+
+.ctrl-hint { font-size: var(--fs-xs); color: var(--muted); }
+
+.ticker-miss {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 14px 16px;
+  margin: 14px 0;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-inline-start: 3px solid var(--accent);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.ticker-miss[hidden] { display: none; }
+.ticker-miss .material-symbols-outlined { color: var(--accent); }
+
 /* ═══════════════════════════════════════════════
    MOBILE — 640px breakpoint
 ═══════════════════════════════════════════════ */
@@ -1254,6 +1511,12 @@ td.col-score {
   }
 
   .dd-grid { grid-template-columns: 1fr 1fr 1fr; }
+
+  /* search takes the full row; the Enter hint is redundant on a soft keyboard */
+  .ctrl-search { flex: 1 1 100%; }
+  .ctrl-search .ctrl-input { flex: 1; min-width: 0; }
+  .ctrl-hint { display: none; }
+  .th-peaks { grid-template-columns: 1fr 1fr; }
 
   main { padding: 12px 12px 80px; }
 

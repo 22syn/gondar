@@ -4,6 +4,12 @@ import {
   buildSummaryQuery,
   buildRecentDatesQuery,
   buildHistoryRowsQuery,
+  buildTickerLeanQuery,
+  buildTickerSetupQuery,
+  buildTickerRsQuery,
+  buildTickerMatchQuery,
+  buildTickerListQuery,
+  buildAllScanDatesQuery,
 } from '../src/query.js';
 
 describe('buildSignalsQuery', () => {
@@ -84,5 +90,47 @@ describe('buildFragilityQuery', () => {
     const q = buildFragilityQuery({ from: '2026-01-01', limit: 60 });
     expect(q.sql).toMatch(/AND scan_date >= \?/);
     expect(q.params).toEqual(['2026-01-01', 60]);
+  });
+});
+
+describe('ticker history queries', () => {
+  it('selects one ticker across every date, newest first', () => {
+    const q = buildTickerLeanQuery('NVDA');
+    expect(q.sql).toMatch(/WHERE ticker = \? ORDER BY scan_date DESC$/);
+    expect(q.sql).not.toMatch(/scan_date BETWEEN/);
+    expect(q.params).toEqual(['NVDA']);
+  });
+
+  it('reads setup and RS rows for the same ticker', () => {
+    expect(buildTickerSetupQuery('NVDA').sql).toMatch(/FROM setup_signals WHERE ticker = \?/);
+    expect(buildTickerRsQuery('NVDA').sql).toMatch(/FROM rs_daily WHERE ticker = \?/);
+    expect(buildTickerSetupQuery('NVDA').params).toEqual(['NVDA']);
+  });
+
+  it('prefix-matches tickers, most recently seen first', () => {
+    const q = buildTickerMatchQuery('NVD', 8);
+    expect(q.sql).toMatch(/ticker LIKE \?/);
+    expect(q.sql).toMatch(/ORDER BY last_seen DESC, appearances DESC LIMIT \?/);
+    expect(q.params).toEqual(['NVD%', 8]);
+  });
+
+  it('escapes LIKE wildcards so a typed % cannot match everything', () => {
+    expect(buildTickerMatchQuery('A%').params[0]).toBe('A\\%%');
+    expect(buildTickerMatchQuery('A_B').params[0]).toBe('A\\_B%');
+    expect(buildTickerMatchQuery('A%').sql).toMatch(/ESCAPE/);
+  });
+
+  it('lists every distinct ticker with its appearance count and last-seen date', () => {
+    const q = buildTickerListQuery();
+    expect(q.sql).toMatch(/COUNT\(\*\) AS appearances/);
+    expect(q.sql).toMatch(/MAX\(scan_date\) AS last_seen/);
+    expect(q.sql).toMatch(/GROUP BY ticker/);
+    expect(q.params).toEqual([]);
+  });
+
+  it('returns the full scan calendar, newest first', () => {
+    const q = buildAllScanDatesQuery();
+    expect(q.sql).toBe('SELECT DISTINCT scan_date FROM lean_signals ORDER BY scan_date DESC');
+    expect(q.params).toEqual([]);
   });
 });
