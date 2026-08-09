@@ -21,6 +21,8 @@ import { applyRSPercentile } from './utils/rsPercentile.js';
 import { ingestRsToD1 } from './utils/rsD1Ingest.js';
 import { evaluateMomentumSetup } from './utils/setup.js';
 import { ingestSetupToD1 } from './utils/setupD1Ingest.js';
+import { computePurpleFragility } from './services/purpleFragility.js';
+import { ingestFragilityToD1 } from './utils/fragilityD1Ingest.js';
 import { sendTelegramMessage, chunkMessage } from './services/telegramBot.js';
 import { getLastTradingDay } from './utils/tradingDate.js';
 import logger from './utils/logger.js';
@@ -313,6 +315,23 @@ async function main(): Promise<void> {
         // either way, which is what `main` produced with its single daily scan.
         await ingestRsToD1(stocks, scanDate);
         await ingestSetupToD1(stocks, scanDate);
+
+        // Purple Fragility -> fragility_daily (slice 3 of 3, 2026-08-08).
+        // Independent of `stocks`: it scores its own 10-ticker basket from
+        // config/purple-list.json, so it needs nothing from the scan above and
+        // a failure here cannot affect the signals already reported.
+        // One row per trading day — the dashboard's Fragility panel reads it.
+        try {
+            const fragility = await computePurpleFragility(scanDate);
+            await ingestFragilityToD1(fragility, scanDate);
+        } catch (err) {
+            // computePurpleFragility CAN throw (unlike the two ingests, which
+            // swallow their own errors), and it runs after the report has gone
+            // out — so it must never take the scan down with it.
+            logger.error(
+                `🟣 Fragility compute/ingest failed (scan unaffected): ${err instanceof Error ? err.message : String(err)}`
+            );
+        }
 
         // TradingView watchlist export — daily file with every "approaching
         // breakout" ticker (graduated + real breakouts + near-pivot). Used by
