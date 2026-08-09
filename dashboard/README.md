@@ -81,5 +81,8 @@ that day with the ticker pre-filtered.
 means "never surfaced by a scan", NOT "never moved" — the panel says so
 explicitly, with the window the DB actually covers.
 
-Needs `migrations/0003_add_ticker_index.sql` applied (`idx_lean_ticker`);
-without it every lookup full-scans `lean_signals`.
+Needs the `idx_lean_ticker` index (`migrations/0003_add_ticker_index.sql`);
+without it every lookup full-scans `lean_signals`. The deploy workflow applies
+`schema.sql` — which is all `CREATE ... IF NOT EXISTS` — before every Pages
+deploy, so the index lands with the code rather than depending on someone
+running the migration by hand.
