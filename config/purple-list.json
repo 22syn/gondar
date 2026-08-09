@@ -1,0 +1,22 @@
+{
+  "version": 3,
+  "lastUpdated": "2026-07-22",
+  "description": "Purple List — fixed semi/AI fragility basket (Kobi's index leaders — composition locked by decision 2026-07-20). `yahooSymbol` overrides the fetch symbol; `predecessorYahoo` splices the predecessor ticker's scale-adjusted OHLC before the main symbol's first trading day (SNDK: Western Digital held the SanDisk flash business until the Feb-2025 spinoff).",
+  "changeLog": [
+    { "date": "2026-07-22", "change": "v3 (model v2): added `climax` component — basket-mean 60d volume z-score, counted only for tickers within 5% of their own trailing 20d closing high. New dual-tier alert rules: 🔴 mean6>=1.0 AND indexNearHigh; 🟡 core3>=1.0 OR (climax>=1.5 AND indexNearHigh). Fetch window extended 3y→5y for a longer expanding-z calibration baseline. Validated via message-level backtest + split-half stability (2023-24 vs 2025-26). Composition unchanged." },
+    { "date": "2026-07-20", "change": "v2: SNDK gains predecessorYahoo=WDC (pre-spinoff history splice) — fixes the basket-wide history truncation to Feb-2025. IFX switched from the IFNNY OTC ADR to the native IFX.DE (Xetra) listing — Kobi's source ticker list uses XETR:IFX, and IFX.DE carries ~7x IFNNY's daily volume (verified against Yahoo, 2026-07-20), reducing wick/dist/disp noise from thin-ADR trading. Composition unchanged." },
+    { "date": "2026-07-19", "change": "v1: initial basket from the Purple_List_250d study." }
+  ],
+  "tickers": [
+    { "ticker": "SMTC" },
+    { "ticker": "AMKR" },
+    { "ticker": "CRDO" },
+    { "ticker": "IFX", "yahooSymbol": "IFX.DE" },
+    { "ticker": "MRVL" },
+    { "ticker": "MU" },
+    { "ticker": "ONTO" },
+    { "ticker": "SEDG" },
+    { "ticker": "SNDK", "predecessorYahoo": "WDC" },
+    { "ticker": "TSM" }
+  ]
+}
