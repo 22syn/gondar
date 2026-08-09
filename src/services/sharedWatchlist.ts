@@ -3,6 +3,7 @@
  * The share page (https://www.tradingview.com/watchlists/<id>/) embeds the symbols in
  * `window.initData` as `"symbols":[ "NASDAQ:NVDA", ... ]`. No browser required.
  */
+import logger from '../utils/logger.js';
 
 /** Parse the `symbols` array out of a shared-watchlist page's HTML. */
 export function extractSymbols(html: string): string[] {
@@ -70,15 +71,60 @@ export function assertAllowedUrl(url: string): void {
     }
 }
 
+/**
+ * Per-attempt timeout. Node's fetch has NO default timeout, so a TradingView
+ * request that never answers hangs until the OS gives up. On 2026-08-09 that
+ * stalled the weekly sync for 32 MINUTES on a single source — a run that
+ * normally finishes in about 3 seconds — before failing and exiting non-zero.
+ */
+const FETCH_TIMEOUT_MS = 15_000;
+
+/**
+ * One retry. The observed failures are transient, not dead links: four sources
+ * failed across the 2026-08-02 and 2026-08-09 runs, all DIFFERENT urls, and each
+ * one returns HTTP 200 when checked by hand afterwards. A single cheap retry is
+ * the difference between "24/25 sources, exit 1" and a clean run.
+ */
+const FETCH_ATTEMPTS = 2;
+const RETRY_DELAY_MS = 1_500;
+
+const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+
 async function fetchHtml(url: string): Promise<string> {
     assertAllowedUrl(url);
-    const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-    if (!res.ok) {
-        throw new Error(
-            `shared watchlist fetch HTTP ${res.status} — check the link is shared/public: ${url}`,
-        );
+
+    let lastError: Error | undefined;
+    for (let attempt = 1; attempt <= FETCH_ATTEMPTS; attempt++) {
+        try {
+            const res = await fetch(url, {
+                headers: { 'User-Agent': 'Mozilla/5.0' },
+                signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+            });
+            if (!res.ok) {
+                // A non-OK status is a real answer about the link itself (private,
+                // deleted, moved) — retrying will not change it, so fail straight away
+                // rather than doubling the wait on a permanent condition.
+                throw new Error(
+                    `shared watchlist fetch HTTP ${res.status} — check the link is shared/public: ${url}`,
+                );
+            }
+            return await res.text();
+        } catch (err) {
+            const error = err instanceof Error ? err : new Error(String(err));
+            if (error.message.startsWith('shared watchlist fetch HTTP')) throw error;
+            lastError = error;
+            if (attempt < FETCH_ATTEMPTS) {
+                logger.warn(
+                    `Shared watchlist fetch attempt ${attempt}/${FETCH_ATTEMPTS} failed for ${url} ` +
+                        `(${error.name === 'TimeoutError' ? `timeout after ${FETCH_TIMEOUT_MS}ms` : error.message}) — retrying`,
+                );
+                await sleep(RETRY_DELAY_MS);
+            }
+        }
     }
-    return res.text();
+    throw new Error(
+        `shared watchlist fetch failed after ${FETCH_ATTEMPTS} attempts: ${url} (${lastError?.message ?? 'unknown'})`,
+    );
 }
 
 /** Fetch a shared watchlist URL and return its TradingView symbols. */
