@@ -34,6 +34,8 @@ export interface MomentumCriteria {
     antsAccumulation: boolean;
     /** Today's priceChange ≥ 3% — explosive continuation breakout day. Quality marker. */
     bigMoveToday: boolean;
+    /** return63d >= 20% — mandatory momentum gate for Full AND Close (2026-07-09, 1y replay). */
+    momentumGate: boolean;
 }
 
 export interface MomentumResult {

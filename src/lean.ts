@@ -16,9 +16,11 @@ import {
     validateConfig,
     getSectorForTicker,
 } from './config/index.js';
-import { fetchAllStocksAsOfDate, fetchSpy63dReturn } from './services/marketData.js';
+import { fetchAllStocksAsOfDate, fetchSpy63dReturn, fetchMarketRegime } from './services/marketData.js';
 import { applyRSPercentile } from './utils/rsPercentile.js';
 import { ingestRsToD1 } from './utils/rsD1Ingest.js';
+import { evaluateMomentumSetup } from './utils/setup.js';
+import { ingestSetupToD1 } from './utils/setupD1Ingest.js';
 import { sendTelegramMessage, chunkMessage } from './services/telegramBot.js';
 import { getLastTradingDay } from './utils/tradingDate.js';
 import logger from './utils/logger.js';
@@ -137,6 +139,22 @@ async function main(): Promise<void> {
         applyRSPercentile(stocks, spyReturn63d);
         const rsCount = stocks.filter((s) => s.rsPercentile != null).length;
         logger.info(`📈 RS percentile: ${rsCount}/${stocks.length} stocks (SPY 63d ${spyReturn63d ?? 'n/a'})`);
+
+        // Momentum setup evaluation, for the setup_signals D1 table only —
+        // migrated from the Smart pipeline 2026-08-08 (slice 2 of 3). This does
+        // NOT feed Lean's own signals, which use their own momentum63() rules.
+        //
+        // The regime is fetched rather than left undefined ON PURPOSE.
+        // evaluateMomentumSetup picks its RVOL threshold from it (bull 2.0,
+        // bear 3.0), so defaulting to bull in a bear tape would quietly admit
+        // setups Smart rejected — plausible-looking rows that are simply wrong.
+        // Smart computes it the same way at src/index.ts:126.
+        const marketRegime = await fetchMarketRegime(scanDate);
+        logger.info(`🧭 Market regime: ${marketRegime.toUpperCase()} (SPY vs SMA200)`);
+        for (const s of stocks) {
+            s.marketRegime = marketRegime;
+            s.momentum = evaluateMomentumSetup(s, { regime: marketRegime });
+        }
 
         // For consolidation detection we ALSO need the raw OHLC series.
         // Fetch in parallel (p-limit 5 via Promise.all batching to keep things simple).
@@ -294,6 +312,7 @@ async function main(): Promise<void> {
         // replaces the earlier one with corrected closes — one row set per day
         // either way, which is what `main` produced with its single daily scan.
         await ingestRsToD1(stocks, scanDate);
+        await ingestSetupToD1(stocks, scanDate);
 
         // TradingView watchlist export — daily file with every "approaching
         // breakout" ticker (graduated + real breakouts + near-pivot). Used by
