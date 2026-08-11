@@ -28,19 +28,36 @@ describe('buildFragilityBatches', () => {
         expect(FRAGILITY_COL_COUNT * ROWS_PER_INSERT).toBeLessThanOrEqual(100);
     });
 
-    it('emits CREATE first, then a range DELETE from the first ingested date', () => {
+    it('emits CREATE first, then a range DELETE bounded by both ingested dates', () => {
         const days = [day('2026-07-01', 0.5), day('2026-07-02', 0.6)];
         const batches = buildFragilityBatches(days, 'stamp');
         expect(batches[0]!.sql).toContain('CREATE TABLE IF NOT EXISTS fragility_daily');
-        expect(batches[1]!.sql).toBe('DELETE FROM fragility_daily WHERE scan_date >= ?');
-        expect(batches[1]!.params).toEqual(['2026-07-01']);
+        expect(batches[1]!.sql).toBe(
+            'DELETE FROM fragility_daily WHERE scan_date >= ? AND scan_date <= ?',
+        );
+        expect(batches[1]!.params).toEqual(['2026-07-01', '2026-07-02']);
+    });
+
+    it('never deletes past the newest row it writes', () => {
+        // The regression: on 2026-08-10 Yahoo dropped one basket ticker's latest
+        // bar between the 20:15 and 23:45 runs, so the aligned series ended 08-07
+        // while D1 already held an 08-10 row. An open-ended DELETE removed that
+        // row with nothing to replace it (264 -> 263). The upper bound makes a
+        // short series unable to reach a day it is not rewriting.
+        const days = [day('2026-08-05', 0.4), day('2026-08-06', 0.5), day('2026-08-07', 0.6)];
+        const del = buildFragilityBatches(days, 'stamp')[1]!;
+        const [from, to] = del.params as [string, string];
+        expect(to).toBe('2026-08-07');
+        expect(from).toBe('2026-08-05');
+        // A row dated after the written range is outside the delete window.
+        expect('2026-08-10' > to).toBe(true);
     });
 
     it('skips null-score (burn-in) days entirely', () => {
         const days = [day('2026-06-30', null), day('2026-07-01', 0.5)];
         const batches = buildFragilityBatches(days, 'stamp');
         // DELETE starts at the first SCORED date, not the burn-in date.
-        expect(batches[1]!.params).toEqual(['2026-07-01']);
+        expect(batches[1]!.params).toEqual(['2026-07-01', '2026-07-01']);
         const insert = batches[2]!;
         expect(insert.params.length).toBe(FRAGILITY_COL_COUNT);
         expect(insert.params[0]).toBe('2026-07-01');
