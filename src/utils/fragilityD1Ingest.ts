@@ -47,9 +47,18 @@ export function buildFragilityBatches(days: FragilityDay[], stamp: string): Batc
     ];
     if (rows.length === 0) return batches;
     // Range delete (not per-date): removes rows a calendar shift would orphan.
+    //
+    // BOUNDED ON BOTH ENDS, and the upper bound is the point. The alignment is an
+    // intersection across all 10 basket tickers, so if Yahoo momentarily drops one
+    // ticker's latest bar the whole series gets shorter — that happened between the
+    // 20:15 and 23:45 runs on 2026-08-10 (aligned through 08-10, then only through
+    // 08-07). With an open-ended delete the settled run wiped the 08-10 row it had
+    // no replacement for: 264 rows in, 263 out, and the newest day gone. Deleting
+    // only what we are about to rewrite makes a transient fetch gap a no-op instead
+    // of permanent data loss.
     batches.push({
-        sql: 'DELETE FROM fragility_daily WHERE scan_date >= ?',
-        params: [rows[0]!.date],
+        sql: 'DELETE FROM fragility_daily WHERE scan_date >= ? AND scan_date <= ?',
+        params: [rows[0]!.date, rows[rows.length - 1]!.date],
     });
     for (let i = 0; i < rows.length; i += ROWS_PER_INSERT) {
         const slice = rows.slice(i, i + ROWS_PER_INSERT);

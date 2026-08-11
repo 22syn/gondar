@@ -1,0 +1,86 @@
+name: D1 Restore (manual, writes)
+
+# The ONLY workflow in this repo that mutates D1, and it is manual-only.
+#
+# Why it exists: D1 has now lost rows twice — 149 -> 43 on lean_signals during a
+# weekend verification run, and the 2026-08-10 fragility_daily row erased by an
+# unbounded delete. Both were recoverable in principle (the snapshot artifacts
+# hold full payloads) and neither could actually be recovered, because the
+# CF_* credentials live only in Actions secrets and no workflow could write.
+# A restore path that exists but cannot be run is not a restore path.
+#
+# Safety comes from scripts/d1-restore.ts, not from this file: it accepts one
+# table and one date per run, allowlists the four tables, reads columns from the
+# stored payload, refuses a hash-only snapshot, and is a DRY RUN unless --confirm
+# is passed. This workflow defaults `confirm` to false so the natural first run
+# shows the diff and writes nothing.
+on:
+  workflow_dispatch:
+    inputs:
+      source_run_id:
+        description: 'Run ID of the d1-snapshot workflow whose artifact holds the good rows'
+        required: true
+      table:
+        description: 'fragility_daily | setup_signals | rs_daily | lean_signals'
+        required: true
+      date:
+        description: 'scan_date to restore (YYYY-MM-DD)'
+        required: true
+      confirm:
+        description: 'Type "yes" to actually WRITE. Anything else is a dry run.'
+        required: false
+        default: 'no'
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read          # needed to download another run's artifact
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+
+      - name: Fetch the source snapshot artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_ID: ${{ inputs.source_run_id }}
+        run: |
+          mkdir -p restore-src
+          gh run download "$RUN_ID" --repo "$GITHUB_REPOSITORY" --dir restore-src
+          f=$(find restore-src -name 'd1-snapshot-*.json' -type f | sort | tail -1)
+          [ -n "$f" ] || { echo "::error::no d1-snapshot-*.json in run $RUN_ID"; exit 1; }
+          echo "SNAPSHOT=$f" >> "$GITHUB_ENV"
+          echo "using $f"
+
+      # Dry run always happens first and its output is the record of what the
+      # write would do — even when confirm=yes, so the log shows the diff that
+      # was approved rather than only the result.
+      - name: Dry run
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+        run: |
+          npx tsx scripts/d1-restore.ts \
+            --file "$SNAPSHOT" \
+            --table "${{ inputs.table }}" \
+            --date "${{ inputs.date }}"
+
+      - name: Apply
+        if: ${{ inputs.confirm == 'yes' }}
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+        run: |
+          npx tsx scripts/d1-restore.ts \
+            --file "$SNAPSHOT" \
+            --table "${{ inputs.table }}" \
+            --date "${{ inputs.date }}" \
+            --confirm
