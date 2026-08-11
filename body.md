@@ -1,26 +1,55 @@
 ## הבאג
 
-`d1-snapshot.yml` נכשל בכל הרצה מאז מיזוג #138 — כולל על `main`:
+הטריגר האוטומטי ירה אתמול — **אחרי הסריקה הזמנית של 20:15, ולא אחרי הסריקה המיושבת של 23:45.** שתי הסריקות זהות בכל פרמטר נצפה:
 
-```
-failed to parse workflow: (Line: 86, Col: 11): 'retention-days' is already defined,
-(Line: 87, Col: 11): 'overwrite' is already defined
-```
+| | 20:15 cron | 23:45 cron |
+|---|---|---|
+| שם | `Lean Radar - Daily Scan` | זהה |
+| ענף | `main` | זהה |
+| event | `schedule` | זהה |
+| תוצאה | `success` | זהה |
+| **snapshot** | ✅ ירה | ❌ **לא נוצר כלל** |
 
-הבלוק `retention-days: 90` / `overwrite: true` הופיע פעמיים תחת אותו `with:`. GitHub מסרב לפרסר את הקובץ, ולכן גם `workflow_dispatch` וגם ה-`workflow_run` האוטומטי החדש מתו — כלומר הטריגר שנוסף ב-#138 מעולם לא ירה בהצלחה.
+לא queued, לא skipped — פשוט לא נוצר.
+
+## המחיר, במספרים
+
+הרצתי סנפשוט ידני אחרי הריצה המיושבת והשוויתי לארטיפקט האוטומטי:
+
+| טבלה | אוטומטי (זמני) | מיושב |
+|---|---|---|
+| `lean_signals` 2026-08-10 | **35 שורות** | **32 שורות** |
+| `rs_daily` 2026-08-10 | `bd057740dd` | `40bb04dcad` |
+| `setup_signals` 2026-08-10 | `f5f477c088` | `18e1e07c15` |
+
+מראת GONDAR ב-alpha-engine קוראת את הארטיפקט הזה. כלומר היא הציגה **3 מניות שהסריקה הסופית הורידה.**
+
+זו בדיוק הסיבה שהריצה של 23:45 קיימת: Yahoo מיישב סגירות TASE שעות באיחור.
 
 ## התיקון
 
-הסרת הכפילות. שורה אחת של כל מפתח.
+**1. גיבוי מתוזמן** — `cron: '30 0 * * 2-6'`. הריצה של 23:45 נוחתת ביום שאחרי (רצה ב-00:04–00:06 UTC), ולכן קבוצת הימים זזה באחד. 25 דקות מרווח לתור של Actions, שהיה 19–43 דקות בריצות האלה.
 
-## בדיקה
+`workflow_run` נשאר — הוא מהיר יותר כשהוא כן עובד. הוא פשוט כבר לא הדרך היחידה.
 
-- `yaml.safe_load` על הקובץ — עובר
-- מפתחות תחת `with:` של Upload snapshot: `['name', 'path', 'retention-days', 'overwrite']` — ללא כפילות
-- אחרי המיזוג: `gh workflow run` בפועל
+**2. תיקון ה-`if` שהיה הופך את הגיבוי ל-no-op:**
 
-## הערה
+```diff
+- if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
++ if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+```
 
-ההרצה האחרונה שהצליחה (`31339202130`) היא מלפני #138 — היא רצה מול הגרסה התקינה של הקובץ. כל מה שאחריה נכשל, על כל ענף. זה לא היה רעש של Dependabot.
+ל-`schedule` אין `workflow_run.conclusion` — הוא ריק. התנאי הישן היה מדלג על **כל** ריצה מתוזמנת בשקט.
+
+טבלת אמת:
+
+| event | לפני | אחרי |
+|---|---|---|
+| `schedule` | ❌ מדולג | ✅ רץ |
+| `workflow_dispatch` | ✅ רץ | ✅ רץ |
+| `workflow_run` הצליח | ✅ רץ | ✅ רץ |
+| `workflow_run` נכשל | ✅ מדולג | ✅ מדולג |
+
+הריצה המתוזמנת מייצרת את אותו ארטיפקט `d1-snapshot-daily` עם `overwrite: true`, כך שהיא **דורסת** את הגרסה הזמנית. המראה תמיד קוראת את המיושב.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
