@@ -32,15 +32,29 @@ describe('buildFragilityBatches', () => {
         const days = [day('2026-07-01', 0.5), day('2026-07-02', 0.6)];
         const batches = buildFragilityBatches(days, 'stamp');
         expect(batches[0]!.sql).toContain('CREATE TABLE IF NOT EXISTS fragility_daily');
-        expect(batches[1]!.sql).toBe('DELETE FROM fragility_daily WHERE scan_date >= ?');
-        expect(batches[1]!.params).toEqual(['2026-07-01']);
+        expect(batches[1]!.sql).toBe(
+            'DELETE FROM fragility_daily WHERE scan_date >= ? AND scan_date <= ?',
+        );
+        expect(batches[1]!.params).toEqual(['2026-07-01', '2026-07-02']);
+    });
+
+    it('never deletes past the newest row it writes', () => {
+        // Regression: an open-ended delete wiped a 2026-08-10 row the shortened
+        // series had no replacement for (264 -> 263) after Yahoo dropped one
+        // basket ticker's latest bar between the two scans that day.
+        const days = [day('2026-08-05', 0.4), day('2026-08-06', 0.5), day('2026-08-07', 0.6)];
+        const del = buildFragilityBatches(days, 'stamp')[1]!;
+        const [from, to] = del.params as [string, string];
+        expect(from).toBe('2026-08-05');
+        expect(to).toBe('2026-08-07');
+        expect('2026-08-10' > to).toBe(true);
     });
 
     it('skips null-score (burn-in) days entirely', () => {
         const days = [day('2026-06-30', null), day('2026-07-01', 0.5)];
         const batches = buildFragilityBatches(days, 'stamp');
         // DELETE starts at the first SCORED date, not the burn-in date.
-        expect(batches[1]!.params).toEqual(['2026-07-01']);
+        expect(batches[1]!.params).toEqual(['2026-07-01', '2026-07-01']);
         const insert = batches[2]!;
         expect(insert.params.length).toBe(FRAGILITY_COL_COUNT);
         expect(insert.params[0]).toBe('2026-07-01');
