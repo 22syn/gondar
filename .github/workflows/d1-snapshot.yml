@@ -31,6 +31,22 @@ on:
     workflows: ['Lean Radar - Daily Scan']
     types: [completed]
 
+  # Backstop, because workflow_run is not reliable enough to be the only path.
+  # On 2026-08-10 it fired after the 20:15 provisional scan and simply never
+  # fired after the 23:45 settled-close scan — no queued run, no skipped run,
+  # nothing created at all, with both scans identical in workflow name, branch,
+  # event and conclusion. The cost is real: the artifact from that night held
+  # lean_signals 35 rows for 2026-08-10 where the settled data has 32, plus
+  # different content hashes on rs_daily and setup_signals. alpha-engine's
+  # GONDAR mirror reads this artifact, so it was showing three stocks the final
+  # scan had dropped.
+  #
+  # 00:30 UTC Tue-Sat: the 23:45 Mon-Fri scan lands early the NEXT day (it ran
+  # 00:04-00:06 UTC), so the weekday set shifts by one. ~25 min of headroom for
+  # Actions queue delay, which has been 19-43 min on these runs.
+  schedule:
+    - cron: '30 0 * * 2-6'
+
   workflow_dispatch:
     inputs:
       dates:
@@ -47,7 +63,11 @@ jobs:
     # Skip when the upstream Lean scan failed — a snapshot taken after a failed
     # scan would show yesterday's data under today's timestamp, which is worse
     # than no snapshot at all.
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # Only the workflow_run path can be poisoned by a failed upstream scan.
+    # schedule and workflow_dispatch have no upstream, so gating them on
+    # workflow_run.conclusion (which is empty for them) would silently skip
+    # every scheduled run — turning the backstop into a no-op.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
