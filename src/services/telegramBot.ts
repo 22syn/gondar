@@ -493,28 +493,6 @@ export function formatDailyReport(
     return message;
 }
 
-/**
- * Format legend explaining each field, source (API vs calculated), and calculation method
- */
-export function formatLegend(): string {
-    return `📖 <b>Field Guide</b>
-
-<b>From APIs:</b>
-• <b>Price, Volume</b> – Yahoo / Twelve Data
-• <b>RSI, SMA21</b> – Twelve Data (if API key set), else calculated
-• <b>52w high</b> – Twelve Data (fallback only)
-• <b>News</b> – Finnhub
-
-<b>Calculated locally:</b>
-• <b>RVOL</b> = today's volume ÷ 63-day avg volume
-• <b>Price Change %</b> = (close − prev close) ÷ prev close × 100
-• <b>SMA50, SMA200</b> = SMA of last 50/200 closes
-• <b>52w high</b> = max of last 252 trading days (Yahoo / Twelve Data)
-• <b>pctFromAth</b> = (price − ATH) ÷ ATH × 100
-• <b>monthsInConsolidation</b> = days since ATH touch ÷ 21
-
-<b>Tags:</b> SMA21 Touch, Pullback 15%, 1M Breakout`;
-}
 
 /** Shared row format: TICKER | RVOL X.XXx | Price ±X.XX% | RSI XX | Setup (code + LLM use same structure) */
 const STOCK_ROW_FORMAT = 'TICKER | RVOL X.XXx | Price ±X.XX% | RSI XX | Tags';
