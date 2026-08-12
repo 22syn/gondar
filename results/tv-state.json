@@ -1,11 +1,7 @@
 {
-  "updatedAt": "2026-08-11",
+  "updatedAt": "2026-08-12",
   "watchlists": {
     "Lean Radar - Breakouts": [
-      {
-        "ticker": "KO",
-        "signalDate": "2026-07-28"
-      },
       {
         "ticker": "TMHC",
         "signalDate": "2026-07-29"
@@ -20,10 +16,6 @@
       },
       {
         "ticker": "EPOL",
-        "signalDate": "2026-07-30"
-      },
-      {
-        "ticker": "BUD",
         "signalDate": "2026-07-30"
       },
       {
@@ -49,6 +41,14 @@
       {
         "ticker": "WBS",
         "signalDate": "2026-08-05"
+      },
+      {
+        "ticker": "CAPL",
+        "signalDate": "2026-08-12"
+      },
+      {
+        "ticker": "EWN",
+        "signalDate": "2026-08-12"
       }
     ],
     "Lean Radar - Near": [
@@ -73,112 +73,112 @@
     "Lean Radar - Creep": [
       {
         "ticker": "EAT",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "TSEM",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "TXRH",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "ASH",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "DAL",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "OKTA",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "UAL",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "CAKE",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "CRWD",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "FTNT",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "NET",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "PANW",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "S",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "SNOW",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "CHEF",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "DELL",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "DIN",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "EZJ",
-        "signalDate": "2026-08-11",
+        "signalDate": "2026-08-12",
         "exchange": "LSE"
       },
       {
         "ticker": "MOG.A",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "AAL",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "CRS",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "CSCO",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "GE",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "HPE",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "JETS",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "PBF",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "SAFRY",
-        "signalDate": "2026-08-11"
+        "signalDate": "2026-08-12"
       },
       {
         "ticker": "GLBE",
@@ -203,6 +203,19 @@
       {
         "ticker": "COLO",
         "signalDate": "2026-08-11"
+      },
+      {
+        "ticker": "AEHR",
+        "signalDate": "2026-08-12"
+      },
+      {
+        "ticker": "ABNB",
+        "signalDate": "2026-08-12"
+      },
+      {
+        "ticker": "MTX",
+        "signalDate": "2026-08-12",
+        "exchange": "XETR"
       }
     ]
   }
