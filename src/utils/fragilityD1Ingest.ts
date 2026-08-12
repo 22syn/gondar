@@ -1,9 +1,10 @@
 /**
  * Purple List Fragility → D1 ingest (dashboard integration).
  *
- * Writes the recomputed fragility series into `fragility_daily`, a table the
- * Smart pipeline OWNS EXCLUSIVELY (same isolation rationale as setup_signals
- * — see setupD1Ingest.ts).
+ * Writes the recomputed fragility series into `fragility_daily`. Retired as
+ * an automatic per-scan write 2026-08-12 (Lean/stable's ingest, verified
+ * byte-parity with this same logic, now owns that table exclusively) — this
+ * remains as the manual backfill path invoked by scripts/ingest-fragility.ts.
  *
  * Backfills up to the last {@link BACKFILL_DAYS} scored rows every run rather
  * than just the latest row: the dashboard gets full chartable history from
@@ -15,7 +16,7 @@
  * already went out). Missing CF_* env → silent skip.
  */
 import type { FragilityDay, FragilityResult } from '../services/purpleFragility.js';
-import { runBatch, type Batch, type D1Config } from './setupD1Ingest.js';
+import { runBatch, type Batch, type D1Config } from './d1Client.js';
 import { logger } from './logger.js';
 
 const BACKFILL_DAYS = 250;

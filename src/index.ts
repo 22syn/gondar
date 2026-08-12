@@ -17,7 +17,6 @@ import { calculateRVOL } from './services/rvolCalculator.js';
 // `enrichWithFundamentals` (separate concern — earnings + EPS) still imported above.
 import { sendDailyReport, sendTelegramMessage, formatMonitorTelegramMessage, formatFragilityAlert, formatFragilityWatchAlert, GraduationInfo, MonitorMeta } from './services/telegramBot.js';
 import { computePurpleFragility } from './services/purpleFragility.js';
-import { ingestFragilityToD1 } from './utils/fragilityD1Ingest.js';
 import { appendOosLogRow } from './utils/oosLog.js';
 import { loadMonitorState, saveMonitorState } from './utils/monitorStore.js';
 import { updateMonitorState } from './services/monitorTracker.js';
@@ -25,7 +24,6 @@ import { RVOLResult, MarketStatus, StockData } from './types/index.js';
 import logger from './utils/logger.js';
 import { formatErrorForTelegram } from './utils/errorHandler.js';
 import { buildStoredScanResult, writeScanResults, writeScanDebug } from './utils/writeScanResults.js';
-import { ingestSetupToD1 } from './utils/setupD1Ingest.js';
 import { writeRadarSnapshot, computeActionDistribution } from './utils/snapshotWriter.js';
 import { writeSmartTradingViewWatchlists } from './services/tradingViewWatchlist.js';
 import { getLastTradingDay } from './utils/tradingDate.js';
@@ -436,17 +434,17 @@ async function main(): Promise<void> {
         );
         logger.info(`📁 Saved results to ${resultsDir}/scan-${scanDate}.json`);
 
-        // 8.05 Dashboard integration: push the day's Setup signals + RS
-        // percentiles to D1 (own tables — read-merged by the dashboard API).
-        // Soft-fail by design: a D1/network hiccup must not fail the scan.
-        await ingestSetupToD1(stocks, scanDate);
-
-        // 8.06 Fragility series → D1 (own table, soft-fail; no-op when compute failed).
-        await ingestFragilityToD1(fragility, scanDate);
-
-        // 8.07 Frozen OOS scorecard row → results/oos_log.csv (append-only,
+        // 8.05 Retired 2026-08-12: this pipeline no longer writes setup_signals,
+        // rs_daily, or fragility_daily to D1. Lean/stable's ingest (verified
+        // byte-parity against this same logic before the cutover) is now the
+        // sole writer for all three, ending the parallel-write window that ran
+        // during migration. fragilityD1Ingest.ts survives only as the manual
+        // backfill path behind scripts/ingest-fragility.ts.
+        //
+        // 8.06 Frozen OOS scorecard row → results/oos_log.csv (append-only,
         // soft-fail). This is the ONLY record of what the gauge said in real
-        // time on this day; the D1 series above gets recomputed and drifts.
+        // time on this day; D1's series is owned and recomputed elsewhere now,
+        // and can drift from it.
         appendOosLogRow(fragility, scanDate, resultsDir);
 
         // 8.1 Write TradingView watchlist files (BUY + WATCH) for nightly TV sync.
