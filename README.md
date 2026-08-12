@@ -146,14 +146,12 @@ smart-volume-radar/
 │   │   └── telegramBot.ts # Telegram messaging
 │   ├── types/             # TypeScript interfaces
 │   └── utils/             # Helpers, technical analysis, error handling
-├── scripts/               # Utilities (e.g. send-legend to Telegram)
 ├── tests/                 # Unit tests
 └── .github/workflows/     # GitHub Actions
 ```
 
 ## Scripts
 
-- **Send legend to Telegram**: `npx tsx scripts/send-legend.ts` (sends the report legend once; requires env vars).
 
 ## License
 
