@@ -41,8 +41,11 @@ jobs:
           # workflow-file:max-age-days
           #  - daily scans run Mon-Fri, so a Monday check sees Friday's run: 4 days of slack.
           #  - weeklies get 10 days, i.e. one missed occurrence plus margin.
-          # tv-sync is deliberately absent: it is workflow_run-triggered off the Lean scan,
-          # so it legitimately does not run when Lean fails — and Lean already alerts.
+          # tv-sync is deliberately absent from this list: it is workflow_run-triggered off
+          # the Lean scan, not on its own cron, so a fixed calendar-age check either misses a
+          # same-day failure (threshold loose enough to survive the weekend) or false-alarms
+          # every Monday (threshold tight enough to catch a same-day miss). It gets its own
+          # cross-referenced check below instead.
           WORKFLOWS="daily-scan.yml:4 daily-scan-lean.yml:4 weekly-stats-refresh.yml:10 weekly-analysis.yml:10"
 
           PROBLEMS=""
@@ -75,6 +78,31 @@ jobs:
             fi
             echo "$wf: state=$state last_run=${age_days}d ago (limit ${max_days}d)"
           done
+
+          # tv-sync.yml must have a run that started at or after Lean's last SUCCESSFUL
+          # run — otherwise the workflow_run trigger silently didn't fire. This is the
+          # exact failure mode from 2026-08-13: Lean completed clean, but GitHub never
+          # dispatched the workflow_run event, and nothing else noticed for 13+ hours.
+          # Give it a 1h grace window (tv-sync + its Playwright install take a few
+          # minutes, and this watchdog itself only runs once a day) before flagging.
+          lean_run=$(gh api "repos/$REPO/actions/workflows/daily-scan-lean.yml/runs?per_page=1&status=success" --jq '.workflow_runs[0] // empty' 2>/dev/null || echo "")
+          if [ -n "$lean_run" ]; then
+            lean_created=$(echo "$lean_run" | jq -r '.created_at')
+            lean_epoch=$(date -u -d "$lean_created" +%s)
+            lean_age_hours=$(( (NOW - lean_epoch) / 3600 ))
+
+            if [ "$lean_age_hours" -ge 1 ]; then
+              tv_last=$(gh api "repos/$REPO/actions/workflows/tv-sync.yml/runs?per_page=1" --jq '.workflow_runs[0].created_at // empty' 2>/dev/null || echo "")
+              if [ -z "$tv_last" ] || [ "$(date -u -d "$tv_last" +%s)" -lt "$lean_epoch" ]; then
+                PROBLEMS="${PROBLEMS}• tv-sync.yml: did not fire after Lean succeeded at ${lean_created}%0A"
+                echo "tv-sync.yml: MISSING — Lean succeeded ${lean_age_hours}h ago, no tv-sync run since"
+              else
+                echo "tv-sync.yml: last_run=${tv_last} (at/after Lean's ${lean_created}) — OK"
+              fi
+            fi
+          else
+            echo "tv-sync.yml: no successful daily-scan-lean.yml run found — skipping cross-check"
+          fi
 
           if [ -n "$PROBLEMS" ]; then
             echo "problems=$PROBLEMS" >> "$GITHUB_OUTPUT"
