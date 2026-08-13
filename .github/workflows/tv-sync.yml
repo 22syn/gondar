@@ -130,6 +130,13 @@ jobs:
           overwrite: true
 
       # Commit tv-state.json back to repo so telegram-mcp can read it.
+      #
+      # Retries on push failure: 2026-08-13 a catch-up run did the real TV sync
+      # fine but hit two straight GitHub-side 500s on `git push` (transient —
+      # githubstatus.com showed all-green at the time) and the job died there,
+      # leaving tv-state.json stale until a third manual retry. A single push
+      # attempt is too fragile for something this cheap to retry — back off and
+      # re-pull each time in case another writer landed a commit in between.
       - name: Commit tv-state.json
         if: success() && hashFiles('results/tv-state.json') != ''
         run: |
@@ -138,11 +145,22 @@ jobs:
           git add results/tv-state.json
           if git diff --staged --quiet; then
             echo "tv-state.json unchanged — nothing to commit"
-          else
-            git commit -m "chore: update tv-state.json (tv-sync $(date -u +%Y-%m-%d))"
-            git pull --rebase origin main || true
-            git push origin HEAD:main
+            exit 0
           fi
+          git commit -m "chore: update tv-state.json (tv-sync $(date -u +%Y-%m-%d))"
+
+          for attempt in 1 2 3 4 5; do
+            git pull --rebase origin main || true
+            if git push origin HEAD:main; then
+              echo "Pushed on attempt $attempt"
+              exit 0
+            fi
+            echo "Push attempt $attempt failed, retrying in $((attempt * 10))s..."
+            sleep $((attempt * 10))
+          done
+
+          echo "::error::Failed to push tv-state.json after 5 attempts"
+          exit 1
 
       - name: Notify Telegram on failure
         if: failure()
