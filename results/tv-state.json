@@ -1,17 +1,9 @@
 {
-  "updatedAt": "2026-08-12",
+  "updatedAt": "2026-08-13",
   "watchlists": {
     "Lean Radar - Breakouts": [
       {
         "ticker": "TMHC",
-        "signalDate": "2026-07-29"
-      },
-      {
-        "ticker": "BXP",
-        "signalDate": "2026-07-29"
-      },
-      {
-        "ticker": "MDLZ",
         "signalDate": "2026-07-29"
       },
       {
@@ -68,117 +60,121 @@
       {
         "ticker": "SCHW",
         "signalDate": "2026-08-07"
+      },
+      {
+        "ticker": "WFC",
+        "signalDate": "2026-08-13"
       }
     ],
     "Lean Radar - Creep": [
       {
         "ticker": "EAT",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "TSEM",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "TXRH",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "ASH",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "DAL",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "OKTA",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "UAL",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "CAKE",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "CRWD",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "FTNT",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "NET",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "PANW",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "S",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "SNOW",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "CHEF",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "DELL",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "DIN",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "EZJ",
-        "signalDate": "2026-08-12",
+        "signalDate": "2026-08-13",
         "exchange": "LSE"
       },
       {
         "ticker": "MOG.A",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "AAL",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "CRS",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "CSCO",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "GE",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "HPE",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "JETS",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "PBF",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "SAFRY",
-        "signalDate": "2026-08-12"
+        "signalDate": "2026-08-13"
       },
       {
         "ticker": "GLBE",
