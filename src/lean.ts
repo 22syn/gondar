@@ -23,7 +23,8 @@ import { evaluateMomentumSetup } from './utils/setup.js';
 import { ingestSetupToD1 } from './utils/setupD1Ingest.js';
 import { computePurpleFragility } from './services/purpleFragility.js';
 import { ingestFragilityToD1 } from './utils/fragilityD1Ingest.js';
-import { sendTelegramMessage, chunkMessage } from './services/telegramBot.js';
+import { sendTelegramMessage, chunkMessage, formatFragilityAlert, formatFragilityWatchAlert } from './services/telegramBot.js';
+import { appendOosLogRow } from './utils/oosLog.js';
 import { getLastTradingDay } from './utils/tradingDate.js';
 import logger from './utils/logger.js';
 import { formatErrorForTelegram } from './utils/errorHandler.js';
@@ -324,6 +325,48 @@ async function main(): Promise<void> {
         try {
             const fragility = await computePurpleFragility(scanDate);
             await ingestFragilityToD1(fragility, scanDate);
+
+            // The two things Smart used to own, moved here 2026-08-16 when it was
+            // retired. Both are gated on DRY_RUN for the same reason the report
+            // above is: this scan runs twice on weekdays (20:15 primary, 23:45
+            // settled-close refresh), and both of these must happen exactly once
+            // per trading day. Smart ran once so it never needed the guard.
+            if (!process.env.DRY_RUN) {
+                // Frozen out-of-sample record: one immutable row per day since
+                // 2026-07-19, and the dataset the next fragility calibration is
+                // built from. Append-only by contract — appendOosLogRow is a
+                // no-op if the day is already written, so a re-run cannot
+                // duplicate a row.
+                try {
+                    appendOosLogRow(fragility, scanDate, path.join(__moduleDir, '..', 'results'));
+                } catch (oosErr) {
+                    logger.warn(
+                        'OOS log append failed (non-fatal): ' + (oosErr as Error).message
+                    );
+                }
+
+                // Threshold-crossing alerts — separate messages, never fail the
+                // scan. 🔴 Alert (mean6>=1.0 AND indexNearHigh) wins over 🟡 Watch
+                // (core3>=1.0) on the same day. The 🟡 message additionally
+                // requires watchAlertable: a climax-only crossing stays on the
+                // dashboard but is not worth an interruption (33% precision vs a
+                // 31% base rate — see watchAlertable's contract).
+                if (fragility?.crossedUp) {
+                    try {
+                        await sendTelegramMessage(formatFragilityAlert(fragility));
+                        logger.info('⚠️ Fragility crossing alert sent to Telegram');
+                    } catch (fragErr) {
+                        logger.warn('Fragility alert send failed (non-fatal): ' + (fragErr as Error).message);
+                    }
+                } else if (fragility?.core3CrossedUp && fragility.watchAlertable) {
+                    try {
+                        await sendTelegramMessage(formatFragilityWatchAlert(fragility));
+                        logger.info(`🟡 Fragility Watch (${fragility.watchTrigger}) alert sent to Telegram`);
+                    } catch (fragErr) {
+                        logger.warn('Fragility watch alert send failed (non-fatal): ' + (fragErr as Error).message);
+                    }
+                }
+            }
         } catch (err) {
             // computePurpleFragility CAN throw (unlike the two ingests, which
             // swallow their own errors), and it runs after the report has gone
