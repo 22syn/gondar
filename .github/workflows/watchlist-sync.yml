@@ -1,0 +1,89 @@
+name: Watchlist Sync (universe sheet)
+
+# Refreshes the universe Google Sheet from the shared TradingView watchlists.
+# This is what puts NEW stocks in front of both radars — without it they keep
+# scanning an aging list and nothing anywhere says so.
+#
+# Standalone on purpose. It used to be a step inside daily-scan.yml, i.e. inside
+# the SMART radar's workflow, even though GONDAR reads the same sheet and Smart
+# is widely assumed to be retired. Retiring Smart would have silently frozen
+# GONDAR's inputs. Moving it into daily-scan-lean.yml instead would only have
+# swapped which radar it was hostage to — and that workflow runs twice on
+# weekdays (the 23:45 one is DRY_RUN), so the sync would have run twice for no
+# reason. As its own job it outlives either radar, gets its own row in the Ops
+# tab, and Schedule watchdog can see it stop.
+#
+# Runs from `main`: scripts/sync-friend-watchlists.ts, universeSheetWriter.ts and
+# the npm script exist only there — `stable` has none of them.
+
+on:
+  schedule:
+    # 19:45 UTC Mon-Fri — half an hour ahead of both 20:15 scans, so whatever it
+    # adds is already in the sheet when either radar reads it.
+    - cron: '45 19 * * 1-5'
+  workflow_dispatch:
+
+concurrency:
+  group: watchlist-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Sync friend watchlists → universe sheet
+        env:
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GOOGLE_SHEETS_CREDENTIALS_JSON: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS_JSON }}
+          WATCHLIST_SOURCES_JSON: ${{ secrets.WATCHLIST_SOURCES_JSON }}
+        run: |
+          if [ -z "$WATCHLIST_SOURCES_JSON" ] || [ -z "$GOOGLE_SHEETS_CREDENTIALS_JSON" ]; then
+            echo "::error::Friend-watchlist sync is not configured — set WATCHLIST_SOURCES_JSON and GOOGLE_SHEETS_CREDENTIALS_JSON"
+            exit 1
+          fi
+          printf '%s' "$WATCHLIST_SOURCES_JSON" > watchlist-sources.json
+
+          # Partial failure is normal and harmless: an individual shared
+          # watchlist 404s or times out fairly often (3 of 6 runs in the local
+          # job's history), and the merge is append-only — a source that fails
+          # simply adds nothing this run and is picked up the next. Failing the
+          # job on that would make it red most weeks, and a job that is usually
+          # red gets ignored.
+          #
+          # So gate on the outcome, not the exit code: the script prints
+          # "Universe sheet merged" only after the sheet write succeeds. No
+          # such line means nothing reached the sheet, which is a real failure.
+          set +e
+          npm run sync-friend-watchlists 2>&1 | tee /tmp/sync.log
+          set -e
+
+          if ! grep -q "Universe sheet merged" /tmp/sync.log; then
+            echo "::error::Sync did not reach the sheet — no merge line in output"
+            exit 1
+          fi
+
+          failed=$(grep -c "❌" /tmp/sync.log || true)
+          if [ "$failed" -gt 0 ]; then
+            echo "::warning::$failed watchlist source(s) failed to fetch — merged what resolved; they retry next run"
+          fi
+          grep "Universe sheet merged" /tmp/sync.log
+
+      # watchlist-sources.json is written from a secret. The job never commits
+      # anything, but deleting it keeps it out of any future artifact upload.
+      - name: Remove decoded sources file
+        if: always()
+        run: rm -f watchlist-sources.json
