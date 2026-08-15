@@ -54,12 +54,12 @@ jobs:
 
     steps:
       - name: Checkout stable branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: stable
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'npm'
@@ -82,7 +82,7 @@ jobs:
       # If no prior artifact exists (first run, all-runs pruned, etc.)
       # the step warns and the Graduated section degrades to empty.
       - name: Download previous Lean Radar snapshot
-        uses: dawidd6/action-download-artifact@v6
+        uses: dawidd6/action-download-artifact@v21
         continue-on-error: true
         with:
           workflow: daily-scan-lean.yml
@@ -191,7 +191,7 @@ jobs:
       # as a year-retained artifact for retrospective debugging.
       - name: Upload Lean Radar artifacts
         if: success() || failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: lean-radar-${{ github.run_number }}
           path: results/
