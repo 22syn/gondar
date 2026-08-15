@@ -2,23 +2,25 @@ name: Williams %R Snapshot (weekly)
 
 # Cloud replacement for the com.smart-volume-radar.williams-r-snapshot
 # LaunchAgent. The local job needed the Mac awake on Sunday morning, and it ran
-# from ~/dev/smart-volume-radar-engine — a shared checkout that sat on a stale
-# feature branch for days at a time, so the weekly snapshot was being produced
-# by whatever code that branch happened to hold. A workflow always runs the
-# merged tip of `stable`, which removes that failure mode entirely.
+# from ~/dev/smart-volume-radar-engine — a checkout shared between sessions that
+# had been sitting on a stale feature branch for days, so the weekly snapshot
+# was produced by whatever code that branch happened to hold.
 #
-# Operates on `stable` on purpose: that branch carries BOTH halves the job needs
-# — scripts/sync-tv-watchlist.ts (the capture engine) and dashboard/public/assets/
-# (the target). Splitting them across branches is the only reason the local
-# script needed a permanent worktree and a cross-branch push; `ref: stable`
-# below replaces all of it.
+# TWO checkouts, because the halves live on different branches:
+#   main   — this workflow, capture-williams-r-snapshot.ts, and the capture
+#            engine sync-tv-watchlist.ts
+#   stable — dashboard/public/assets/, the only place the PNGs belong
 #
-# The FILE, though, must exist on `main` as well, and identically. GitHub fires
-# `schedule` only from the default branch, so main's copy is what makes the
-# weekly cron run at all — a copy living solely on stable would simply never
-# fire. Because every copy pins `ref: stable`, whichever one runs still checks
-# out the right tree, so the duplication is safe rather than a second job.
-# (deploy-dashboard.yml sits on both branches for the same reason.)
+# The first cloud attempt (2026-08-14, run 31799109408) ran everything on
+# `stable` and failed. stable's sync-tv-watchlist.ts is an older 699-line fork
+# with neither `--screenshot` nor the CI cookie path — main's is 1227 lines and
+# has both — so the capture silently fell through to normal sync mode, produced
+# no chart, and every symbol failed to parse. The permanent worktree the
+# LaunchAgent used was solving exactly this, which was not obvious until the
+# run proved it.
+#
+# Lives on `main` only. GitHub fires `schedule` from the default branch, so
+# main's copy is the one that runs; stable needs nothing.
 
 on:
   schedule:
@@ -40,10 +42,17 @@ jobs:
       actions: write    # to dispatch deploy-dashboard.yml once they change
 
     steps:
-      - name: Checkout stable
+      - name: Checkout main (capture tooling)
+        uses: actions/checkout@v4
+
+      # Beside it, not over it. `path:` keeps both trees on disk at once, which
+      # is the whole point — npm ci and the capture run against main, the PNGs
+      # and the commit against stable.
+      - name: Checkout stable (dashboard assets)
         uses: actions/checkout@v4
         with:
           ref: stable
+          path: stable-assets
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -65,21 +74,28 @@ jobs:
         run: python3 -m pip install --quiet pillow
 
       # Decode the TV_COOKIES secret (base64 JSON) the same way tv-sync.yml
-      # does. sync-tv-watchlist.ts takes its CI path when CI=true (set by
-      # Actions) and hard-fails without TV_COOKIES_FILE, so a missing or
-      # expired secret is loud rather than a blank chart.
+      # does. main's sync-tv-watchlist.ts takes its CI path when CI=true (set by
+      # Actions) and hard-fails without TV_COOKIES_FILE, so a missing or expired
+      # secret is loud rather than a blank chart.
       - name: Decode TradingView cookies
         run: |
           echo "${{ secrets.TV_COOKIES }}" | base64 -d > /tmp/tv-cookies.json
           echo "TV_COOKIES_FILE=/tmp/tv-cookies.json" >> $GITHUB_ENV
 
+      # GH_TOKEN because sync-tv-watchlist.ts reaches for the gh CLI to find the
+      # latest Lean Radar artifact. Screenshot mode does not need that artifact,
+      # but the lookup runs first and logs a failure without it — noise that
+      # looked like the cause of the 08-14 break and was not.
       - name: Capture SPY + QQQ Williams %R snapshots
         env:
           TV_COOKIES_FILE: ${{ env.TV_COOKIES_FILE }}
+          GH_TOKEN: ${{ github.token }}
+          WILLIAMS_STABLE_DIR: ${{ github.workspace }}/stable-assets
         run: npx tsx scripts/capture-williams-r-snapshot.ts
 
       - name: Commit refreshed snapshots
         id: commit
+        working-directory: stable-assets
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -106,7 +122,7 @@ jobs:
       # most events, but workflow_dispatch and repository_dispatch are the
       # documented exceptions, so this really does start a run. `--ref stable`
       # matters: only stable's copy applies the D1 schema before deploying, and
-      # only stable has dashboard/ for the job's working-directory at all.
+      # only stable has dashboard/ for that job's working-directory at all.
       - name: Publish to Cloudflare Pages
         if: steps.commit.outputs.changed == 'true'
         env:
