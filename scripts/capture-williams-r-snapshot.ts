@@ -5,15 +5,26 @@
  * plain "Williams %R" indicator added — see chat 2026-08-03; QQQ added
  * 2026-08-03 too, same layout applied to a second symbol).
  *
- * Runs via the com.smart-volume-radar.williams-r-snapshot LaunchAgent,
  * Sunday mornings (a new weekly candle closed Friday close, so Sunday
- * already has it). Reuses sync-tv-watchlist.ts's `--screenshot` mode
- * (same logged-in Playwright/Chromium profile as the tv-sync automation)
- * to capture each chart, then copies the PNGs into a SEPARATE permanent
- * local checkout of the `stable` branch (dashboard/ only exists there —
- * this repo's default checkout stays on `main`) and commits + pushes them
- * in one commit, so the deployed dashboard picks them up on the next
- * Cloudflare Pages build.
+ * already has it). Reuses sync-tv-watchlist.ts's `--screenshot` mode to
+ * capture each chart, then copies the PNGs into a checkout of the `stable`
+ * branch — dashboard/ exists only there, while this script and the capture
+ * engine live only on `main`.
+ *
+ * That two-tree split is load-bearing, not incidental. `stable`'s copy of
+ * sync-tv-watchlist.ts is an older 699-line fork with neither `--screenshot`
+ * nor the CI cookie path (main's is 1227 lines and has both), so a job that
+ * runs entirely on `stable` silently falls through to normal sync mode and
+ * captures nothing. That is exactly how the first cloud attempt failed on
+ * 2026-08-14. Capture tooling comes from main; only the assets come from
+ * stable.
+ *
+ * Runs two ways off that same split:
+ *   - LaunchAgent (local): STABLE_DIR defaults to the permanent worktree at
+ *     ~/dev/smart-volume-radar-engine-stable, and this script commits+pushes.
+ *   - GitHub Actions: williams-r-snapshot.yml checks stable out beside main
+ *     and points WILLIAMS_STABLE_DIR at it. The workflow owns the commit, so
+ *     the git block here is skipped — see the CI guard in main().
  *
  * Best-effort by design (matches every other sync script in this repo):
  * any failure logs and exits non-zero, but never throws past main() —
@@ -24,10 +35,15 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+const IS_CI = process.env.CI === 'true';
+
 const ENGINE_ROOT = path.resolve(import.meta.dirname, '..');
-// Permanent worktree of `stable` (created 2026-08-03) — NOT a Claude Code
-// worktree under .claude/worktrees/, which are ephemeral and get cleaned up.
-const STABLE_WORKTREE = path.join(os.homedir(), 'dev', 'smart-volume-radar-engine-stable');
+// Where `stable` is checked out. Locally: the permanent worktree created
+// 2026-08-03 — NOT a Claude Code worktree under .claude/worktrees/, which are
+// ephemeral and get cleaned up. In CI: the sibling checkout the workflow makes.
+const STABLE_WORKTREE = process.env.WILLIAMS_STABLE_DIR
+    ? path.resolve(process.env.WILLIAMS_STABLE_DIR)
+    : path.join(os.homedir(), 'dev', 'smart-volume-radar-engine-stable');
 const ASSETS_DIR = path.join(STABLE_WORKTREE, 'dashboard', 'public', 'assets');
 const LOG_PATH = path.join(os.homedir(), 'Library', 'Logs', 'williams-r-snapshot.log');
 
@@ -39,7 +55,11 @@ const SYMBOLS: Array<{ symbol: string; targetFile: string }> = [
 function log(msg: string): void {
     const line = `${new Date().toISOString()} ${msg}`;
     console.error(line);
-    fs.appendFileSync(LOG_PATH, line + '\n');
+    // The log file is a macOS convenience for the LaunchAgent, which has no
+    // other console. In CI the step log IS the record, and ~/Library/Logs does
+    // not exist on the runner — appending there would throw from inside the
+    // logger, turning any ordinary message into a crash.
+    if (!IS_CI) fs.appendFileSync(LOG_PATH, line + '\n');
 }
 
 function run(cmd: string, args: string[], cwd: string): string {
@@ -108,12 +128,16 @@ async function main(): Promise<number> {
 
     // Sync the worktree to the remote tip FIRST — before touching any target
     // file — so `git status` below diffs the new screenshots against last
-    // week's actually-published versions, not stale local state.
-    try {
-        run('git', ['fetch', 'origin', 'stable'], STABLE_WORKTREE);
-        run('git', ['reset', '--hard', 'origin/stable'], STABLE_WORKTREE);
-    } catch (err) {
-        log(`⚠️ git fetch/reset failed, continuing with local state: ${(err as Error).message}`);
+    // week's actually-published versions, not stale local state. A fresh CI
+    // checkout is already at the tip, and a hard reset there would be a
+    // destructive no-op, so this only runs for the long-lived local worktree.
+    if (!IS_CI) {
+        try {
+            run('git', ['fetch', 'origin', 'stable'], STABLE_WORKTREE);
+            run('git', ['reset', '--hard', 'origin/stable'], STABLE_WORKTREE);
+        } catch (err) {
+            log(`⚠️ git fetch/reset failed, continuing with local state: ${(err as Error).message}`);
+        }
     }
 
     let anyOk = false;
@@ -124,6 +148,15 @@ async function main(): Promise<number> {
     if (!anyOk) {
         log('❌ All symbol captures failed — nothing to commit.');
         return 1;
+    }
+
+    // In CI the workflow owns the commit — it already has the checkout's push
+    // credentials and the gate that dispatches the Pages deploy only when the
+    // images actually changed. Committing from here too would be a second,
+    // competing writer of the same two files.
+    if (IS_CI) {
+        log('✓ Capture complete — the workflow will commit and publish any change.');
+        return 0;
     }
 
     const targetPaths = SYMBOLS.map(({ targetFile }) => `dashboard/public/assets/${targetFile}`);
