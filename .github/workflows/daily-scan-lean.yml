@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
-      contents: read
+      contents: write  # to commit results/oos_log.csv back to stable
       actions: read  # required by dawidd6/action-download-artifact for prior-run lookup
     # Hoist Cloudflare secrets to job-level env so step `if:` can gate on them.
     # (The `secrets` context is NOT available in step `if:`, but job `env` IS.)
@@ -159,6 +159,33 @@ jobs:
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
             --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
             --data-urlencode "text=🪶 Lean ${DATE}: ${HI} בשכנוע גבוה · ${TOT} סיגנלים → https://radar-dashboard-c9o.pages.dev"
+
+      # oos_log.csv is append-only and is the ONLY frozen record behind the
+      # Purple Fragility gauge — D1 gets recomputed, this does not. It has to
+      # survive the runner, so it gets committed back to stable.
+      #
+      # New plumbing, not a copy: this workflow had never written to the repo,
+      # which is why the job's permissions gained contents: write. Smart used to
+      # do this from daily-scan.yml, and lean.ts took over the append in the
+      # companion stable-side PR.
+      #
+      # Primary run only, mirroring the DRY_RUN gate lean.ts uses to decide
+      # whether to append at all: the 23:45 settled-close pass must not add a
+      # second row for the same trading day. If they ever disagree, this step
+      # finds nothing staged and says so rather than committing a stray row.
+      - name: Commit OOS log
+        if: success() && github.event.schedule != '45 23 * * 1-5' && !inputs.dry_run
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add results/oos_log.csv || true
+          if git diff --staged --quiet; then
+            echo "oos_log.csv unchanged — nothing to commit"
+          else
+            git commit -m "chore: append OOS log row ($(date -u +%Y-%m-%d))"
+            git pull --rebase origin stable || true
+            git push origin HEAD:stable
+          fi
 
       # Persist the full per-run snapshot (lean-{date}.json + raw scan files)
       # as a year-retained artifact for retrospective debugging.
