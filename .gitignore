@@ -73,3 +73,9 @@ results/finnhub-cache/
 # Generated code-graph output (graphify) — 2.7MB of graph.json/graph.html rebuilt
 # on demand with `graphify update .` at no API cost. Build artifact, not source.
 graphify-out/
+
+# Infisical CLI project link (workspaceId + branch→environment mapping). Local
+# tooling only — nothing in CI reads it; GitHub Actions secrets feed the
+# workflows. Untracked on purpose so the repo does not carry a pointer into the
+# shared secrets workspace.
+.infisical.json

@@ -129,6 +129,24 @@ Full formulas: [calculations.md](knowledge/calculations.md)
 - [indicator-sources.md](knowledge/indicator-sources.md) — API comparison, fetch vs calculate, USE_FETCHED_INDICATORS config
 - [message-guide.md](knowledge/message-guide.md) — full Telegram report format, emojis, all config variables
 
+## Sibling repos — things that break silently if you rename
+
+Merged here 2026-08-16 from a stray root `CLAUDE.md`, which had become a second
+source of truth. Only the parts still true after verification were kept.
+
+- **`mcp-tv-sync/`** — local stdio MCP server wrapping `npm run tv-sync`. Has its
+  own `package.json`; it is not part of the root build.
+- **`smart-volume-radar-tools`** — its `tools/tg-radar/` reaches into THIS repo's
+  `results/` and `.env` **by hardcoded absolute path** (4 files, incl.
+  `watchlist-health.js`, `analyze.js`, `daily-update.js`). Still live: the weekly
+  `com.kobi.inside-buys-refresh` job runs `tg-radar/fetch-3mo.js`. **Do not rename
+  or move `results/`, and do not rename the env vars above, without grepping that
+  repo first** — nothing here would fail, it would just quietly stop being fed.
+- **`smart-volume-radar-sync`** — a slimmer variant focused on watchlist syncing,
+  diverged from this repo and not a fork target for changes made here. Its only
+  scheduled consumer (`com.svr.friend-watchlist-sync`) was retired 2026-08-16 in
+  favour of the cloud step in `daily-scan.yml`, so nothing runs from it now.
+
 ## Memory & Plans
 
 - [memory.md](memory.md) — decisions, resolved issues, active context
