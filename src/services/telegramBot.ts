@@ -11,6 +11,7 @@ import { formatTagsForDisplay } from '../utils/tags.js';
 import { formatRVOL, formatPriceChange } from '../utils/formatters.js';
 import { getReportSummary, getPerStockAnalyses, parseLlmReply, formatCodeVsLlmLine } from './llmSummary.js';
 import type { MonitorUpdateSummary } from './monitorTracker.js';
+import { FRAGILITY_THRESHOLD, CORE3_THRESHOLD, type FragilityResult } from './purpleFragility.js';
 
 const TELEGRAM_MAX_LENGTH = 4096;
 /** Delay between sends to avoid Telegram rate limit (429) when sending many chunks */
@@ -946,4 +947,87 @@ export function formatMonitorTelegramMessage(
     }
 
     return parts.join('\n');
+}
+
+// ── Purple Fragility crossing alerts ──────────────────────────────────
+// Moved from main's telegramBot.ts 2026-08-16 as part of retiring the Smart
+// radar. Smart was the only sender of these; GONDAR already computes the
+// same FragilityResult in lean.ts, so only the formatting moved.
+export function formatFragilityAlert(f: FragilityResult): string {
+    const s = f.latest.score ?? 0;
+    const prev = f.prevScore;
+    const componentLabels: Array<[keyof typeof f.latest.z, string]> = [
+        ['wick10', 'wick10'],
+        ['pctAbove50', '%>MA50'],
+        ['dist20', 'dist20'],
+        ['ext50', 'ext50'],
+        ['corr20', 'corr20'],
+        ['disp10', 'disp10'],
+    ];
+    const components = componentLabels
+        .map(([key, label]) => ({ label, z: f.latest.z[key] }))
+        .filter((c): c is { label: string; z: number } => c.z != null)
+        .sort((a, b) => b.z - a.z)
+        .map((c) => `${c.label} ${c.z >= 0 ? '+' : ''}${c.z.toFixed(1)}`)
+        .join(' | ');
+    const canaryBit = f.indexNearHigh
+        ? ` | Canary: ${f.canaryCount}/${f.tickersUsed.length}`
+        : '';
+    return (
+        `⚠️ <b>PURPLE FRAGILITY — חציית סף</b>\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `🟣 ציון שבירוּת: <b>${s.toFixed(2)}</b>` +
+        (prev != null ? ` (אתמול ${prev.toFixed(2)} → חצה את ${FRAGILITY_THRESHOLD.toFixed(1)}, הסל קרוב לשיא)` : '') +
+        `\n` +
+        `📉 Index: DD ${f.latest.drawdownPct.toFixed(1)}% מהשיא${canaryBit}\n` +
+        `רכיבים (z): ${components}\n\n` +
+        `<i>מחקר: ציון מעל ${FRAGILITY_THRESHOLD.toFixed(1)} כשהסל קרוב לשיא היסטורית הקדים חולשה בסל ה-Purple ` +
+        `(75% מהנפילות של &gt;7% תוך 15 ימי מסחר, In-Sample). תצוגה בלבד — לא משנה שום התראת סריקה.</i>`
+    );
+}
+
+const WATCH_TRIGGER_LABEL_HE: Record<'core3' | 'climax' | 'both', string> = {
+    core3: 'core3',
+    climax: 'climax (נפח בסמוך לשיא)',
+    both: 'core3 + climax',
+};
+
+/**
+ * 🟡 Watch alert — sent only on the day the core3 arm (wick+dist+disp z-mean)
+ * newly crosses its threshold. Softer tier than the 🔴 mean6+nearHigh alert.
+ * Display-only, gates nothing.
+ *
+ * The climax arm still fires `watchTrigger` and is still charted, but no longer
+ * sends a message (see `watchAlertable`). PR #82's split-half result stands on
+ * recall — the combined rule caught 94%/92% of >7% tops — but the 2026-07-27
+ * study decomposed it: climax-only ran 33% precision against a 31% base rate,
+ * core3 ran 81%. Restricting the message path to core3 moves 🟡 precision
+ * 58% → 81% and volume 31 → 16 over the 252 sessions measured.
+ */
+export function formatFragilityWatchAlert(f: FragilityResult): string {
+    const c3 = f.latest.core3 ?? 0;
+    const climax = f.latest.climax;
+    const prev = f.prevCore3;
+    const z = f.latest.z;
+    const fmt = (v: number | null): string => (v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(1)}`);
+    const canaryBit = f.indexNearHigh
+        ? ` | Canary: ${f.canaryCount}/${f.tickersUsed.length}`
+        : '';
+    const triggerBit = f.watchTrigger != null
+        ? ` | מקור ההתראה: ${WATCH_TRIGGER_LABEL_HE[f.watchTrigger]}`
+        : '';
+    return (
+        `🟡 <b>PURPLE FRAGILITY — Watch</b>\n` +
+        `━━━━━━━━━━━━━━━━━━━━━━\n` +
+        `🟣 core3 (פתילים+חלוקה+פיזור): <b>${c3.toFixed(2)}</b>` +
+        (prev != null ? ` (אתמול ${prev.toFixed(2)} → חצה את ${CORE3_THRESHOLD.toFixed(1)})` : '') +
+        `\n` +
+        `climax (נפח קונטקסטואלי): <b>${climax != null ? climax.toFixed(2) : '—'}</b> (תיאורי בלבד)${triggerBit}\n` +
+        `ציון מלא (mean6): ${f.latest.score?.toFixed(2) ?? '—'} | ` +
+        `DD ${f.latest.drawdownPct.toFixed(1)}%${canaryBit}\n` +
+        `רכיבי הליבה (z): wick ${fmt(z.wick10)} | dist ${fmt(z.dist20)} | disp ${fmt(z.disp10)}\n\n` +
+        `<i>שכבת ה-Watch נשלחת רק על core3 (סף ${CORE3_THRESHOLD.toFixed(1)}): דיוק 81% מול ` +
+        `שיעור בסיס 31%, על 252 המסחר שנמדדו. רכיב climax ממשיך להופיע בגרף אך אינו שולח ` +
+        `הודעה — דיוקו 33%, מתחת לשיעור הבסיס. רמת דריכות — לא שינוי בשום התראת סריקה.</i>`
+    );
 }

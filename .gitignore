@@ -45,6 +45,11 @@ retro-*.txt
 results/*
 # Exception: monitor-list.json IS committed daily so follow-up state survives CI runs.
 !results/monitor-list.json
+# Exception: oos_log.csv is the append-only frozen OOS scorecard for the Purple
+# Fragility gauge — committed daily by the scan so the out-of-sample record
+# survives CI runs (it is the ONLY frozen record; D1 gets recomputed).
+# Moved here from main 2026-08-16 with the Smart radar's retirement.
+!results/oos_log.csv
 # Finnhub fundamentals cache (TTL 7d) — never committed, never shared across machines.
 results/finnhub-cache/
 
