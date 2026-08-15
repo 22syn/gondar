@@ -43,19 +43,19 @@ jobs:
 
     steps:
       - name: Checkout main (capture tooling)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Beside it, not over it. `path:` keeps both trees on disk at once, which
       # is the whole point — npm ci and the capture run against main, the PNGs
       # and the commit against stable.
       - name: Checkout stable (dashboard assets)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: stable
           path: stable-assets
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: '20'
           cache: 'npm'
