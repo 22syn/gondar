@@ -35,32 +35,21 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Refresh the universe sheet from the friend's shared TradingView watchlists
-      # before the scan reads it. Self-guards: if the secrets aren't configured yet,
-      # it skips cleanly and the scan proceeds with the existing sheet.
+      # The friend-watchlist sync used to run here, refreshing the universe sheet
+      # before the scan read it. It now lives in watchlist-sync.yml on its own
+      # 19:45 UTC schedule, half an hour ahead of this scan, so the sheet is
+      # already refreshed when EITHER radar reads it.
       #
-      # continue-on-error, because that guarantee did not hold for a PARTIAL failure.
-      # On 2026-08-14 one TradingView share link 404'd (an external link going stale,
-      # not our bug); sync-friend-watchlists.ts correctly logged it, skipped just that
-      # source, and merged the other 24/25 into the sheet — then still set exitCode 1
-      # for the run overall. Without this flag that exit code failed the step, which
-      # skipped every step after it, including "Run Smart Volume Radar" — the entire
-      # day's scan never ran over one stale link in an enrichment step that has never
-      # been load-bearing for the scan itself. The step still shows as failed in the
-      # Actions UI so a broken source doesn't go unnoticed, it just can't block the scan.
-      - name: Sync friend watchlists → universe sheet
-        continue-on-error: true
-        env:
-          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
-          GOOGLE_SHEETS_CREDENTIALS_JSON: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS_JSON }}
-          WATCHLIST_SOURCES_JSON: ${{ secrets.WATCHLIST_SOURCES_JSON }}
-        run: |
-          if [ -z "$WATCHLIST_SOURCES_JSON" ] || [ -z "$GOOGLE_SHEETS_CREDENTIALS_JSON" ]; then
-            echo "Friend-watchlist sync not configured (missing secrets) — skipping."
-            exit 0
-          fi
-          printf '%s' "$WATCHLIST_SOURCES_JSON" > watchlist-sources.json
-          npm run sync-friend-watchlists
+      # Moved because GONDAR reads the same sheet and this workflow was the only
+      # thing refreshing it — retiring Smart, which is widely assumed to have
+      # happened already, would have silently frozen GONDAR's inputs.
+      #
+      # The 2026-08-14 lesson moved with it: one TradingView share link 404'd,
+      # the script merged the other 24/25 sources into the sheet and still
+      # exited 1, and that exit code failed the step and skipped every step
+      # after it — the whole day's scan never ran over one stale external link.
+      # watchlist-sync.yml now gates on whether the sheet was actually written
+      # rather than on the exit code, so a dead source warns instead of failing.
 
       - name: Run Smart Volume Radar
         id: scan
