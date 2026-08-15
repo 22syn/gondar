@@ -38,7 +38,18 @@ jobs:
       # Refresh the universe sheet from the friend's shared TradingView watchlists
       # before the scan reads it. Self-guards: if the secrets aren't configured yet,
       # it skips cleanly and the scan proceeds with the existing sheet.
+      #
+      # continue-on-error, because that guarantee did not hold for a PARTIAL failure.
+      # On 2026-08-14 one TradingView share link 404'd (an external link going stale,
+      # not our bug); sync-friend-watchlists.ts correctly logged it, skipped just that
+      # source, and merged the other 24/25 into the sheet — then still set exitCode 1
+      # for the run overall. Without this flag that exit code failed the step, which
+      # skipped every step after it, including "Run Smart Volume Radar" — the entire
+      # day's scan never ran over one stale link in an enrichment step that has never
+      # been load-bearing for the scan itself. The step still shows as failed in the
+      # Actions UI so a broken source doesn't go unnoticed, it just can't block the scan.
       - name: Sync friend watchlists → universe sheet
+        continue-on-error: true
         env:
           GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
           GOOGLE_SHEETS_CREDENTIALS_JSON: ${{ secrets.GOOGLE_SHEETS_CREDENTIALS_JSON }}
