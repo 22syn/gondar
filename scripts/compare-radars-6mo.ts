@@ -24,7 +24,12 @@ import pLimit from 'p-limit';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 const RESULTS_DIR = path.join(PROJECT_ROOT, 'results');
-const LEAN_DIR = '/private/tmp/svr-stable/results';
+// Lean's reconstruction lives in a `stable` checkout, which is wherever you put
+// it. Hardcoding one path is what made this script un-runnable for anyone whose
+// stable tree sat elsewhere — and the reason a hand-edited copy of this file
+// (compare-radars-6mo-rerun.ts) was floating around untracked with a different
+// absolute path baked in. Override it instead of forking the script.
+const LEAN_DIR = process.env.LEAN_RESULTS_DIR ?? '/private/tmp/svr-stable/results';
 
 const SMART_FILE = (() => {
     const files = fs.readdirSync(RESULTS_DIR)
@@ -43,7 +48,13 @@ console.log(`📂 Smart: ${SMART_FILE}`);
 console.log(`📂 Lean:  ${LEAN_FILE}\n`);
 
 interface SmartRec { action: string; championScore: number; sector: string; }
-interface LeanRec { primary: string; sector: string; isStage2: boolean; }
+// reconstruct-lean.ts writes `signals: SignalKind[]` — several signals can fire
+// for the same ticker on the same day — NOT the single `primary` string this
+// script originally assumed. Nothing ever threw: `rec.primary` was simply
+// undefined for every record, so no comparison matched and the script reported
+// zero Lean events against a full Smart set. Verified against the stable
+// branch's writer 2026-08-02.
+interface LeanRec { signals: string[]; sector: string; isStage2: boolean; }
 
 const smart = JSON.parse(fs.readFileSync(path.join(RESULTS_DIR, SMART_FILE), 'utf8')) as {
     daysComputed: number;
@@ -56,7 +67,7 @@ const lean = JSON.parse(fs.readFileSync(path.join(LEAN_DIR, LEAN_FILE), 'utf8'))
 
 // Build per-(date, ticker) sets — only count "actionable" signals
 // Smart actionable: BUY, WATCH, CAUTION_EXTENDED (the highest-confidence)
-// Lean actionable: primary='breakout' or 'highVolume' (the "tradeable today" signals)
+// Lean actionable: signals[] contains 'breakout' or 'highVolume' (the "tradeable today" signals)
 type EventKey = string; // `${date}|${ticker}`
 
 const smartEvents = new Map<EventKey, SmartRec>();
@@ -71,7 +82,7 @@ for (const [date, recs] of Object.entries(smart.flaggedByDate)) {
 }
 for (const [date, recs] of Object.entries(lean.signalsByDate)) {
     for (const [ticker, rec] of Object.entries(recs)) {
-        if (rec.primary === 'breakout' || rec.primary === 'highVolume') {
+        if (rec.signals?.includes('breakout') || rec.signals?.includes('highVolume')) {
             leanEvents.set(`${date}|${ticker}`, rec);
         }
     }
