@@ -4,15 +4,29 @@ concurrency:
   group: daily-scan
   cancel-in-progress: false
 
+# RETIRED 2026-08-16 — the schedule is gone; this runs only if dispatched.
+#
+# Everything only Smart could do now lives on GONDAR:
+#   - the universe-sheet sync  -> watchlist-sync.yml (#154)
+#   - the frozen OOS log       -> lean.ts + daily-scan-lean.yml (#155, #156)
+#   - Fragility crossing alerts-> lean.ts (#155)
+# GONDAR has been the sole D1 writer since #146, so the dashboard was already
+# entirely its output.
+#
+# Kept dispatchable rather than deleted until GONDAR's first full cycle proves
+# it writes exactly one OOS row and sends no duplicate alert. If that fails,
+# dispatching this is the fallback. Delete the file after it passes.
+#
+# What genuinely ends with it: the Smart daily Telegram momentum report, and
+# results/monitor-list.json — whose only remaining consumer is
+# weekly-analysis.yml, itself already flagged as producing a CSV nothing reads.
+#
+# The old schedule, for whoever restores this:
+#   cron: '15 20 * * 1-5'  (20:15 UTC Mon-Fri = 16:15 ET in summer, 15 min after
+#   the close; in winter it is 45 min BEFORE the close and the day's data may be
+#   incomplete — that was an open caveat, not a solved problem.)
 on:
-  schedule:
-    # Run at 20:15 UTC, Mon–Fri.
-    # In EDT (summer): 20:15 UTC = 16:15 ET = 15 min after market close (16:00 ET) ✓
-    # In EST (winter): 20:15 UTC = 15:15 ET = 45 min BEFORE close (16:00 ET) ⚠
-    # → in winter, today's data may be incomplete. Revisit when DST ends (early Nov).
-    - cron: '15 20 * * 1-5'
-  
-  # Allow manual trigger for testing
+  # Manual only. See the retirement note above.
   workflow_dispatch:
 
 jobs:
