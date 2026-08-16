@@ -36,6 +36,26 @@ const DATE_LIMIT = parseInt(arg('dates', '10'), 10);
 const OUT_PATH = arg('out', 'results/d1-snapshot.json');
 
 /**
+ * Per-table overrides for the date window, for tables whose consumers read far
+ * more history than the shared limit gives and whose rows are cheap enough that
+ * it costs nothing.
+ *
+ * fragility_daily is one row per trading day — 60 days is 0.03 MB, 250 is
+ * ~0.13 MB. Meanwhile /api/fragility asks for `limit ?? 250`, so the live chart
+ * draws a year while a 60-date snapshot could only ever show two months. That
+ * gap is what made alpha-engine's vendored copy of this dashboard visibly
+ * disagree with the live one.
+ *
+ * Raising the shared limit instead would have been ~15 MB: rs_daily alone is
+ * ~630 rows PER DAY (1.0 MB at 29 days), and lean_signals ~55/day. Those two are
+ * read per-day by the grid and genuinely do not need a year in the artifact.
+ */
+const DATE_LIMIT_BY_TABLE: Record<string, number> = {
+    fragility_daily: Math.max(DATE_LIMIT, 250),
+};
+const dateLimitFor = (table: string): number => DATE_LIMIT_BY_TABLE[table] ?? DATE_LIMIT;
+
+/**
  * Include every row's full payload, not just a content hash.
  *
  * Added 2026-08-08 after a hard lesson: hashes DETECT that data changed but
@@ -138,7 +158,7 @@ async function snapshotTable(table: string, cfg: D1Config): Promise<TableSnapsho
     }
 
     const dates = await query(
-        `SELECT scan_date, COUNT(*) AS n FROM ${table} GROUP BY scan_date ORDER BY scan_date DESC LIMIT ${DATE_LIMIT}`,
+        `SELECT scan_date, COUNT(*) AS n FROM ${table} GROUP BY scan_date ORDER BY scan_date DESC LIMIT ${dateLimitFor(table)}`,
         cfg
     );
 
@@ -192,6 +212,9 @@ async function main(): Promise<void> {
         // database, without putting the id into a stored artifact.
         databaseIdTail: cfg.databaseId.slice(-4),
         dateLimit: DATE_LIMIT,
+        // Which tables did NOT use dateLimit, so a consumer comparing two
+        // snapshots can tell "fewer dates" from "fewer rows on those dates".
+        dateLimitByTable: DATE_LIMIT_BY_TABLE,
         hashExcludes: [...HASH_EXCLUDED],
         // Consumers (and d1-restore.ts) must be able to tell a restorable
         // backup from a hash-only fingerprint without inspecting every entry.
