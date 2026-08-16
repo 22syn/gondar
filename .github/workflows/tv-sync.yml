@@ -11,13 +11,32 @@ on:
     workflows: ["Lean Radar - Daily Scan"]
     types: [completed]
 
+  # Backstop: workflow_run is not reliable enough to be the only path. On
+  # 2026-08-14 it fired correctly after the 20:15 UTC primary run but never
+  # fired after the 23:45 UTC settled-close run — same failure class already
+  # hit and fixed for d1-snapshot.yml (see that file's history). schedule-
+  # watchdog.yml caught the gap the next morning by cross-referencing tv-sync's
+  # last run against Lean's last success; this closes it at the source instead
+  # of just detecting it.
+  #
+  # 00:35 UTC Tue-Sat: the settled run lands early the NEXT day (historically
+  # completing ~23:56-00:41 UTC), so the weekday set shifts by one. 5 extra
+  # minutes of headroom versus d1-snapshot's identical 00:30 backstop, since
+  # this job also restores/saves artifacts and runs Playwright.
+  schedule:
+    - cron: '35 0 * * 2-6'
+
   # Manual trigger for testing / catch-up runs.
   workflow_dispatch:
 
 jobs:
   tv-sync:
     # Only run when the upstream scan succeeded (skip on failure/cancel).
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # Only the workflow_run path can be poisoned by a failed upstream scan —
+    # schedule and workflow_dispatch have no upstream, so gating them on
+    # workflow_run.conclusion (empty for both) would silently skip them, making
+    # the backstop above a no-op. Same fix as d1-snapshot.yml's job gate.
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     permissions:
@@ -90,16 +109,23 @@ jobs:
       #
       # workflow_dispatch has no triggering run, so TRIGGER_HOUR is empty and the
       # report sends — a manual run is always an explicit request to see it.
+      #
+      # schedule (the settled-run backstop above) is deliberately treated the
+      # SAME as a late-hour workflow_run: it exists only to catch the settled
+      # run when workflow_run failed to fire for it, so it must be silent for
+      # the identical reason — sending here would just be the double-Telegram
+      # bug this gating was built to prevent, reintroduced via a second path.
       - name: Watchlist health check (writes prune queue)
         continue-on-error: true
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TRIGGER_EVENT: ${{ github.event_name }}
           TRIGGER_STARTED_AT: ${{ github.event.workflow_run.run_started_at }}
         run: |
           TRIGGER_HOUR="${TRIGGER_STARTED_AT:11:2}"
-          if [ -n "$TRIGGER_HOUR" ] && [ "$TRIGGER_HOUR" -ge 22 ] 2>/dev/null; then
-            echo "Triggered by the ${TRIGGER_HOUR}:xx UTC settled-close Lean run — writing prune queue without Telegram."
+          if [ "$TRIGGER_EVENT" = "schedule" ] || { [ -n "$TRIGGER_HOUR" ] && [ "$TRIGGER_HOUR" -ge 22 ] 2>/dev/null; }; then
+            echo "Settled-close path (event=${TRIGGER_EVENT}, hour=${TRIGGER_HOUR:-n/a}) — writing prune queue without Telegram."
             node scripts/watchlist-health.mjs
           else
             node scripts/watchlist-health.mjs --telegram
