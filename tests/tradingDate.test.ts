@@ -9,7 +9,7 @@
  * Instants are given as explicit UTC so the suite is independent of the machine's timezone.
  * August is EDT (UTC-4); January is EST (UTC-5).
  */
-import { getLastTradingDay } from '../src/utils/tradingDate.js';
+import { getLastTradingDay, isTradingDay } from '../src/utils/tradingDate.js';
 
 /** 2026-08-07 Fri · 08-08 Sat · 08-09 Sun · 08-10 Mon · 08-11 Tue */
 const at = (iso: string): Date => new Date(iso);
@@ -98,6 +98,49 @@ describe('getLastTradingDay', () => {
 
         it('defaults to the current time when called with no argument', () => {
             expect(getLastTradingDay()).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        });
+    });
+
+    describe('market holidays', () => {
+        // The case this was written for: the scan is scheduled Mon-Fri, Labor Day is a
+        // Monday, and the frozen OOS log takes one immutable row per returned date. Before
+        // the holiday table this returned 09-07 and recorded a day with no session.
+        it('walks back off Labor Day (Mon 2026-09-07) to the Friday before', () => {
+            expect(getLastTradingDay(at('2026-09-07T21:00:00Z'))).toBe('2026-09-04');
+        });
+
+        it('crosses a holiday AND the weekend behind it in one pass', () => {
+            // Christmas 2026 is Friday 12-25, so 12-26/27 are the weekend behind it.
+            expect(getLastTradingDay(at('2026-12-27T21:00:00Z'))).toBe('2026-12-24');
+        });
+
+        it('handles a Saturday holiday observed on the Friday (July 4th 2026)', () => {
+            // 07-04 is a Saturday; the market closes Friday 07-03.
+            expect(getLastTradingDay(at('2026-07-04T21:00:00Z'))).toBe('2026-07-02');
+        });
+
+        it('treats Good Friday as a closure', () => {
+            expect(getLastTradingDay(at('2026-04-03T21:00:00Z'))).toBe('2026-04-02');
+        });
+
+        it('never returns a holiday for any instant across a full year', () => {
+            for (let i = 0; i < 365; i++) {
+                const out = getLastTradingDay(new Date(Date.UTC(2026, 0, 1 + i, 21)));
+                expect(isTradingDay(out)).toBe(true);
+            }
+        });
+    });
+
+    describe('isTradingDay', () => {
+        it('rejects weekends', () => {
+            expect(isTradingDay('2026-08-15')).toBe(false); // Saturday
+            expect(isTradingDay('2026-08-16')).toBe(false); // Sunday
+        });
+
+        it('rejects listed holidays and accepts ordinary weekdays', () => {
+            expect(isTradingDay('2026-09-07')).toBe(false); // Labor Day
+            expect(isTradingDay('2026-09-08')).toBe(true);
+            expect(isTradingDay('2026-08-14')).toBe(true);
         });
     });
 });
