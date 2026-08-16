@@ -5,6 +5,7 @@
 // scalar series: no mergeSetup/enrich involvement. The table may not exist
 // until the first Smart ingest — treat errors as an empty series.
 import { buildFragilityQuery } from '../../src/query.js';
+import { fetchQqqIndex, applyQqqOverlay } from '../../src/qqqOverlay.js';
 
 interface Env { DB: D1Database; }
 
@@ -37,43 +38,11 @@ interface FragilityRow {
   qqq_index?: number | null;
 }
 
-/**
- * Nasdaq-100 (QQQ) benchmark, fetched live from Yahoo Finance and rebased to
- * 100 at the first row's date. QQQ (not SPY) because the Purple List basket
- * is the radar's own momentum/high-RVOL, growth-tilted watchlist, which
- * tracks the Nasdaq-100 far more tightly than the broader, value-heavier S&P.
- * Best-effort: any failure here must not break the fragility panel itself.
- */
-async function fetchQqqIndex(fromDate: string): Promise<Map<string, number>> {
-  const rangeDays = Math.ceil((Date.now() - new Date(fromDate + 'T00:00:00Z').getTime()) / 86_400_000) + 5;
-  const range = rangeDays > 365 ? '2y' : '1y';
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/QQQ?interval=1d&range=${range}`;
-  const response = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      Accept: 'application/json',
-    },
-  });
-  if (!response.ok) return new Map();
-
-  const data = (await response.json()) as { chart?: { result?: Array<{
-    timestamp?: number[];
-    indicators?: { quote?: Array<{ close?: (number | null)[] }> };
-  }> } };
-  const result = data?.chart?.result?.[0];
-  const ts = result?.timestamp;
-  const closes = result?.indicators?.quote?.[0]?.close;
-  if (!ts?.length || !closes?.length) return new Map();
-
-  const closeByDate = new Map<string, number>();
-  for (let i = 0; i < ts.length; i++) {
-    const close = closes[i];
-    if (close == null) continue;
-    const date = new Date(ts[i]! * 1000).toISOString().slice(0, 10);
-    closeByDate.set(date, close);
-  }
-  return closeByDate;
-}
+// fetchQqqIndex / applyQqqOverlay used to live here. They moved to
+// ../../src/qqqOverlay.ts (2026-08-16) so alpha-engine's offline copy of this
+// dashboard can RUN them instead of reimplementing them — qqq_index is computed
+// at read time and is not a D1 column, so a snapshot-driven copy had no
+// benchmark line at all. Behaviour here is unchanged.
 
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
   try {
@@ -83,18 +52,7 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
     if (rows.length === 0) return Response.json(rows);
 
     try {
-      const closeByDate = await fetchQqqIndex(rows[0]!.scan_date);
-      // Carry the last-known close forward over gaps (holidays that don't
-      // line up between the two calendars) so the overlay has no null gaps.
-      let base: number | null = null;
-      let lastClose: number | null = null;
-      for (const row of rows) {
-        const close: number | null = closeByDate.get(row.scan_date) ?? lastClose;
-        if (close == null) { row.qqq_index = null; continue; }
-        lastClose = close;
-        if (base == null) base = close;
-        row.qqq_index = (close / base) * 100;
-      }
+      applyQqqOverlay(rows, await fetchQqqIndex(rows[0]!.scan_date));
     } catch {
       // Benchmark overlay is best-effort — leave qqq_index unset on failure.
     }
