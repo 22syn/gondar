@@ -139,6 +139,10 @@
       <div class="chart-wrap chart-wrap--williamsr" id="williamsr-wrap" hidden>
         <div class="chart-title-row">
           <p class="chart-title"><span class="material-symbols-outlined" aria-hidden="true">trending_down</span>Williams %R <span class="chart-subtitle">מד תזמון-שוק על SPY ו-QQQ שבועי (14) — לא לכל מניה, ולא קשור לציון ה-Fragility למעלה</span></p>
+          <!-- Filled by renderWilliamsFreshness() from /assets/williams-r-updated.json,
+               which deploy-dashboard.yml writes into the bundle. Stays hidden when the
+               stamp is missing rather than showing a guessed date. -->
+          <p class="williamsr-freshness" id="williamsr-freshness" hidden></p>
         </div>
         <p class="williamsr-explainer">
           <b>מה זה אומר:</b> כשהקו יורד מתחת ל-<b class="wr-legend-panic">‑80</b> — השוק נכנס ל"פאניקה קיצונית". היסטורית (2006–היום, 44 מקרים ב-SPY) זה הוביל לתשואה חיובית ב-77% מהמקרים, אבל <b>רק תוך 8–26 שבועות</b>, לא מיד — ו-77% מהמקרים גם ירדו לשפל נוסף לפני זה. זו לא נקודת "לקנות עכשיו", אלא איתות "תתחיל לשים לב". מעל <b class="wr-legend-overbought">‑20</b> = overbought — ב-QQQ, ‎10+‎ שבועות רצופים באזור הזה קדמו לנפילת השבבים ביולי 2026. פירוט מלא ומחקר ה-backtest — ראו "איך זה עובד".
