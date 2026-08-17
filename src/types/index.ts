@@ -136,9 +136,6 @@ export interface StockData {
     momentum?: MomentumResult;
 
     // ─── Champion-Score Layer (additive, post-momentum) ─────────────────────
-    /** Continuous quality score 0-100 (composite of stable predictors per
-     *  2026-05-06 criteria-importance analysis). See `evaluateChampionScore`. */
-    championScore?: number;
     /** Actionable label combining score + breakout stage + volume confirmation.
      *  Inspired by ChampionScan's 6-state vocabulary. */
     action?: ActionLabel;

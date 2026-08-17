@@ -236,11 +236,8 @@ function formatSingleStockBlock(stock: RVOLResult, monitorMeta?: MonitorMeta): s
     const { tvUrl, yahooUrl } = buildStockUrls(stock);
     const persistenceMarker = formatPersistenceMarker(monitorMeta);
 
-    // Header: ticker + persistence + Champion Score + RS percentile + sector
+    // Header: ticker + persistence + RS percentile + sector
     let block = `${statusEmoji} <b><a href="${tvUrl}">${escapeHtml(stock.ticker)}</a></b>${persistenceMarker}`;
-    if (stock.championScore != null) {
-        block += `  <b>${stock.championScore.toFixed(0)}</b><i>/100</i>`;
-    }
     if (stock.rsPercentile != null) {
         block += `  ·  <b>RS</b> ${stock.rsPercentile}`;
     }
