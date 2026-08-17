@@ -45,6 +45,28 @@ export function buildTickerRsQuery(ticker: string): Query {
 }
 
 /**
+ * Most recent priced day for one ticker — the "now" half of "what has it done
+ * since the signal I picked".
+ *
+ * Deliberately NOT routed through mergeSetupRows: that only back-fills columns
+ * onto rows that already exist, and the whole problem here is a ticker with no
+ * recent appearance row at all. rs_daily carries a row per SCANNED ticker per
+ * day, so it has a price on days the ticker fired nothing.
+ *
+ * `price IS NOT NULL` matters twice over: the column only started filling on
+ * 2026-08-17, so every older row is null, and a ranked stock can lack a close.
+ * Skipping to the newest priced row is what stops the panel reporting a
+ * comparison against nothing.
+ */
+export function buildTickerLatestPriceQuery(ticker: string): Query {
+  return {
+    sql: 'SELECT scan_date,price FROM rs_daily WHERE ticker = ? AND price IS NOT NULL '
+      + 'ORDER BY scan_date DESC LIMIT 1',
+    params: [ticker],
+  };
+}
+
+/**
  * Case-insensitive prefix match over every ticker ever scanned, so a partial
  * or wrongly-cased query ("nvd") still resolves. Ordered by how recently the
  * ticker was seen: a name that fired yesterday outranks one last seen in May.

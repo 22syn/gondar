@@ -40,3 +40,16 @@ jobs:
 
       - name: Test
         run: npm run test
+
+      # dashboard/ is a separate package with its own jest config, and until now
+      # nothing ran it: the root jest.config.cjs scopes `roots` to the root
+      # tests/ dir, so `npm run test` above never saw it. Its 60 tests — the
+      # D1 query builders, the read-time setup/RS merge, ticker history — were
+      # a manual-only check that would rot the moment someone forgot.
+      # Not `npm ci`: the dashboard's lockfile is separate from the root one
+      # cached above, so it needs its own install.
+      - name: Test (dashboard)
+        working-directory: dashboard
+        run: |
+          npm ci
+          npm test
