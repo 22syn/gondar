@@ -2269,3 +2269,74 @@ td.col-score {
     scroll-behavior: auto !important;
   }
 }
+
+/* ─── Ticker history: "since this signal" comparison ──────────────────────── */
+
+/* First screen-reader-only utility in this sheet. The compare column's header
+   has no visible label (the cell holds an icon button), but an empty <th>
+   leaves the column unnamed for assistive tech. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.th-pick-cell { width: 1%; padding-inline: 4px; }
+
+.th-pick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.th-pick:hover,
+.th-pick:focus-visible { color: var(--text); border-color: var(--accent, #58a6ff); }
+.th-pick.is-picked { color: var(--text); border-color: #58a6ff; background: rgba(88, 166, 255, 0.15); }
+.th-pick .material-symbols-outlined { font-size: 16px; }
+
+.th-since {
+  margin: 8px 0 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-inline-start-width: 3px;
+  border-radius: var(--radius-sm);
+  background: var(--surface2);
+  font-size: var(--fs-xs);
+}
+
+.th-since.is-up   { border-inline-start-color: #3fb950; }
+.th-since.is-down { border-inline-start-color: #f85149; }
+.th-since.is-empty { color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.th-since.is-empty .material-symbols-outlined { font-size: 16px; }
+
+.th-since-head {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 8px;
+  color: var(--muted);
+}
+.th-since-head .material-symbols-outlined { font-size: 16px; }
+
+.th-since-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px 14px;
+}
+
+.th-since-k { display: block; color: var(--muted); font-size: 11px; }
+.th-since-v { display: block; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
+.th-since.is-up   .th-since-pct { color: #3fb950; }
+.th-since.is-down .th-since-pct { color: #f85149; }

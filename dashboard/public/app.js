@@ -1443,6 +1443,12 @@ function tickerHistoryHTML(h) {
       <td class="col-mono"><span class="${fmtPctClass(r.day_pct)}">${fmtPct(r.day_pct)}</span></td>
       <td class="col-mono">${r.rs != null ? r.rs : '—'}</td>
       <td class="col-mono">${r.score ?? '—'}</td>
+      <td class="col-mono">${fmtPrice(r.price)}</td>
+      <td class="th-pick-cell">
+        <button type="button" class="th-pick" data-pick="${esc(r.scan_date)}"
+                aria-label="השווה מ-${esc(r.scan_date)} עד היום"
+                title="כמה עשתה מאז ההופעה הזאת">${iconHTML('straighten')}</button>
+      </td>
     </tr>`).join('');
 
   const tvUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(h.ticker.replace(/\./g, '-'))}`;
@@ -1461,10 +1467,11 @@ function tickerHistoryHTML(h) {
     ${peaks ? `<div class="dd-sub" style="margin-top:14px">שיאים</div><div class="th-peaks">${peaks}</div>` : ''}
     ${signalChips ? `<div class="dd-sub" style="margin-top:14px">סוגי איתות</div><div class="th-chips">${signalChips}</div>` : ''}
 
-    <div class="dd-sub" style="margin-top:14px">כל ההופעות (${h.total}) — לחיצה קופצת לאותו יום</div>
+    <div class="dd-sub" style="margin-top:14px">כל ההופעות (${h.total}) — לחיצה קופצת לאותו יום, ${iconHTML('straighten')} משווה עד היום</div>
+    <div class="th-since" id="th-since" hidden></div>
     <div class="th-table-wrap">
       <table class="th-table">
-        <thead><tr><th>תאריך</th><th>סיגנלים</th><th>RVOL</th><th>יום%</th><th>RS</th><th>ציון</th></tr></thead>
+        <thead><tr><th>תאריך</th><th>סיגנלים</th><th>RVOL</th><th>יום%</th><th>RS</th><th>ציון</th><th>מחיר</th><th><span class="sr-only">השווה</span></th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -1475,6 +1482,64 @@ function tickerHistoryHTML(h) {
     <a class="dd-tv-link" href="${tvUrl}" target="_blank" rel="noopener noreferrer">
       פתח ב-TradingView ↗
     </a>`;
+}
+
+/**
+ * "What has it done since the signal I picked."
+ *
+ * Pure so it can be tested without a DOM: returns a state plus the numbers,
+ * and the renderer decides how to phrase it. Both prices come from the same
+ * StockData.lastPrice pipeline (lean_signals.price for the appearance,
+ * rs_daily.price for today), so they share one raw scale per ticker — agorot
+ * for .TA — and dividing them is safe. Never mix in a differently-scaled quote.
+ *
+ * @param {{scan_date: string, price: ?number}} pick - the chosen appearance
+ * @param {?number} latestPrice
+ * @param {?string} latestDate
+ */
+function buildSinceSignal(pick, latestPrice, latestDate) {
+  if (!pick || pick.price == null) return { state: 'no-then' };
+  // rs_daily.price only started filling 2026-08-17; before that there is
+  // genuinely no "today" to compare against, and saying so beats a 0%.
+  if (latestPrice == null || !latestDate) return { state: 'no-now', then: pick.price };
+  if (!(pick.price > 0)) return { state: 'no-then' };
+  return {
+    state: 'ok',
+    then: pick.price,
+    now: latestPrice,
+    pct: (latestPrice / pick.price - 1) * 100,
+    days: daysBetween(pick.scan_date, latestDate),
+    from: pick.scan_date,
+    to: latestDate,
+  };
+}
+
+/** Render the comparison into #th-since. */
+function renderSinceSignal(pick, latestPrice, latestDate) {
+  const el = $('#th-since');
+  if (!el) return;
+  const r = buildSinceSignal(pick, latestPrice, latestDate);
+
+  if (r.state === 'no-then') {
+    el.className = 'th-since is-empty';
+    el.innerHTML = `${iconHTML('help')}אין מחיר שמור להופעה הזאת`;
+  } else if (r.state === 'no-now') {
+    el.className = 'th-since is-empty';
+    el.innerHTML = `${iconHTML('help')}אין מחיר עדכני למנייה הזאת — `
+      + `מחיר יומי נשמר רק מ-17.08.2026 ואילך`;
+  } else {
+    const cls = r.pct >= 0 ? 'up' : 'down';
+    el.className = `th-since is-${cls}`;
+    el.innerHTML = `
+      <div class="th-since-head">${iconHTML('straighten')}מאז ההופעה ב-${esc(r.from)}</div>
+      <div class="th-since-grid">
+        <div><span class="th-since-k">מחיר אז</span><span class="th-since-v">${fmtPrice(r.then)}</span></div>
+        <div><span class="th-since-k">מחיר ב-${esc(r.to)}</span><span class="th-since-v">${fmtPrice(r.now)}</span></div>
+        <div><span class="th-since-k">שינוי</span><span class="th-since-v th-since-pct">${fmtPct(r.pct)}</span></div>
+        <div><span class="th-since-k">ימים</span><span class="th-since-v">${r.days ?? '—'}</span></div>
+      </div>`;
+  }
+  el.hidden = false;
 }
 
 /**
@@ -1519,6 +1584,19 @@ async function openTickerHistory(raw) {
   );
   panel.querySelectorAll('.th-sugg-btn').forEach((el) =>
     el.addEventListener('click', () => openTickerHistory(el.dataset.ticker))
+  );
+  // The whole <tr> is already a jumpToDay target via [data-date] above, so the
+  // compare button has to stop the event or picking a row would also navigate
+  // the dashboard away from the panel. It uses data-pick, not data-date, for
+  // the same reason — [data-date] is what that querySelectorAll matches.
+  const byDate = new Map((h.appearances || []).map((r) => [r.scan_date, r]));
+  panel.querySelectorAll('.th-pick').forEach((el) =>
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      panel.querySelectorAll('.th-pick').forEach((b) => b.classList.remove('is-picked'));
+      el.classList.add('is-picked');
+      renderSinceSignal(byDate.get(el.dataset.pick), h.latest_price, h.latest_price_date);
+    })
   );
 }
 
