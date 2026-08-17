@@ -56,7 +56,7 @@
     "googleapis": "^174.0.1",
     "p-limit": "^7.3.1",
     "rss-parser": "^3.13.0",
-    "trading-signals": "^7.4.3",
+    "trading-signals": "^8.3.0",
     "yahoo-finance2": "3.13.0"
   },
   "devDependencies": {
