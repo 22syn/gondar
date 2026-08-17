@@ -7,6 +7,7 @@ import {
   buildTickerLeanQuery,
   buildTickerSetupQuery,
   buildTickerRsQuery,
+  buildTickerLatestPriceQuery,
   buildTickerMatchQuery,
   buildTickerListQuery,
   buildAllScanDatesQuery,
@@ -105,6 +106,29 @@ describe('ticker history queries', () => {
     expect(buildTickerSetupQuery('NVDA').sql).toMatch(/FROM setup_signals WHERE ticker = \?/);
     expect(buildTickerRsQuery('NVDA').sql).toMatch(/FROM rs_daily WHERE ticker = \?/);
     expect(buildTickerSetupQuery('NVDA').params).toEqual(['NVDA']);
+  });
+
+  describe('buildTickerLatestPriceQuery', () => {
+    it('takes the newest PRICED rs_daily row, not just the newest row', () => {
+      // rs_daily.price only started filling 2026-08-17, so a ticker's most
+      // recent row is very often null-priced. Without the IS NOT NULL filter
+      // the panel would compare against nothing and report a bogus 0%.
+      const q = buildTickerLatestPriceQuery('NVDA');
+      expect(q.sql).toContain('FROM rs_daily');
+      expect(q.sql).toContain('price IS NOT NULL');
+      expect(q.sql).toMatch(/ORDER BY scan_date DESC LIMIT 1/);
+      expect(q.params).toEqual(['NVDA']);
+    });
+
+    it('binds the ticker rather than interpolating it', () => {
+      const q = buildTickerLatestPriceQuery("X' OR 1=1--");
+      expect(q.sql).not.toContain('OR 1=1');
+      expect(q.params).toEqual(["X' OR 1=1--"]);
+    });
+
+    it('selects the two fields the comparison needs', () => {
+      expect(buildTickerLatestPriceQuery('NVDA').sql).toContain('SELECT scan_date,price');
+    });
   });
 
   it('prefix-matches tickers, most recently seen first', () => {

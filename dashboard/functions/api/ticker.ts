@@ -10,6 +10,7 @@ import {
   buildTickerLeanQuery,
   buildTickerSetupQuery,
   buildTickerRsQuery,
+  buildTickerLatestPriceQuery,
   buildTickerMatchQuery,
   buildAllScanDatesQuery,
 } from '../../src/query.js';
@@ -58,5 +59,25 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     suggestions = (m.results ?? []).filter((r) => r.ticker !== ticker);
   }
 
-  return Response.json({ ...history, suggestions });
+  // Current price for the "since this signal" comparison. Its own query rather
+  // than part of the merge above — see buildTickerLatestPriceQuery. Wrapped
+  // because rs_daily.price only exists from 2026-08-17: on a database that has
+  // not ingested since, the column is absent and this throws, which must not
+  // take the whole history panel down with it.
+  let latest_price: number | null = null;
+  let latest_price_date: string | null = null;
+  try {
+    const pq = buildTickerLatestPriceQuery(ticker);
+    const p = await env.DB.prepare(pq.sql).bind(...pq.params)
+      .first<{ scan_date: string; price: number }>();
+    if (p) {
+      latest_price = p.price;
+      latest_price_date = p.scan_date;
+    }
+  } catch {
+    // Column not there yet — the panel shows "no current price" and the rest
+    // of the history stays correct.
+  }
+
+  return Response.json({ ...history, latest_price, latest_price_date, suggestions });
 };
