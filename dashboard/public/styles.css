@@ -706,6 +706,28 @@ main {
   border-color: rgba(255, 107, 53, 0.35);
 }
 
+/* Age of the served chart image. Sits in .chart-title-row opposite the title,
+   so it reads as metadata about the panel rather than part of the explainer. */
+.williamsr-freshness {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  flex: none;
+  white-space: nowrap;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.williamsr-freshness .material-symbols-outlined { font-size: 15px; }
+
+/* Overdue: same red the overbought legend uses, so the palette stays consistent. */
+.williamsr-freshness.is-stale {
+  color: #f85149;
+  font-weight: 600;
+  white-space: normal;
+}
+
 .williamsr-explainer {
   font-size: var(--fs-xs);
   color: var(--muted);
