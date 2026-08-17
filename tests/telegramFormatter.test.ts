@@ -104,7 +104,6 @@ describe('Telegram Formatter (action-based)', () => {
         news: [],
         isVolumeWithoutPrice: false,
         momentum: fullMomentum,
-        championScore: 87,
         action: 'BUY',
         breakoutStage: 'Breaking Out',
         tradePlan: buyTradePlan,
@@ -128,7 +127,6 @@ describe('Telegram Formatter (action-based)', () => {
         news: [],
         isVolumeWithoutPrice: false,
         momentum: watchlistMomentum,
-        championScore: 62,
         action: 'WATCH',
         breakoutStage: 'Pre-Pivot',
         tradePlan: watchTradePlan,
@@ -153,13 +151,6 @@ describe('Telegram Formatter (action-based)', () => {
             const watchIdx = report.indexOf('👀 <b>WATCH</b>');
             expect(buyIdx).toBeGreaterThan(0);
             expect(watchIdx).toBeGreaterThan(buyIdx);
-        });
-
-        it('shows the Champion Score next to ticker', () => {
-            const report = formatDailyReport('2026-02-01', [buyStock], []);
-            expect(report).toContain('NVDA');
-            expect(report).toContain('87'); // championScore
-            expect(report).toContain('/100');
         });
 
         it('renders the trade plan (buy zone + pivot + stop + risk)', () => {

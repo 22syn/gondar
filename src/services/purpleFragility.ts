@@ -43,9 +43,8 @@ import { normalizePriceUnitJumps } from './marketData.js';
 import { mean, stdDev, pearson, rollingMean, rollingStd, rollingMax, expandingZ } from '../utils/statistics.js';
 import logger from '../utils/logger.js';
 
-// process.cwd() is the project root in every run mode (npm start, tsx scripts,
-// GHA) — same convention as championScore.ts, and keeps Jest (CJS transform)
-// away from import.meta.
+// process.cwd() is the project root in every run mode (tsx scripts, GHA) and
+// keeps Jest (CJS transform) away from import.meta.
 const PURPLE_LIST_PATH = path.join(process.cwd(), 'config', 'purple-list.json');
 
 export const FRAGILITY_THRESHOLD = 1.0;

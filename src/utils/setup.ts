@@ -188,7 +188,8 @@ export function evaluateMomentumSetup(
     // (4y replay confirmed Δ≈−26pp; see comment on the gate below). The boolean
     // is still computed and used in:
     //   - highConvictionBypass flag: "extended entry" diagnostic
-    //   - championScore penalty + gold-tier alert gate (requires FAIL)
+    // (the other consumer, championScore's gold-tier gate, was removed with
+    // that module 2026-08-17 — it was the only caller of the dead src/index.ts)
     const QUALITY: Array<keyof MomentumCriteria> = [
         'tightness',
         'antsAccumulation',
