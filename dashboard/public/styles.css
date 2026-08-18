@@ -2287,24 +2287,32 @@ td.col-score {
   border: 0;
 }
 
-.th-pick-cell { width: 1%; padding-inline: 4px; }
+/* Jump-to-day, inside the date cell so it is reachable without scrolling the
+   table sideways — the panel is 460px and .th-table-wrap is overflow-x:auto. */
+.th-date { white-space: nowrap; }
 
-.th-pick {
+.th-jump {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 3px;
-  border: 1px solid var(--border);
+  margin-inline-start: 6px;
+  padding: 2px;
+  border: 0;
   border-radius: var(--radius-sm);
-  background: var(--surface2);
+  background: transparent;
   color: var(--muted);
   cursor: pointer;
+  opacity: 0.55;
 }
 
-.th-pick:hover,
-.th-pick:focus-visible { color: var(--text); border-color: var(--accent, #58a6ff); }
-.th-pick.is-picked { color: var(--text); border-color: #58a6ff; background: rgba(88, 166, 255, 0.15); }
-.th-pick .material-symbols-outlined { font-size: 16px; }
+.th-row:hover .th-jump,
+.th-jump:hover,
+.th-jump:focus-visible { opacity: 1; color: var(--text); }
+.th-jump .material-symbols-outlined { font-size: 14px; }
+
+/* The picked row stays marked while its comparison is on screen. */
+.th-row.is-picked { background: rgba(88, 166, 255, 0.12); }
+.th-row.is-picked .th-date { font-weight: 600; }
 
 .th-since {
   margin: 8px 0 4px;
