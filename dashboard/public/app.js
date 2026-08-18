@@ -925,6 +925,14 @@ function isHighRsNearRow(r) {
 let hiddenNearCount = 0;
 /** Count of near-tier rows currently visible (set by visibleRows) — drives the collapse label. */
 let shownNearCount = 0;
+/**
+ * Index in the array visibleRows() returns where the promoted-near block
+ * starts, or -1 when there is nothing to divide (no real rows shown, no
+ * promoted near rows shown, or the user asked for near rows explicitly via
+ * the signal dropdown / search — in every one of those cases the list is
+ * already one kind and a divider would separate nothing).
+ */
+let nearDividerIndex = -1;
 
 function visibleRows() {
   const q    = ($('#search').value || '').trim().toUpperCase();
@@ -966,15 +974,30 @@ function visibleRows() {
 
   shownNearCount = filtered.filter(isNearRow).length;
 
-  return filtered.sort((a, b) => {
-    let x = a[sortKey], y = b[sortKey];
-    if (x == null && y == null) return 0;
-    if (x == null) return 1;
-    if (y == null) return -1;
-    if (typeof x === 'string') x = x.toLowerCase();
-    if (typeof y === 'string') y = y.toLowerCase();
-    return (x > y ? 1 : x < y ? -1 : 0) * sortDir;
-  });
+  // Real signals stay their own block above promoted near rows, each block
+  // sorted independently by the chosen column. Rationale (Kobi, 2026-08-18):
+  // a near-miss outranking a real signal by raw RS — TEAM at RS 99 above
+  // CRDO's real signal at 98 — read as clutter, not confidence. This keeps
+  // RS (or whatever column is sorted) meaningful WITHIN each group instead of
+  // letting a promoted row's RS put it ahead of every real signal on the
+  // board. Trade-off, stated once rather than re-discovered: clicking a
+  // column header re-sorts inside each block, not across the whole table —
+  // a promoted near row can never climb above a real one, by design.
+  const real = filtered.filter((r) => !isNearRow(r)).sort(compareRows);
+  const near = filtered.filter((r) => isNearRow(r)).sort(compareRows);
+  nearDividerIndex = (real.length > 0 && near.length > 0) ? real.length : -1;
+  return [...real, ...near];
+}
+
+/** The sort comparator visibleRows() applies within each block. */
+function compareRows(a, b) {
+  let x = a[sortKey], y = b[sortKey];
+  if (x == null && y == null) return 0;
+  if (x == null) return 1;
+  if (y == null) return -1;
+  if (typeof x === 'string') x = x.toLowerCase();
+  if (typeof y === 'string') y = y.toLowerCase();
+  return (x > y ? 1 : x < y ? -1 : 0) * sortDir;
 }
 
 /* ─── Table head ──────────────────────────────────────────────────────────── */
@@ -1076,11 +1099,13 @@ function renderTable() {
     }).join('');
 
     // grad wins over conf for the data attribute — CSS uses data-grad first
-    return `<tr data-i="${i}" data-conf="${conf}" data-grad="${grad}" tabindex="0" role="row">${tds}</tr>`;
+    const row = `<tr data-i="${i}" data-conf="${conf}" data-grad="${grad}" tabindex="0" role="row">${tds}</tr>`;
+    return i === nearDividerIndex ? nearDividerRowHTML() + row : row;
   }).join('');
 
-  /* attach row click handlers */
+  /* attach row click handlers — skip the divider, it carries no data-i */
   tbody.querySelectorAll('tr').forEach((tr) => {
+    if (tr.dataset.i === undefined) return;
     const idx = parseInt(tr.dataset.i, 10);
     tr.addEventListener('click', () => openDeepDive(vr[idx]));
     tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openDeepDive(vr[idx]); });
@@ -1089,13 +1114,14 @@ function renderTable() {
   /* — mobile card list — */
   const cardList = $('#card-list');
   cardList.innerHTML = vr.map((r, i) => {
+    const divider = i === nearDividerIndex ? nearDividerCardHTML() : '';
     const conf  = (r.signal_count > 1) || false;
     const grad  = !!r.graduated_from;
     const sc    = r.score ?? null;
     const scBg  = scoreBg(sc);
     const scClr = scoreColor(sc);
     const delta = scoreDeltaHTML(r.score_delta);
-    return `
+    const card = `
       <div
         class="signal-card"
         data-i="${i}"
@@ -1119,6 +1145,7 @@ function renderTable() {
           <div class="sc-kv"><span class="sc-k">S2</span><span class="sc-v ${r.stage2 ? 'num-up' : ''}">${r.stage2 ? iconHTML('check') : '—'}</span></div>
         </div>
       </div>`;
+    return divider + card;
   }).join('');
 
   cardList.querySelectorAll('.signal-card').forEach((card) => {
@@ -1126,6 +1153,25 @@ function renderTable() {
     card.addEventListener('click', () => openDeepDive(vr[idx]));
     card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openDeepDive(vr[idx]); });
   });
+}
+
+/**
+ * Divider between the real-signal block and the promoted near rows below it
+ * (RS >= NEAR_ALWAYS_SHOW_RS). Non-interactive and excluded from both click
+ * wiring loops on purpose — it carries no data-i, and the desktop wiring
+ * skips any <tr> without one.
+ */
+function nearDividerRowHTML() {
+  return `<tr class="near-divider-row" aria-hidden="true">`
+    + `<td colspan="${COLS.length}" class="near-divider-cell">`
+    + `${iconHTML('visibility')}ניירות near (RS ≥ ${NEAR_ALWAYS_SHOW_RS}) — לא סיגנל מלא`
+    + `</td></tr>`;
+}
+
+function nearDividerCardHTML() {
+  return `<div class="near-divider-card" aria-hidden="true">`
+    + `${iconHTML('visibility')}ניירות near (RS ≥ ${NEAR_ALWAYS_SHOW_RS}) — לא סיגנל מלא`
+    + `</div>`;
 }
 
 /* ─── Show-more (near tier) ───────────────────────────────────────────────── */
