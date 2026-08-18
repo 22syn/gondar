@@ -900,6 +900,27 @@ function isNearRow(r) {
   return (r.signal || '').startsWith('near');
 }
 
+/**
+ * RS at or above this keeps a near-tier row in the default view.
+ *
+ * The near tiers are collapsed because they are noisy — median 35 rows/day
+ * against the 14 that show. But collapsing them by tier alone buried the best
+ * name on the board: on 2026-08-14 CRDO sat at RS 97, second of 46, and went
+ * on to +37% — while CLBT at RS 20 was displayed, because it happened to fire
+ * a real tier. RS is the one ranking measured to carry information here (the
+ * 2026-08-03 study; scoreRow does not), so it is what earns a row its place.
+ *
+ * 90 measured over the 55 scan days in D1: median +4 rows/day, worst day +13,
+ * against a default view of 14. 85 would add 6/day, 95 only 2 and nothing at
+ * all on 10 of 55 days.
+ */
+const NEAR_ALWAYS_SHOW_RS = 90;
+
+/** A near-tier row strong enough to show without expanding the collapse. */
+function isHighRsNearRow(r) {
+  return isNearRow(r) && r.rs != null && r.rs >= NEAR_ALWAYS_SHOW_RS;
+}
+
 /** Count of rows hidden ONLY by the near-tier default filter (set by visibleRows). */
 let hiddenNearCount = 0;
 /** Count of near-tier rows currently visible (set by visibleRows) — drives the collapse label. */
@@ -924,11 +945,19 @@ function visibleRows() {
     if (s2   && r.stage2 !== 1)     return false;
     if (grad && !r.graduated_from)  return false;
 
-    // Near-tier filter: hide near-* rows unless showNear is on OR the user
-    // explicitly selected a near signal from the dropdown. Counted after the
+    // Near-tier filter: hide near-* rows unless showNear is on, the user
+    // explicitly selected a near signal from the dropdown, they searched for a
+    // ticker, or the row's RS clears NEAR_ALWAYS_SHOW_RS. Counted after the
     // other filters so the "show more" button reports how many rows it reveals.
-    const nearExplicit = sig.startsWith('near');
-    if (!showNear && !nearExplicit && isNearRow(r)) {
+    //
+    // `|| !!q` — a ticker search must never come back empty because the name
+    // happens to be a near row. Searching CRDO on 2026-08-14 returned a blank
+    // table and a generic "load 1 more" button, even though the row was right
+    // there, RS 97, #2 of 46 by the dashboard's own default sort. jumpToDay
+    // already forces showNear for exactly this reason ("it would otherwise
+    // land on an empty table"); typing in the search box deserves the same.
+    const nearExplicit = sig.startsWith('near') || !!q;
+    if (!showNear && !nearExplicit && isNearRow(r) && !isHighRsNearRow(r)) {
       hiddenNearCount++;
       return false;
     }
