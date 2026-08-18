@@ -2348,3 +2348,34 @@ td.col-score {
 .th-since-v { display: block; font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text); }
 .th-since.is-up   .th-since-pct { color: #3fb950; }
 .th-since.is-down .th-since-pct { color: #f85149; }
+
+/* ─── Real-signal / promoted-near divider ──────────────────────────────────
+   Separates the real-signal block (always first) from near-tier rows shown
+   only because their RS cleared NEAR_ALWAYS_SHOW_RS — see visibleRows(). */
+
+.near-divider-cell {
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.near-divider-cell .material-symbols-outlined { font-size: 14px; }
+
+.near-divider-card {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 10px 0 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  color: var(--muted);
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+.near-divider-card .material-symbols-outlined { font-size: 14px; }
