@@ -1465,19 +1465,19 @@ function tickerHistoryHTML(h) {
   ].join('');
 
   const rows = h.appearances.map((r) => `
-    <tr class="th-row" data-date="${esc(r.scan_date)}" tabindex="0">
-      <td class="th-date">${esc(r.scan_date)}</td>
+    <tr class="th-row" data-pick="${esc(r.scan_date)}" tabindex="0"
+        title="הצג כמה עשתה מאז ההופעה הזאת">
+      <td class="th-date">
+        <span>${esc(r.scan_date)}</span>
+        <button type="button" class="th-jump" data-date="${esc(r.scan_date)}"
+                aria-label="קפוץ ליום ${esc(r.scan_date)}"
+                title="קפוץ ליום הזה">${iconHTML('open_in_new')}</button>
+      </td>
       <td class="th-badges">${signalBadgesHTML(r)}</td>
       <td class="col-mono">${fmtRvol(r.rvol)}</td>
       <td class="col-mono"><span class="${fmtPctClass(r.day_pct)}">${fmtPct(r.day_pct)}</span></td>
       <td class="col-mono">${r.rs != null ? r.rs : '—'}</td>
       <td class="col-mono">${r.score ?? '—'}</td>
-      <td class="col-mono">${fmtPrice(r.price)}</td>
-      <td class="th-pick-cell">
-        <button type="button" class="th-pick" data-pick="${esc(r.scan_date)}"
-                aria-label="השווה מ-${esc(r.scan_date)} עד היום"
-                title="כמה עשתה מאז ההופעה הזאת">${iconHTML('straighten')}</button>
-      </td>
     </tr>`).join('');
 
   const tvUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(h.ticker.replace(/\./g, '-'))}`;
@@ -1496,11 +1496,11 @@ function tickerHistoryHTML(h) {
     ${peaks ? `<div class="dd-sub" style="margin-top:14px">שיאים</div><div class="th-peaks">${peaks}</div>` : ''}
     ${signalChips ? `<div class="dd-sub" style="margin-top:14px">סוגי איתות</div><div class="th-chips">${signalChips}</div>` : ''}
 
-    <div class="dd-sub" style="margin-top:14px">כל ההופעות (${h.total}) — לחיצה קופצת לאותו יום, ${iconHTML('straighten')} משווה עד היום</div>
+    <div class="dd-sub" style="margin-top:14px">כל ההופעות (${h.total}) — לחיצה מציגה כמה עשתה מאז, ${iconHTML('open_in_new')} קופץ לאותו יום</div>
     <div class="th-since" id="th-since" hidden></div>
     <div class="th-table-wrap">
       <table class="th-table">
-        <thead><tr><th>תאריך</th><th>סיגנלים</th><th>RVOL</th><th>יום%</th><th>RS</th><th>ציון</th><th>מחיר</th><th><span class="sr-only">השווה</span></th></tr></thead>
+        <thead><tr><th>תאריך</th><th>סיגנלים</th><th>RVOL</th><th>יום%</th><th>RS</th><th>ציון</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -1603,30 +1603,34 @@ async function openTickerHistory(raw) {
   openPanel(tickerHistoryHTML(h), true);
 
   const panel = $('#deepdive');
+  // [data-date] now matches only the peak cards and the explicit jump buttons —
+  // NOT the rows. Jumping navigates the whole dashboard away from this panel,
+  // which is the disruptive action; the row is reserved for the cheap one.
   panel.querySelectorAll('[data-date]').forEach((el) =>
-    el.addEventListener('click', () => jumpToDay(el.dataset.date, h.ticker))
-  );
-  panel.querySelectorAll('.th-row').forEach((el) =>
-    el.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); jumpToDay(el.dataset.date, h.ticker); }
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      jumpToDay(el.dataset.date, h.ticker);
     })
   );
   panel.querySelectorAll('.th-sugg-btn').forEach((el) =>
     el.addEventListener('click', () => openTickerHistory(el.dataset.ticker))
   );
-  // The whole <tr> is already a jumpToDay target via [data-date] above, so the
-  // compare button has to stop the event or picking a row would also navigate
-  // the dashboard away from the panel. It uses data-pick, not data-date, for
-  // the same reason — [data-date] is what that querySelectorAll matches.
+  // Row click shows the comparison in place. The previous shape — row jumps,
+  // small button compares — put the primary action in an 8th column of a table
+  // inside a 460px panel with overflow-x:auto, i.e. behind a horizontal
+  // scrollbar, so every click landed on the row and navigated away instead.
   const byDate = new Map((h.appearances || []).map((r) => [r.scan_date, r]));
-  panel.querySelectorAll('.th-pick').forEach((el) =>
-    el.addEventListener('click', (e) => {
-      e.stopPropagation();
-      panel.querySelectorAll('.th-pick').forEach((b) => b.classList.remove('is-picked'));
-      el.classList.add('is-picked');
-      renderSinceSignal(byDate.get(el.dataset.pick), h.latest_price, h.latest_price_date);
-    })
-  );
+  const pick = (el) => {
+    panel.querySelectorAll('.th-row').forEach((r) => r.classList.remove('is-picked'));
+    el.classList.add('is-picked');
+    renderSinceSignal(byDate.get(el.dataset.pick), h.latest_price, h.latest_price_date);
+  };
+  panel.querySelectorAll('.th-row').forEach((el) => {
+    el.addEventListener('click', () => pick(el));
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(el); }
+    });
+  });
 }
 
 /**
