@@ -1,38 +1,10 @@
 {
-  "updatedAt": "2026-08-13",
+  "updatedAt": "2026-08-20",
   "watchlists": {
     "Lean Radar - Breakouts": [
       {
-        "ticker": "TMHC",
-        "signalDate": "2026-07-29"
-      },
-      {
-        "ticker": "EPOL",
-        "signalDate": "2026-07-30"
-      },
-      {
-        "ticker": "EWO",
-        "signalDate": "2026-08-03"
-      },
-      {
-        "ticker": "EWP",
-        "signalDate": "2026-08-03"
-      },
-      {
-        "ticker": "EWI",
-        "signalDate": "2026-08-03"
-      },
-      {
-        "ticker": "EWQ",
-        "signalDate": "2026-08-04"
-      },
-      {
         "ticker": "ACWX",
         "signalDate": "2026-08-04"
-      },
-      {
-        "ticker": "WBS",
-        "signalDate": "2026-08-05"
       },
       {
         "ticker": "CAPL",
@@ -44,15 +16,6 @@
       }
     ],
     "Lean Radar - Near": [
-      {
-        "ticker": "DLN",
-        "signalDate": "2026-07-31",
-        "exchange": "LSE"
-      },
-      {
-        "ticker": "BAC",
-        "signalDate": "2026-08-04"
-      },
       {
         "ticker": "COLO",
         "signalDate": "2026-08-07"
@@ -68,119 +31,6 @@
     ],
     "Lean Radar - Creep": [
       {
-        "ticker": "EAT",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "TSEM",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "TXRH",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "ASH",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "DAL",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "OKTA",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "UAL",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "CAKE",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "CRWD",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "FTNT",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "NET",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "PANW",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "S",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "SNOW",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "CHEF",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "DELL",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "DIN",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "EZJ",
-        "signalDate": "2026-08-13",
-        "exchange": "LSE"
-      },
-      {
-        "ticker": "MOG.A",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "AAL",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "CRS",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "CSCO",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "GE",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "HPE",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "JETS",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "PBF",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "SAFRY",
-        "signalDate": "2026-08-13"
-      },
-      {
-        "ticker": "GLBE",
-        "signalDate": "2026-08-05"
-      },
-      {
         "ticker": "LIND",
         "signalDate": "2026-08-07"
       },
@@ -193,16 +43,8 @@
         "signalDate": "2026-08-07"
       },
       {
-        "ticker": "APH",
-        "signalDate": "2026-08-10"
-      },
-      {
         "ticker": "COLO",
         "signalDate": "2026-08-11"
-      },
-      {
-        "ticker": "AEHR",
-        "signalDate": "2026-08-12"
       },
       {
         "ticker": "ABNB",
@@ -212,6 +54,11 @@
         "ticker": "MTX",
         "signalDate": "2026-08-12",
         "exchange": "XETR"
+      },
+      {
+        "ticker": "EMBJ3",
+        "signalDate": "2026-08-20",
+        "exchange": "BMFBOVESPA"
       }
     ]
   }
