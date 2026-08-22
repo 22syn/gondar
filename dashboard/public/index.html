@@ -136,6 +136,34 @@
           <canvas id="fragility-chart" aria-label="גרף ציון שבירות ומיצוי" role="img"></canvas>
         </div>
       </div>
+      <!-- Market Context (2026-08-22). Six market-wide gauges, DISPLAY ONLY —
+           nothing here gates or ranks a signal. Deliberately a wrapping grid
+           rather than a table: a table of ten numbers needs horizontal scroll
+           on a narrow panel, and that has already shipped once here as an
+           "all pass" feature nobody could actually use. -->
+      <div class="chart-wrap chart-wrap--mc" id="market-context-wrap" hidden>
+        <div class="chart-title-row">
+          <p class="chart-title"><span class="material-symbols-outlined" aria-hidden="true">public</span>Market Context <span class="chart-subtitle">לחץ שוק רחב — תיאורי בלבד, לא מסנן ולא מדרג שום סיגנל · אזהרה = האחוזון של המדד בהיסטוריה של עצמו, לא סף קבוע</span></p>
+          <p class="mc-warncount" id="mc-warncount" hidden></p>
+        </div>
+        <div class="mc-grid" id="mc-grid" role="list"></div>
+        <p class="mc-note" id="mc-note" hidden></p>
+      </div>
+
+      <!-- Williams %R, computed. Replaces the weekly TradingView screenshot:
+           the formula matches TradingView to every displayed digit, so this is
+           the same reading as a number we can store, chart and backtest. -->
+      <div class="chart-wrap chart-wrap--wr" id="wr-wrap" hidden>
+        <div class="chart-title-row">
+          <p class="chart-title"><span class="material-symbols-outlined" aria-hidden="true">trending_down</span>Williams %R (14) <span class="chart-subtitle">SPY ו-QQQ, יומי ושבועי — מחושב אצלנו, זהה לערך של TradingView · מתחת ל-‎80‎- פאניקה, מעל ‎20‎- overbought</span></p>
+          <button class="btn-expand" id="btn-expand-wr" aria-label="הגדל גרף" title="הגדל גרף"><span class="material-symbols-outlined" aria-hidden="true">open_in_full</span></button>
+        </div>
+        <div class="mc-grid mc-grid--wr" id="wr-grid" role="list"></div>
+        <div class="chart-box">
+          <canvas id="wr-chart" aria-label="גרף Williams %R שבועי ל-SPY ו-QQQ" role="img"></canvas>
+        </div>
+      </div>
+
       <div class="chart-wrap chart-wrap--williamsr" id="williamsr-wrap" hidden>
         <div class="chart-title-row">
           <p class="chart-title"><span class="material-symbols-outlined" aria-hidden="true">trending_down</span>Williams %R <span class="chart-subtitle">מד תזמון-שוק על SPY ו-QQQ שבועי (14) — לא לכל מניה, ולא קשור לציון ה-Fragility למעלה</span></p>

@@ -4,10 +4,12 @@ export interface Row {
   signals: string[]; signalCount: number;
   rvol: number; athPct: number | null; dayPct: number; stage2: number;
   distPivot: number | null; score: number; price: number;
+  /** Williams %R(14), daily. Null for reconstructed/back-seeded rows. */
+  wr14?: number | null;
 }
 export interface Batch { sql: string; params: unknown[]; }
 
-const COLS = '(scan_date,ticker,region,sector,signal,signals,signal_count,rvol,ath_pct,day_pct,stage2,dist_pivot,score,price,ingested_at)';
+const COLS = '(scan_date,ticker,region,sector,signal,signals,signal_count,rvol,ath_pct,day_pct,stage2,dist_pivot,score,price,wr14,ingested_at)';
 
 /**
  * Delete-first batches: one DELETE per distinct scan_date in `rows`, so a
@@ -20,17 +22,17 @@ export function buildDeleteBatches(rows: Row[]): Batch[] {
   return dates.map((d) => ({ sql: 'DELETE FROM lean_signals WHERE scan_date = ?', params: [d] }));
 }
 
-// batchSize 6: D1 caps at 100 bound params/query; 15 cols × 6 = 90.
+// batchSize 6: D1 caps at 100 bound params/query; 16 cols × 6 = 96.
 export function buildUpsertBatches(rows: Row[], ingestedAt: string, batchSize = 6): Batch[] {
   const batches: Batch[] = [];
   for (let i = 0; i < rows.length; i += batchSize) {
     const slice = rows.slice(i, i + batchSize);
-    const placeholders = slice.map(() => '(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').join(',');
+    const placeholders = slice.map(() => '(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)').join(',');
     const params: unknown[] = [];
     for (const r of slice) {
       params.push(r.scanDate, r.ticker, r.region, r.sector, r.signal,
         r.signals.join(','), r.signalCount, r.rvol,
-        r.athPct, r.dayPct, r.stage2, r.distPivot, r.score, r.price, ingestedAt);
+        r.athPct, r.dayPct, r.stage2, r.distPivot, r.score, r.price, r.wr14 ?? null, ingestedAt);
     }
     batches.push({ sql: `INSERT OR REPLACE INTO lean_signals ${COLS} VALUES ${placeholders}`, params });
   }
@@ -60,6 +62,12 @@ async function runBatch(batch: Batch, cfg: D1Config): Promise<void> {
 export async function ensureSchema(cfg: D1Config): Promise<void> {
   try {
     await runBatch({ sql: 'ALTER TABLE lean_signals ADD COLUMN ingested_at TEXT', params: [] }, cfg);
+  } catch (e) {
+    if (!/duplicate column/i.test((e as Error).message)) throw e;
+  }
+  // migration 0004_add_wr14.sql, same self-applying pattern.
+  try {
+    await runBatch({ sql: 'ALTER TABLE lean_signals ADD COLUMN wr14 REAL', params: [] }, cfg);
   } catch (e) {
     if (!/duplicate column/i.test((e as Error).message)) throw e;
   }

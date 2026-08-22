@@ -86,6 +86,10 @@ export interface StockData {
     sma200Slope?: 'up' | 'flat' | 'down';
     /** Slope of SMA50 over last ~10 bars: 'up' / 'flat' / 'down' (used by Recovery Rally tier) */
     sma50Slope?: 'up' | 'flat' | 'down';
+    /** Williams %R over the last 14 daily bars, range [-100, 0]. Computed from
+     *  the OHLC series the consolidation detector already fetches, so it costs
+     *  no extra request. Display only — nothing gates on it. */
+    wr14?: number;
     /** Trading days since last touch of 52w high */
     daysSinceAth?: number;
     /** Consecutive green-day count over last 15 bars (close[i] > close[i-1]) */

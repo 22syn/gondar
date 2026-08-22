@@ -73,6 +73,7 @@ const COLS = [
   ['stage2',    'S2',        'col-mono'],
   ['rs',        'RS',        'col-mono'],
   ['score',     'Score',     'col-score'],
+  ['wr14',      'W%R',       'col-mono'],
   ['price',     'מחיר',      'col-mono'],
 ];
 
@@ -103,6 +104,11 @@ let chart = null;
 let fragChart = null;
 /** @type {Chart|null} Modal (expanded-view) instance of the fragility chart. */
 let fragChartModal = null;
+/** @type {Chart|null} Williams %R weekly chart, and its expanded-modal twin. */
+let wrChart = null;
+let wrChartModal = null;
+/** Last-loaded market_context rows, kept so the modal can re-render the same data. */
+let marketContextRows = [];
 /** Last-loaded fragility rows, kept so the expanded modal can re-render the same data. */
 let fragilityRows = [];
 /** Calendar view state: which month/year the popover is currently showing */
@@ -1089,6 +1095,12 @@ function renderTable() {
           const delta = scoreDeltaHTML(r.score_delta);
           return `<td class="${cls}" style="background:${bg}" data-v="${r.score ?? -1}">${r.score ?? '—'}${delta}</td>`;
         }
+        case 'wr14': {
+          // Williams %R(14), daily. Sorts numerically via data-v; nulls last.
+          if (r.wr14 == null) return `<td class="${cls}" data-v="-999">—</td>`;
+          const cl = r.wr14 <= -80 ? 'num-down' : r.wr14 >= -20 ? 'num-up' : '';
+          return `<td class="${cls}" data-v="${r.wr14}"><span class="${cl}">${r.wr14.toFixed(0)}</span></td>`;
+        }
         case 'price':
           inner = fmtPrice(r.price);
           break;
@@ -1925,6 +1937,7 @@ async function boot() {
 
   // Fragility chart — expand to a larger modal view
   $('#btn-expand-fragility').addEventListener('click', openFragilityModal);
+  $('#btn-expand-wr').addEventListener('click', openWrModal);
   $('#btn-close-chart-modal').addEventListener('click', closeFragilityModal);
   $('#chart-modal-overlay').addEventListener('click', closeFragilityModal);
 
@@ -2015,6 +2028,7 @@ async function boot() {
 
   // Fragility series is global (not per-day) — load once, after the main view.
   loadFragility();
+  loadMarketContext();
 
   // Current TradingView watchlist — global (not per-day) — load once too.
   loadWatchlist();
@@ -2024,3 +2038,193 @@ async function boot() {
 }
 
 boot();
+
+
+/* ─── Market Context + computed Williams %R ───────────────────────────────── */
+
+/**
+ * The six gauges, and which end of their own distribution counts as a warning.
+ * MUST stay in sync with GAUGES in dashboard/src/marketContext.ts, which is what
+ * actually computes warn_count — this copy only decides how a tile is drawn.
+ */
+const MC_GAUGES = [
+  { key: 'spx_dist_sma150', label: 'SPX מעל SMA150', unit: '%', digits: 1 },
+  { key: 'rsp_slope21', label: 'RSP מגמת 21י', unit: '%', digits: 1 },
+  { key: 'vix', label: 'VIX', unit: '', digits: 2 },
+  { key: 'xlp_spx_slope21', label: 'XLP/SPX 21י', unit: '%', digits: 2 },
+  { key: 'xly_xlp_slope21', label: 'XLY/XLP 21י', unit: '%', digits: 2 },
+  { key: 's5fi', label: 'S5FI רוחב', unit: '%', digits: 1 },
+];
+
+/** Percentile at or beyond which a gauge is drawn as warning. Mirrors WARN_PCT. */
+const MC_WARN_PCT = 90;
+
+function mcTile({ label, value, unit, digits, pct, warn, extra }) {
+  const el = document.createElement('div');
+  el.className = 'mc-tile' + (warn ? ' is-warn' : '') + (value == null ? ' is-empty' : '');
+  el.setAttribute('role', 'listitem');
+
+  const l = document.createElement('p');
+  l.className = 'mc-tile-label';
+  l.textContent = label;
+
+  const v = document.createElement('p');
+  v.className = 'mc-tile-value';
+  v.textContent = value == null ? '—' : `${value.toFixed(digits)}${unit}`;
+
+  el.append(l, v);
+
+  const foot = pct == null ? extra : `אחוזון ${Math.round(pct)}${extra ? ` · ${extra}` : ''}`;
+  if (foot) {
+    const p = document.createElement('p');
+    p.className = 'mc-tile-pct';
+    p.textContent = foot;
+    el.append(p);
+  }
+  return el;
+}
+
+/**
+ * Load market_context and render the two panels. Silent on failure and hidden
+ * on an empty series — the table does not exist until the first ingest, and a
+ * missing panel is better than an empty frame full of dashes.
+ */
+async function loadMarketContext() {
+  let rows = [];
+  try {
+    const resp = await fetch('/api/market-context');
+    if (resp.ok) rows = await resp.json();
+  } catch { /* keep panels hidden */ }
+  if (!Array.isArray(rows) || rows.length === 0) return;
+  marketContextRows = rows;
+
+  const latest = rows[rows.length - 1];
+  const grid = $('#mc-grid');
+  grid.textContent = '';
+  for (const g of MC_GAUGES) {
+    const pct = latest.pct ? latest.pct[g.key] : null;
+    const warnHigh = ['spx_dist_sma150', 'xlp_spx_slope21', 's5fi'].includes(g.key);
+    const warn = pct != null && (warnHigh ? pct >= MC_WARN_PCT : pct <= 100 - MC_WARN_PCT);
+    grid.append(mcTile({
+      label: g.label,
+      value: latest[g.key],
+      unit: g.unit,
+      digits: g.digits,
+      pct,
+      warn,
+      extra: g.key === 's5fi' && latest.s5fi_n != null ? `n=${latest.s5fi_n}` : '',
+    }));
+  }
+
+  const wc = $('#mc-warncount');
+  if (latest.warn_count == null) {
+    // Percentiles need history before they mean anything; say so rather than
+    // printing "0 warnings" and implying an all-clear we have not measured.
+    wc.textContent = 'אחוזונים בהרצה — צריך 60 ימי מסחר';
+    wc.className = 'mc-warncount';
+  } else {
+    wc.textContent = `${latest.warn_count}/6 באזור אזהרה`;
+    wc.className = 'mc-warncount' + (latest.warn_count >= 3 ? ' is-hot' : '');
+  }
+  wc.hidden = false;
+
+  const note = $('#mc-note');
+  note.textContent = `עודכן ${latest.scan_date} · ${rows.length} ימי מסחר בסדרה`;
+  note.hidden = false;
+  $('#market-context-wrap').hidden = false;
+
+  // Williams %R panel — the four current readings plus the weekly series.
+  const wrGrid = $('#wr-grid');
+  wrGrid.textContent = '';
+  for (const [key, label] of [
+    ['spy_wr_1w', 'SPY שבועי'],
+    ['spy_wr_1d', 'SPY יומי'],
+    ['qqq_wr_1w', 'QQQ שבועי'],
+    ['qqq_wr_1d', 'QQQ יומי'],
+  ]) {
+    const v = latest[key];
+    wrGrid.append(mcTile({
+      label,
+      value: v,
+      unit: '',
+      digits: 1,
+      pct: null,
+      warn: v != null && v <= -80,
+      extra: v == null ? '' : v <= -80 ? 'פאניקה' : v >= -20 ? 'overbought' : '',
+    }));
+  }
+  if (rows.some((r) => r.spy_wr_1w != null || r.qqq_wr_1w != null)) {
+    $('#wr-wrap').hidden = false;
+    renderWrChart(rows, 'wr-chart');
+  }
+}
+
+/** Weekly Williams %R for SPY and QQQ, with the -20 / -80 reference bands. */
+function renderWrChart(rows, canvasId) {
+  const isModal = canvasId === 'chart-modal-canvas';
+  if (isModal) {
+    if (wrChartModal) { wrChartModal.destroy(); wrChartModal = null; }
+  } else if (wrChart) {
+    wrChart.destroy(); wrChart = null;
+  }
+  const ctx = document.getElementById(canvasId);
+  if (!ctx || typeof Chart === 'undefined') return;
+
+  const line = (label, key, color) => ({
+    label,
+    data: rows.map((r) => r[key] ?? null),
+    borderColor: color,
+    backgroundColor: 'transparent',
+    borderWidth: 1.6,
+    pointRadius: 0,
+    spanGaps: true,
+    tension: 0.2,
+  });
+  // U+200E LEFT-TO-RIGHT MARK. Canvas text inherits the page's RTL context, so
+  // without it a tick reads "20-" with the sign on the wrong side of the number.
+  const ltr = (n) => `\u200E${n}`;
+  const band = (label, level, color) => ({
+    label,
+    data: rows.map(() => level),
+    borderColor: color,
+    borderDash: [4, 4],
+    borderWidth: 1,
+    pointRadius: 0,
+    fill: false,
+  });
+
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: rows.map((r) => r.scan_date.slice(5)),
+      datasets: [
+        line('SPY 1W', 'spy_wr_1w', '#5aa0ff'),
+        line('QQQ 1W', 'qqq_wr_1w', '#b07cff'),
+        band(`overbought ${ltr('-20')}`, -20, 'rgba(255,107,53,0.5)'),
+        band(`${ltr('-80')} פאניקה`, -80, 'rgba(80,200,140,0.5)'),
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        y: { min: -100, max: 0, ticks: { font: { size: 10 }, callback: (v) => ltr(v) } },
+        x: { ticks: { font: { size: 10 }, maxTicksLimit: 12 } },
+      },
+      plugins: {
+        legend: { labels: { boxWidth: 10, font: { size: 10 } } },
+        tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${ltr(c.parsed.y?.toFixed(1) ?? '—')}` } },
+      },
+    },
+  });
+  if (isModal) wrChartModal = chart; else wrChart = chart;
+}
+
+/** Expanded view of the Williams %R chart, mirroring openFragilityModal. */
+function openWrModal() {
+  if (marketContextRows.length === 0) return;
+  $('#chart-modal-title').innerHTML = document.querySelector('#wr-wrap .chart-title').innerHTML;
+  $('#chart-modal').hidden = false;
+  renderWrChart(marketContextRows, 'chart-modal-canvas');
+}

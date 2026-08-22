@@ -51,3 +51,31 @@ export async function runBatch(batch: Batch, cfg: D1Config): Promise<void> {
     const body = (await res.json()) as { success: boolean; errors?: unknown };
     if (!body.success) throw new Error(`D1 error: ${JSON.stringify(body.errors)}`);
 }
+
+/**
+ * Execute one read query and return its rows.
+ *
+ * `runBatch` above discards results — every ingest path only needs to know the
+ * statement succeeded. Verification needs the values back (row counts, the
+ * latest row's fields), so this is the read-side counterpart. Throws on
+ * failure, same contract as runBatch.
+ */
+export async function queryRows<T = Record<string, unknown>>(
+    batch: Batch,
+    cfg: D1Config
+): Promise<T[]> {
+    const url = `https://api.cloudflare.com/client/v4/accounts/${cfg.accountId}/d1/database/${cfg.databaseId}/query`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${cfg.apiToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sql: batch.sql, params: batch.params }),
+    });
+    if (!res.ok) throw new Error(`D1 request failed ${res.status}: ${await res.text()}`);
+    const body = (await res.json()) as {
+        success: boolean;
+        errors?: unknown;
+        result?: Array<{ results?: T[] }>;
+    };
+    if (!body.success) throw new Error(`D1 error: ${JSON.stringify(body.errors)}`);
+    return body.result?.[0]?.results ?? [];
+}

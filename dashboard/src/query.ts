@@ -2,7 +2,7 @@
 export interface Query { sql: string; params: unknown[]; }
 export interface SignalParams { from?: string; to?: string; }
 
-const SELECT = 'SELECT scan_date,ticker,region,sector,signal,signals,signal_count,rvol,ath_pct,day_pct,stage2,dist_pivot,score,price,ingested_at,rs FROM lean_signals';
+const SELECT = 'SELECT scan_date,ticker,region,sector,signal,signals,signal_count,rvol,ath_pct,day_pct,stage2,dist_pivot,score,price,wr14,ingested_at,rs FROM lean_signals';
 
 export function buildSignalsQuery(p: SignalParams): Query {
   if (p.from && p.to) {
@@ -247,6 +247,32 @@ export function buildFragilityQuery(p: FragilityParams = {}): Query {
   // pinned the chart to the OLDEST rows and it stopped advancing as the table
   // grew — the ingest appends one row per trading day but never prunes, so the
   // window kept sliding further into the past every day.
+  return {
+    sql: `SELECT * FROM (${SEL} ORDER BY scan_date DESC LIMIT ?) ORDER BY scan_date ASC`,
+    params: [limit],
+  };
+}
+
+/* ─── Market Context (2026-08-22) ─────────────────────────────────────────── */
+
+export interface MarketContextParams { limit?: number; from?: string; }
+
+/**
+ * The market_context series, oldest→newest so the chart plots left to right.
+ *
+ * Same inner-DESC / outer-ASC shape as buildFragilityQuery, and for the same
+ * reason: a plain `ORDER BY scan_date ASC LIMIT` pins the window to the OLDEST
+ * rows, so the chart stops advancing as the table grows. That bug shipped once
+ * already on the fragility panel — do not "simplify" this.
+ */
+export function buildMarketContextQuery(p: MarketContextParams = {}): Query {
+  const SEL = 'SELECT scan_date,spx_close,spx_dist_sma150,spx_dist_sma200,rsp_close,rsp_slope21,vix,'
+    + 'xlp_spx_ratio,xlp_spx_slope21,xly_xlp_ratio,xly_xlp_slope21,s5fi,s5fi_n,'
+    + 'spy_wr_1d,spy_wr_1w,qqq_wr_1d,qqq_wr_1w FROM market_context';
+  const limit = p.limit ?? 756;
+  if (p.from) {
+    return { sql: `${SEL} WHERE scan_date >= ? ORDER BY scan_date ASC LIMIT ?`, params: [p.from, limit] };
+  }
   return {
     sql: `SELECT * FROM (${SEL} ORDER BY scan_date DESC LIMIT ?) ORDER BY scan_date ASC`,
     params: [limit],

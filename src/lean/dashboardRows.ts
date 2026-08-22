@@ -36,6 +36,9 @@ export interface Row {
   distPivot: number | null;
   score: number;
   price: number;
+  /** Williams %R(14) on daily bars, [-100, 0]. Optional: reconstructed rows
+   *  (rowsFromReconstructed) have no OHLC series to compute it from. */
+  wr14?: number | null;
 }
 
 const BASE: Record<SignalKind, number> = {
@@ -88,7 +91,7 @@ function buildRow(
     signalCount: ordered.length,
     rvol: stock.rvol ?? 0, athPct: stock.pctFromAth ?? null,
     dayPct: stock.priceChange ?? 0, stage2: isStage2(stock),
-    distPivot, price: stock.lastPrice ?? 0,
+    distPivot, price: stock.lastPrice ?? 0, wr14: stock.wr14 ?? null,
   };
   return { ...r, score: scoreRow(r, ctx) };
 }
