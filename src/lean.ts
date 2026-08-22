@@ -23,6 +23,7 @@ import { evaluateMomentumSetup } from './utils/setup.js';
 import { ingestSetupToD1 } from './utils/setupD1Ingest.js';
 import { computePurpleFragility } from './services/purpleFragility.js';
 import { computeMarketContext } from './services/marketContext.js';
+import { ingestMarketContextToD1 } from './utils/marketContextD1Ingest.js';
 import { ingestFragilityToD1 } from './utils/fragilityD1Ingest.js';
 import { sendTelegramMessage, chunkMessage, formatFragilityAlert, formatFragilityWatchAlert } from './services/telegramBot.js';
 import { appendOosLogRow } from './utils/oosLog.js';
@@ -347,6 +348,9 @@ async function main(): Promise<void> {
                     `XLY/XLP 21d ${mc.xlyXlpSlope21?.toFixed(2) ?? '—'}% | ` +
                     `W%R SPY ${mc.spyWr1w?.toFixed(1) ?? '—'} (1W) / ${mc.spyWr1d?.toFixed(1) ?? '—'} (1D)`
             );
+            // One row per trading day, INSERT OR REPLACE — the 23:45 settled-close
+            // re-run overwrites the 20:15 row rather than adding a second one.
+            await ingestMarketContextToD1(mc);
         } catch (mcErr) {
             logger.error(
                 `🌍 Market context failed (scan unaffected): ${mcErr instanceof Error ? mcErr.message : String(mcErr)}`
