@@ -2379,3 +2379,85 @@ td.col-score {
   border: 1px solid var(--border);
 }
 .near-divider-card .material-symbols-outlined { font-size: 14px; }
+
+/* ─── Market Context + computed Williams %R (2026-08-22) ─────────────────── */
+
+.chart-wrap--mc,
+.chart-wrap--wr {
+  grid-column: 1 / -1;
+  border-color: rgba(90, 160, 255, 0.35);
+}
+
+/*
+ * auto-fit + minmax is the whole accessibility story of this panel. Six tiles
+ * REFLOW into fewer columns as the panel narrows; they never push the row wider
+ * than its container, so the panel cannot acquire a horizontal scrollbar. A
+ * table here would — that failure has shipped once already (#172 → #175).
+ */
+.mc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.mc-tile {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  min-width: 0;            /* lets the tile shrink instead of overflowing */
+}
+
+.mc-tile-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+  margin-bottom: 4px;
+  overflow-wrap: anywhere;  /* long labels wrap rather than widen the grid */
+}
+
+.mc-tile-value {
+  font-size: var(--fs-md, 16px);
+  font-weight: 600;
+  font-family: var(--mono);
+  color: var(--text);
+  /* LTR inside an RTL page: without this a negative reading renders as
+     "0.29%-", with the sign floated to the far side of the number. */
+  direction: ltr;
+  text-align: right;
+}
+
+.mc-tile-pct {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+  margin-top: 3px;
+  unicode-bidi: plaintext;   /* keeps "n=498" and "אחוזון 14" each correct */
+}
+
+.mc-tile.is-warn { border-color: rgba(255, 107, 53, 0.65); }
+.mc-tile.is-warn .mc-tile-value { color: #ff6b35; }
+.mc-tile.is-empty .mc-tile-value { color: var(--muted); }
+
+.mc-warncount {
+  flex-shrink: 0;
+  font-size: var(--fs-xs);
+  font-family: var(--mono);
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.mc-warncount.is-hot { color: #ff6b35; font-weight: 600; }
+
+.mc-note {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+  margin-top: 6px;
+}
+
+.chart-wrap--wr .chart-box {
+  position: relative;
+  height: 200px;
+}

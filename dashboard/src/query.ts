@@ -252,3 +252,29 @@ export function buildFragilityQuery(p: FragilityParams = {}): Query {
     params: [limit],
   };
 }
+
+/* ─── Market Context (2026-08-22) ─────────────────────────────────────────── */
+
+export interface MarketContextParams { limit?: number; from?: string; }
+
+/**
+ * The market_context series, oldest→newest so the chart plots left to right.
+ *
+ * Same inner-DESC / outer-ASC shape as buildFragilityQuery, and for the same
+ * reason: a plain `ORDER BY scan_date ASC LIMIT` pins the window to the OLDEST
+ * rows, so the chart stops advancing as the table grows. That bug shipped once
+ * already on the fragility panel — do not "simplify" this.
+ */
+export function buildMarketContextQuery(p: MarketContextParams = {}): Query {
+  const SEL = 'SELECT scan_date,spx_close,spx_dist_sma150,spx_dist_sma200,rsp_close,rsp_slope21,vix,'
+    + 'xlp_spx_ratio,xlp_spx_slope21,xly_xlp_ratio,xly_xlp_slope21,s5fi,s5fi_n,'
+    + 'spy_wr_1d,spy_wr_1w,qqq_wr_1d,qqq_wr_1w FROM market_context';
+  const limit = p.limit ?? 756;
+  if (p.from) {
+    return { sql: `${SEL} WHERE scan_date >= ? ORDER BY scan_date ASC LIMIT ?`, params: [p.from, limit] };
+  }
+  return {
+    sql: `SELECT * FROM (${SEL} ORDER BY scan_date DESC LIMIT ?) ORDER BY scan_date ASC`,
+    params: [limit],
+  };
+}
