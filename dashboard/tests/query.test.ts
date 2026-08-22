@@ -158,3 +158,22 @@ describe('ticker history queries', () => {
     expect(q.params).toEqual([]);
   });
 });
+
+describe('wr14 column guard', () => {
+  // A dashboard deploy can land before ensureSchema() adds wr14 during ingest.
+  // SQLite fails the whole SELECT on an unknown column, which took /api/signals
+  // to a 500 on the 2026-08-22 deploy. Both shapes must stay buildable.
+  it('includes wr14 by default', () => {
+    expect(buildSignalsQuery({}).sql).toContain(',wr14,');
+    expect(buildTickerLeanQuery('ARM').sql).toContain(',wr14,');
+  });
+
+  it('omits wr14 when asked, keeping every other column', () => {
+    const legacy = buildSignalsQuery({}, false).sql;
+    expect(legacy).not.toContain('wr14');
+    for (const c of ['scan_date', 'ticker', 'score', 'price', 'ingested_at', 'rs']) {
+      expect(legacy).toContain(c);
+    }
+    expect(buildTickerLeanQuery('ARM', false).sql).not.toContain('wr14');
+  });
+});

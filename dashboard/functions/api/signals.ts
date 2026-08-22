@@ -17,9 +17,19 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   const url = new URL(request.url);
   const from = url.searchParams.get('from') ?? undefined;
   const to = url.searchParams.get('to') ?? undefined;
-  const q = buildSignalsQuery({ from, to });
-  const { results } = await env.DB.prepare(q.sql).bind(...q.params).all<DayRow>();
-  let dayRows = (results ?? []) as DayRow[];
+  // wr14 may not exist yet — ensureSchema() adds it during ingest, so a deploy
+  // can precede the column. Fall back to the legacy column list rather than
+  // 500ing the whole signals table.
+  let dayRows: DayRow[];
+  try {
+    const q = buildSignalsQuery({ from, to });
+    const { results } = await env.DB.prepare(q.sql).bind(...q.params).all<DayRow>();
+    dayRows = (results ?? []) as DayRow[];
+  } catch {
+    const q = buildSignalsQuery({ from, to }, false);
+    const { results } = await env.DB.prepare(q.sql).bind(...q.params).all<DayRow>();
+    dayRows = (results ?? []) as DayRow[];
+  }
 
   // Read-time merge of the Smart pipeline's setup_signals + rs_daily tables.
   // They may not exist until the first Smart ingest runs — treat errors as empty.

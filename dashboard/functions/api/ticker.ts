@@ -32,9 +32,18 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   const dates = await env.DB.prepare(dq.sql).all<{ scan_date: string }>();
   const datesDesc = (dates.results ?? []).map((d) => d.scan_date);
 
-  const lq = buildTickerLeanQuery(ticker);
-  const lean = await env.DB.prepare(lq.sql).bind(...lq.params).all<TickerRow>();
-  let rows = (lean.results ?? []) as TickerRow[];
+  // Same wr14 guard as /api/signals: the column arrives with the first ingest,
+  // so a deploy can land before it exists and SQLite fails the whole SELECT.
+  let rows: TickerRow[];
+  try {
+    const lq = buildTickerLeanQuery(ticker);
+    const lean = await env.DB.prepare(lq.sql).bind(...lq.params).all<TickerRow>();
+    rows = (lean.results ?? []) as TickerRow[];
+  } catch {
+    const lq = buildTickerLeanQuery(ticker, false);
+    const lean = await env.DB.prepare(lq.sql).bind(...lq.params).all<TickerRow>();
+    rows = (lean.results ?? []) as TickerRow[];
+  }
 
   // Same read-time merge /api/signals does — setup and RS live in their own
   // tables and may not exist yet. Treat a failure as "lean rows only".
