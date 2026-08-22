@@ -30,7 +30,8 @@
     "preview-report": "tsx scripts/preview-report.ts",
     "tv-sync": "tsx scripts/sync-tv-watchlist.ts",
     "tv-sync:login": "tsx scripts/sync-tv-watchlist.ts --login",
-    "tv-sync:dry": "tsx scripts/sync-tv-watchlist.ts --dry-run --headed"
+    "tv-sync:dry": "tsx scripts/sync-tv-watchlist.ts --dry-run --headed",
+    "verify:market-context": "tsx scripts/verify-market-context.ts"
   },
   "keywords": [
     "stocks",

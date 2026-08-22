@@ -12,6 +12,16 @@
   - `calculateWilliamsR()` in `src/utils/technicalAnalysis.ts` — matches
     TradingView's plain "Williams %R" to every displayed digit (verified
     2026-08-22 on SPY/QQQ × 1D/1W). Replaces the weekly TradingView screenshot.
+  - `src/services/marketContext.ts` — six market-wide gauges (SPX distance from
+    SMA150/200, RSP trend, VIX, XLP/SPX and XLY/XLP rotation, and an
+    S5FI-equivalent breadth reading computed over `config/sp500.json`).
+    **Display only — it gates nothing.**
+  - D1 table `market_context`, one row per trading day, `INSERT OR REPLACE` on a
+    single scan_date with no DELETE of any kind. `lean_signals.wr14` added via
+    the self-applying `ensureSchema()` pattern (migration 0004).
+  - `npm run verify:market-context` — five machine-decidable checks. Talks to
+    TradingView's public scanner endpoint directly (no login, no cookie), so it
+    runs in CI; checks needing CF_* report SKIP rather than a false pass.
 - **ChampionScan Phase 3 (2026-05-07):** Fundamentals via Finnhub.
   - New service `src/services/finnhubFundamentals.ts` — fetches earnings
     calendar (next ≤90 days) + quarterly EPS + quarterly revenue. On-disk
