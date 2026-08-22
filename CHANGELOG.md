@@ -3,6 +3,15 @@
 ## Unreleased
 
 ### Added
+- **Market Context Panel (2026-08-22):** market-wide pressure gauge — display only.
+  - `config/sp500.json` — 502 S&P 500 constituents, pulled 2026-08-22 from
+    `en.wikipedia.org/wiki/List_of_S%26P_500_companies`. **Refresh quarterly by
+    hand** (the index changes ~20x/year); add a dated line here each time.
+    Share-class suffixes are stored Yahoo-style with a dash: `BRK.B` 404s on the
+    Yahoo chart API, `BRK-B` resolves.
+  - `calculateWilliamsR()` in `src/utils/technicalAnalysis.ts` — matches
+    TradingView's plain "Williams %R" to every displayed digit (verified
+    2026-08-22 on SPY/QQQ × 1D/1W). Replaces the weekly TradingView screenshot.
 - **ChampionScan Phase 3 (2026-05-07):** Fundamentals via Finnhub.
   - New service `src/services/finnhubFundamentals.ts` — fetches earnings
     calendar (next ≤90 days) + quarterly EPS + quarterly revenue. On-disk

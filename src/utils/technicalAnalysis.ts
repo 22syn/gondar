@@ -380,3 +380,55 @@ export function countAccumulationDistributionDays(
     }
     return { accumulationDays: accum, distributionDays: dist };
 }
+
+// ─── Market Context Indicators (added 2026-08-22) ─────────────────────────
+
+/**
+ * Williams %R over the last `periods` bars.
+ *
+ *   %R = -100 * (highestHigh - close) / (highestHigh - lowestLow)
+ *
+ * Range is [-100, 0]: 0 = closing at the top of the range, -100 = at the bottom.
+ * Conventionally -20/-80 mark overbought/oversold.
+ *
+ * Hand-rolled rather than delegated to `trading-signals` for the same reason as
+ * calculateBollingerBands above — we need "defined at exactly N bars", and the
+ * value must match TradingView's plain "Williams %R" exactly, which this formula
+ * does. Verified 2026-08-22 against TradingView on four series (SPY/QQQ × 1D/1W):
+ * every displayed digit matched, e.g. SPY weekly -21.739130434782584.
+ *
+ * Returns `undefined` when there are fewer than `periods` bars, when the three
+ * arrays disagree in length, or when the range is degenerate (highestHigh ===
+ * lowestLow — a flat window would divide by zero).
+ */
+export function calculateWilliamsR(
+    highs: number[],
+    lows: number[],
+    closes: number[],
+    periods: number = 14
+): number | undefined {
+    if (periods < 1) return undefined;
+    if (highs.length !== lows.length || lows.length !== closes.length) return undefined;
+    if (closes.length < periods) return undefined;
+
+    const start = closes.length - periods;
+    let highestHigh = -Infinity;
+    let lowestLow = Infinity;
+    for (let i = start; i < closes.length; i++) {
+        const h = highs[i]!;
+        const l = lows[i]!;
+        if (!Number.isFinite(h) || !Number.isFinite(l)) return undefined;
+        if (h > highestHigh) highestHigh = h;
+        if (l < lowestLow) lowestLow = l;
+    }
+
+    const range = highestHigh - lowestLow;
+    if (range <= 0) return undefined;
+
+    const close = closes[closes.length - 1]!;
+    if (!Number.isFinite(close)) return undefined;
+
+    // `+ 0` normalises the -0 that falls out when close === highestHigh. The value
+    // is persisted and charted, and a "-0.00" cell is a wart, not a reading.
+    return (-100 * (highestHigh - close)) / range + 0;
+}

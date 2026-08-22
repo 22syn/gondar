@@ -15,6 +15,7 @@ import {
     calculateBollingerBands,
     calculateEMA,
     countAccumulationDistributionDays,
+    calculateWilliamsR,
 } from '../src/utils/technicalAnalysis.js';
 
 describe('calculateSMA', () => {
@@ -396,5 +397,61 @@ describe('countAccumulationDistributionDays', () => {
         const r = countAccumulationDistributionDays(closes, volumes, 25);
         expect(r.accumulationDays).toBe(0);
         expect(r.distributionDays).toBe(0);
+    });
+});
+
+describe('calculateWilliamsR', () => {
+    // Hand-computed: over the last 5 bars highestHigh=20, lowestLow=10, close=18.
+    // -100 * (20 - 18) / (20 - 10) = -20.
+    const highs = [12, 15, 20, 18, 19];
+    const lows = [10, 11, 16, 14, 17];
+    const closes = [11, 14, 17, 15, 18];
+
+    it('computes %R over the trailing window', () => {
+        expect(calculateWilliamsR(highs, lows, closes, 5)).toBeCloseTo(-20, 10);
+    });
+
+    it('returns 0 when the close sits at the top of the range', () => {
+        expect(calculateWilliamsR([10, 20], [5, 8], [7, 20], 2)).toBe(0);
+    });
+
+    it('returns -100 when the close sits at the bottom of the range', () => {
+        expect(calculateWilliamsR([10, 20], [5, 8], [7, 5], 2)).toBe(-100);
+    });
+
+    it('uses only the last `periods` bars, ignoring older extremes', () => {
+        // The 999 high is outside the 2-bar window and must not affect the result.
+        const r = calculateWilliamsR([999, 10, 20], [1, 5, 8], [500, 7, 20], 2);
+        expect(r).toBe(0);
+    });
+
+    it('defaults to 14 periods', () => {
+        const h = Array.from({ length: 14 }, (_, i) => 10 + i);
+        const l = Array.from({ length: 14 }, (_, i) => i);
+        const c = Array.from({ length: 14 }, (_, i) => 5 + i);
+        // highestHigh=23, lowestLow=0, close=18 → -100*(23-18)/23
+        expect(calculateWilliamsR(h, l, c)).toBeCloseTo((-100 * 5) / 23, 10);
+    });
+
+    it('returns undefined on a flat window (division by zero)', () => {
+        expect(calculateWilliamsR([5, 5, 5], [5, 5, 5], [5, 5, 5], 3)).toBeUndefined();
+    });
+
+    it('returns undefined when there are fewer bars than periods', () => {
+        expect(calculateWilliamsR([1, 2], [0, 1], [1, 2], 5)).toBeUndefined();
+    });
+
+    it('returns undefined when the arrays disagree in length', () => {
+        expect(calculateWilliamsR([1, 2, 3], [0, 1], [1, 2, 3], 2)).toBeUndefined();
+    });
+
+    it('returns undefined on a non-finite bar inside the window', () => {
+        expect(calculateWilliamsR([1, NaN, 3], [0, 1, 2], [1, 2, 3], 2)).toBeUndefined();
+    });
+
+    it('stays within [-100, 0] for arbitrary input', () => {
+        const r = calculateWilliamsR([9, 14, 11], [3, 6, 4], [8, 13, 7], 3)!;
+        expect(r).toBeLessThanOrEqual(0);
+        expect(r).toBeGreaterThanOrEqual(-100);
     });
 });
