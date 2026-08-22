@@ -2,13 +2,28 @@
 export interface Query { sql: string; params: unknown[]; }
 export interface SignalParams { from?: string; to?: string; }
 
-const SELECT = 'SELECT scan_date,ticker,region,sector,signal,signals,signal_count,rvol,ath_pct,day_pct,stage2,dist_pivot,score,price,wr14,ingested_at,rs FROM lean_signals';
+const BASE_COLS = 'scan_date,ticker,region,sector,signal,signals,signal_count,rvol,ath_pct,day_pct,stage2,dist_pivot,score,price';
 
-export function buildSignalsQuery(p: SignalParams): Query {
+/**
+ * wr14 is added to lean_signals by ensureSchema() during ingest, which means a
+ * dashboard deploy can land BEFORE the column exists — and SQLite fails the
+ * whole SELECT on an unknown column, taking /api/signals to a 500. That is not
+ * hypothetical: it happened on the 2026-08-22 deploy.
+ *
+ * So the column is opt-out. Callers try the full select and fall back to the
+ * legacy one when D1 rejects it; once the first ingest has run the fallback is
+ * never taken again. `wr14` is simply absent from the payload in the meantime,
+ * which the client already handles (it renders "—").
+ */
+const SELECT = (withWr14 = true): string =>
+  `SELECT ${BASE_COLS}${withWr14 ? ',wr14' : ''},ingested_at,rs FROM lean_signals`;
+
+export function buildSignalsQuery(p: SignalParams, withWr14 = true): Query {
+  const sel = SELECT(withWr14);
   if (p.from && p.to) {
-    return { sql: `${SELECT} WHERE scan_date BETWEEN ? AND ? ORDER BY scan_date DESC, score DESC`, params: [p.from, p.to] };
+    return { sql: `${sel} WHERE scan_date BETWEEN ? AND ? ORDER BY scan_date DESC, score DESC`, params: [p.from, p.to] };
   }
-  return { sql: `${SELECT} WHERE scan_date = (SELECT MAX(scan_date) FROM lean_signals) ORDER BY score DESC`, params: [] };
+  return { sql: `${sel} WHERE scan_date = (SELECT MAX(scan_date) FROM lean_signals) ORDER BY score DESC`, params: [] };
 }
 
 /* ─── Ticker history (cross-day lookup) ───────────────────────────────────────
@@ -23,8 +38,8 @@ export function buildSignalsQuery(p: SignalParams): Query {
  */
 
 /** Every lean row for one ticker, newest first. */
-export function buildTickerLeanQuery(ticker: string): Query {
-  return { sql: `${SELECT} WHERE ticker = ? ORDER BY scan_date DESC`, params: [ticker] };
+export function buildTickerLeanQuery(ticker: string, withWr14 = true): Query {
+  return { sql: `${SELECT(withWr14)} WHERE ticker = ? ORDER BY scan_date DESC`, params: [ticker] };
 }
 
 /** Every setup row for one ticker (merged into the lean rows by mergeSetupRows). */
