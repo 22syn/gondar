@@ -22,6 +22,7 @@ import { ingestRsToD1 } from './utils/rsD1Ingest.js';
 import { evaluateMomentumSetup } from './utils/setup.js';
 import { ingestSetupToD1 } from './utils/setupD1Ingest.js';
 import { computePurpleFragility } from './services/purpleFragility.js';
+import { computeMarketContext } from './services/marketContext.js';
 import { ingestFragilityToD1 } from './utils/fragilityD1Ingest.js';
 import { sendTelegramMessage, chunkMessage, formatFragilityAlert, formatFragilityWatchAlert } from './services/telegramBot.js';
 import { appendOosLogRow } from './utils/oosLog.js';
@@ -47,7 +48,7 @@ import { attachGraduated } from './lean/graduates.js';
 import { writeTradingViewWatchlist } from './lean/tradingViewWatchlist.js';
 import { writeDashboardRows } from './lean/dashboardRows.js';
 import { writeLeanSnapshot } from './utils/snapshotWriter.js';
-import { calculateSMA } from './utils/technicalAnalysis.js';
+import { calculateSMA, calculateWilliamsR } from './utils/technicalAnalysis.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -173,6 +174,20 @@ async function main(): Promise<void> {
             });
         }
         logger.info(`📊 OHLC series fetched for ${ohlcByTicker.size}/${stocks.length} stocks`);
+
+        // Williams %R (14) per ticker — a pure computation over the OHLC map just
+        // built, so it adds no requests. Display only; nothing gates on it.
+        let wrCount = 0;
+        for (const s of stocks) {
+            const o = ohlcByTicker.get(s.ticker);
+            if (!o) continue;
+            const wr = calculateWilliamsR(o.highs, o.lows, o.closes);
+            if (wr != null) {
+                s.wr14 = wr;
+                wrCount++;
+            }
+        }
+        logger.info(`📉 Williams %R(14) computed for ${wrCount}/${stocks.length} stocks`);
 
         // Market regime: SPY vs SMA50/200 (2026-07-08 regime study — pullbacks in
         // weak tape were the strongest setup measured; boost, don't filter).
@@ -316,6 +331,27 @@ async function main(): Promise<void> {
         // either way, which is what `main` produced with its single daily scan.
         await ingestRsToD1(stocks, scanDate);
         await ingestSetupToD1(stocks, scanDate);
+
+        // Market Context — six market-wide gauges + Williams %R for SPY/QQQ.
+        // Display only: it gates nothing, exactly like Purple Fragility below.
+        // Wrapped because it runs after the report has already gone out, so no
+        // failure here may take the scan down with it.
+        try {
+            const mc = await computeMarketContext(scanDate);
+            logger.info(
+                `🌍 Market context: SPX ${mc.spxDistSma150?.toFixed(1) ?? '—'}% vs SMA150 | ` +
+                    `VIX ${mc.vix?.toFixed(2) ?? '—'} | ` +
+                    `S5FI ${mc.s5fi?.toFixed(1) ?? '—'}% (n=${mc.s5fiN ?? '—'}) | ` +
+                    `RSP 21d ${mc.rspSlope21?.toFixed(1) ?? '—'}% | ` +
+                    `XLP/SPX 21d ${mc.xlpSpxSlope21?.toFixed(2) ?? '—'}% | ` +
+                    `XLY/XLP 21d ${mc.xlyXlpSlope21?.toFixed(2) ?? '—'}% | ` +
+                    `W%R SPY ${mc.spyWr1w?.toFixed(1) ?? '—'} (1W) / ${mc.spyWr1d?.toFixed(1) ?? '—'} (1D)`
+            );
+        } catch (mcErr) {
+            logger.error(
+                `🌍 Market context failed (scan unaffected): ${mcErr instanceof Error ? mcErr.message : String(mcErr)}`
+            );
+        }
 
         // Purple Fragility -> fragility_daily (slice 3 of 3, 2026-08-08).
         // Independent of `stocks`: it scores its own 10-ticker basket from
