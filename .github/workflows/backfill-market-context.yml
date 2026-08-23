@@ -1,0 +1,60 @@
+name: Backfill Market Context (D1)
+
+# Manual-only: compute the market_context series from history and write it to
+# D1. The daily Lean scan appends one row per trading day; this fills the past
+# so the dashboard's percentiles (60-observation burn-in) work immediately
+# rather than months from now.
+#
+# Every gauge is a pure function of price history, and the script fetches each
+# symbol ONCE for the whole window rather than 500 constituents per date — so
+# 250 trading days cost ~511 requests and about 12 seconds.
+#
+# INSERT OR REPLACE per scan_date, no DELETE: re-running is idempotent and
+# cannot drop a row. Recovery, if ever needed, is d1-restore.yml.
+#
+# Lives on `main` but checks out `stable`, for the same reason daily-scan-lean.yml
+# does: workflow_dispatch inputs are read from the ref you dispatch, and stable's
+# copies of workflows have drifted before. The scan code — and this script — live
+# on `stable`.
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Trading days to backfill (from the most recent backwards)'
+        type: string
+        required: false
+        default: '250'
+      write:
+        description: 'Write to D1. Leave off for a dry run that only reports.'
+        type: boolean
+        required: false
+        # Defaults to FALSE, the opposite of the scan's dry_run default: this
+        # job's only purpose IS the write, so it should never happen by accident.
+        default: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout stable branch
+        uses: actions/checkout@v7
+        with:
+          ref: stable
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Compute + ingest market_context
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+        run: |
+          npx tsx scripts/backfill-market-context.ts \
+            --days "${{ inputs.days }}" \
+            ${{ inputs.write && '--write' || '' }}
