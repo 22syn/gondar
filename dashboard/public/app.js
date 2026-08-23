@@ -797,6 +797,69 @@ function renderFragilityChart(rows, canvasId) {
   else fragChart = chartInstance;
 }
 
+
+/* ─── Dialog focus management ─────────────────────────────────────────────── */
+
+/**
+ * Elements that can hold focus inside a dialog. Deliberately excludes
+ * `[tabindex="-1"]` — those are programmatic focus targets, not tab stops.
+ */
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), ' +
+  'textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/** Visible focusables inside `root`, in DOM order. */
+function focusablesIn(root) {
+  return [...root.querySelectorAll(FOCUSABLE_SELECTOR)].filter(
+    (el) => !el.hidden && el.offsetParent !== null
+  );
+}
+
+/**
+ * Make a dialog behave like one: move focus inside it and keep Tab within it.
+ *
+ * Both dialogs already declared `aria-modal="true"`, which tells assistive tech
+ * the rest of the page is inert — but focus stayed on the trigger behind them
+ * and Tab walked straight out into the page underneath. The claim and the
+ * behaviour disagreed. `cal-popover` already did this correctly; this brings the
+ * other two in line.
+ *
+ * Pass the element focus should return to on close (normally the trigger).
+ */
+function captureDialogFocus(dialog, returnTo) {
+  dialog._returnFocusTo = returnTo instanceof HTMLElement ? returnTo : null;
+  (focusablesIn(dialog)[0] ?? dialog).focus();
+
+  dialog._trapHandler = (e) => {
+    if (e.key !== 'Tab') return;
+    const items = focusablesIn(dialog);
+    if (items.length === 0) { e.preventDefault(); dialog.focus(); return; }
+    const first = items[0];
+    const last  = items[items.length - 1];
+    // Wrap at both ends, and pull focus back in if it escaped some other way.
+    if (e.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+      e.preventDefault(); first.focus();
+    }
+  };
+  document.addEventListener('keydown', dialog._trapHandler, true);
+}
+
+/** Undo captureDialogFocus and hand focus back to whatever opened the dialog. */
+function releaseDialogFocus(dialog) {
+  if (dialog._trapHandler) {
+    document.removeEventListener('keydown', dialog._trapHandler, true);
+    dialog._trapHandler = null;
+  }
+  const back = dialog._returnFocusTo;
+  dialog._returnFocusTo = null;
+  // isConnected: the table re-renders, so a row that opened the panel may be
+  // gone by the time it closes. Focusing a detached node silently drops focus
+  // to <body>, which strands a keyboard user at the top of the document.
+  if (back && back.isConnected) back.focus();
+}
+
 /* ─── Chart modal (expanded view) ─────────────────────────────────────────── */
 
 function openFragilityModal() {
@@ -810,6 +873,7 @@ function openFragilityModal() {
   const modal = $('#chart-modal');
   modal._escHandler = (e) => { if (e.key === 'Escape') closeFragilityModal(); };
   document.addEventListener('keydown', modal._escHandler);
+  captureDialogFocus(modal, $('#btn-expand-fragility'));
 }
 
 function closeFragilityModal() {
@@ -823,6 +887,7 @@ function closeFragilityModal() {
   if (fragChartModal) { fragChartModal.destroy(); fragChartModal = null; }
   if (wrChartModal) { wrChartModal.destroy(); wrChartModal = null; }
   if (modal._escHandler) { document.removeEventListener('keydown', modal._escHandler); modal._escHandler = null; }
+  releaseDialogFocus(modal);
 }
 
 /* ─── Filtering / sorting ─────────────────────────────────────────────────── */
@@ -1049,8 +1114,8 @@ function renderTable() {
   tbody.querySelectorAll('tr').forEach((tr) => {
     if (tr.dataset.i === undefined) return;
     const idx = parseInt(tr.dataset.i, 10);
-    tr.addEventListener('click', () => openDeepDive(vr[idx]));
-    tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openDeepDive(vr[idx]); });
+    tr.addEventListener('click', () => openDeepDive(vr[idx], tr));
+    tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openDeepDive(vr[idx], tr); });
   });
 
   /* — mobile card list — */
@@ -1092,8 +1157,8 @@ function renderTable() {
 
   cardList.querySelectorAll('.signal-card').forEach((card) => {
     const idx = parseInt(card.dataset.i, 10);
-    card.addEventListener('click', () => openDeepDive(vr[idx]));
-    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openDeepDive(vr[idx]); });
+    card.addEventListener('click', () => openDeepDive(vr[idx], card));
+    card.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') openDeepDive(vr[idx], card); });
   });
 }
 
@@ -1212,8 +1277,11 @@ function scoreBreakdownHTML(r) {
  * handling and focus behaviour.
  * @param {string} html - must contain a #btn-close-dd button
  * @param {boolean} [wide] - widen the panel (the history table needs the room)
+ * @param {HTMLElement|null} [opener] - element focus returns to on close;
+ *   defaults to whatever had focus. Ignored on a re-open, so a row → history
+ *   hop still returns to the row.
  */
-function openPanel(html, wide = false) {
+function openPanel(html, wide = false, opener = null) {
   const panel   = $('#deepdive');
   const overlay = $('#deepdive-overlay');
   panel.classList.toggle('deepdive--wide', wide);
@@ -1235,9 +1303,16 @@ function openPanel(html, wide = false) {
 
   panel._escHandler = (e) => { if (e.key === 'Escape') closeDeepDive(); };
   document.addEventListener('keydown', panel._escHandler);
+
+  // The panel declares aria-modal="true", so the page behind it must actually
+  // be inert: lock body scroll and keep focus inside. Re-opening in place
+  // (row → history) keeps the ORIGINAL opener, so closing the history view
+  // still hands focus back to the row that started the journey.
+  document.body.style.overflow = 'hidden';
+  captureDialogFocus(panel, panel._returnFocusTo ?? opener ?? document.activeElement);
 }
 
-function openDeepDive(r) {
+function openDeepDive(r, opener = null) {
   const tvSymbol = (r.ticker || '').replace(/\./g, '-');
   const tvUrl    = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tvSymbol)}`;
 
@@ -1295,7 +1370,7 @@ function openDeepDive(r) {
     </button>
     <a class="dd-tv-link" href="${tvUrl}" target="_blank" rel="noopener noreferrer">
       פתח ב-TradingView ↗
-    </a>`);
+    </a>`, false, opener);
 
   const histBtn = $('#deepdive').querySelector('.dd-history-btn');
   if (histBtn) histBtn.addEventListener('click', () => openTickerHistory(histBtn.dataset.ticker));
@@ -1307,10 +1382,12 @@ function closeDeepDive() {
   panel.hidden   = true;
   overlay.hidden = true;
   overlay.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
   if (panel._escHandler) {
     document.removeEventListener('keydown', panel._escHandler);
     panel._escHandler = null;
   }
+  releaseDialogFocus(panel);
 }
 
 /* ─── Ticker history (cross-day search) ───────────────────────────────────── */
@@ -2158,4 +2235,5 @@ function openWrModal() {
   const modal = $('#chart-modal');
   modal._escHandler = (e) => { if (e.key === 'Escape') closeFragilityModal(); };
   document.addEventListener('keydown', modal._escHandler);
+  captureDialogFocus(modal, $('#btn-expand-wr'));
 }
