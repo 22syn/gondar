@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-08-22",
+  "updatedAt": "2026-08-23",
   "watchlists": {
     "Lean Radar - Breakouts": [
       {
@@ -17,27 +17,11 @@
     ],
     "Lean Radar - Near": [
       {
-        "ticker": "COLO",
-        "signalDate": "2026-08-07"
-      },
-      {
-        "ticker": "SCHW",
-        "signalDate": "2026-08-07"
-      },
-      {
         "ticker": "WFC",
         "signalDate": "2026-08-13"
       }
     ],
     "Lean Radar - Creep": [
-      {
-        "ticker": "FROG",
-        "signalDate": "2026-08-07"
-      },
-      {
-        "ticker": "MDB",
-        "signalDate": "2026-08-07"
-      },
       {
         "ticker": "COLO",
         "signalDate": "2026-08-11"
