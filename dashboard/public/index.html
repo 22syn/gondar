@@ -164,51 +164,6 @@
         </div>
       </div>
 
-      <div class="chart-wrap chart-wrap--williamsr" id="williamsr-wrap" hidden>
-        <div class="chart-title-row">
-          <p class="chart-title"><span class="material-symbols-outlined" aria-hidden="true">trending_down</span>Williams %R <span class="chart-subtitle">מד תזמון-שוק על SPY ו-QQQ שבועי (14) — לא לכל מניה, ולא קשור לציון ה-Fragility למעלה</span></p>
-          <!-- Filled by renderWilliamsFreshness() from /assets/williams-r-updated.json,
-               which deploy-dashboard.yml writes into the bundle. Stays hidden when the
-               stamp is missing rather than showing a guessed date. -->
-          <p class="williamsr-freshness" id="williamsr-freshness" hidden></p>
-        </div>
-        <p class="williamsr-explainer">
-          <b>מה זה אומר:</b> כשהקו יורד מתחת ל-<b class="wr-legend-panic">‑80</b> — השוק נכנס ל"פאניקה קיצונית". היסטורית (2006–היום, 44 מקרים ב-SPY) זה הוביל לתשואה חיובית ב-77% מהמקרים, אבל <b>רק תוך 8–26 שבועות</b>, לא מיד — ו-77% מהמקרים גם ירדו לשפל נוסף לפני זה. זו לא נקודת "לקנות עכשיו", אלא איתות "תתחיל לשים לב". מעל <b class="wr-legend-overbought">‑20</b> = overbought — ב-QQQ, ‎10+‎ שבועות רצופים באזור הזה קדמו לנפילת השבבים ביולי 2026. פירוט מלא ומחקר ה-backtest — ראו "איך זה עובד".
-        </p>
-        <!-- The real TradingView charts — this IS what the indicator looks like.
-             Collapsible (open by default) so their portrait aspect ratio doesn't force a
-             huge fixed block — see .williamsr-tv-img max-height in styles.css. -->
-        <details class="williamsr-tv-primary">
-          <summary><span class="material-symbols-outlined" aria-hidden="true">monitor</span>TradingView — SPY, הגרף האמיתי (מתעדכן כל יום ראשון)</summary>
-          <button type="button" class="img-zoom-btn" aria-label="הגדל את גרף ה-SPY">
-            <img
-              src="/assets/williams-r-spy-weekly.png"
-              alt="SPY שבועי עם Williams %R ב-TradingView"
-              class="williamsr-tv-img"
-              loading="lazy"
-            >
-            <span class="img-zoom-hint" aria-hidden="true"><span class="material-symbols-outlined">zoom_in</span></span>
-          </button>
-          <a class="dd-tv-link" href="https://www.tradingview.com/chart/?symbol=SPY&interval=1W" target="_blank" rel="noopener noreferrer">
-            פתח את הגרף החי ב-TradingView ↗
-          </a>
-        </details>
-        <details class="williamsr-tv-primary">
-          <summary><span class="material-symbols-outlined" aria-hidden="true">monitor</span>TradingView — QQQ, הגרף האמיתי (מתעדכן כל יום ראשון)</summary>
-          <button type="button" class="img-zoom-btn" aria-label="הגדל את גרף ה-QQQ">
-            <img
-              src="/assets/williams-r-qqq-weekly.png"
-              alt="QQQ שבועי עם Williams %R ב-TradingView"
-              class="williamsr-tv-img"
-              loading="lazy"
-            >
-            <span class="img-zoom-hint" aria-hidden="true"><span class="material-symbols-outlined">zoom_in</span></span>
-          </button>
-          <a class="dd-tv-link" href="https://www.tradingview.com/chart/?symbol=QQQ&interval=1W" target="_blank" rel="noopener noreferrer">
-            פתח את הגרף החי ב-TradingView ↗
-          </a>
-        </details>
-      </div>
     </section>
 
     <!-- ════════════════════════════════════════
@@ -1017,15 +972,20 @@
           המחשבה, לא נוסחת קנייה.
         </p>
         <p class="explainer-prose">
-          <strong>הגרף האמיתי מ-TradingView</strong> שמוצג ראשי בסעיף מתעדכן אוטומטית כל
-          יום ראשון 9:15 (<code>scripts/capture-williams-r-snapshot.ts</code> על ענף
-          <code>main</code>, דרך אותו חשבון TradingView שמריץ את סנכרון ה-watchlists) —
-          זה צילום מסך אמיתי מהלייאאוט השמור שלך, לא שחזור.
+          <strong>מאיפה המספר:</strong> עד 2026-08 הסעיף הזה הציג צילום מסך שבועי
+          מ-TradingView. עכשיו הערך <strong>מחושב אצלנו</strong> מנתוני Yahoo
+          (<code>-100 × (HH14 − close) / (HH14 − LL14)</code>) ונשמר יומית ב-D1.
+          החישוב אומת מול TradingView ב-2026-08-22 על ארבע סדרות (SPY ו-QQQ, יומי
+          ושבועי) והתאים <strong>בכל ספרה מוצגת</strong> — למשל SPY שבועי
+          ‎-21.739130434782584‎. זה אותו מספר בדיוק, רק שאפשר לשמור אותו, לצייר ממנו
+          גרף היסטורי ולבדוק אותו אחורה — שלושה דברים שצילום מסך שבועי לא נותן.
         </p>
         <p class="explainer-prose">
-          <strong>מה זה לא:</strong> לא עמודה לכל מניה (זה נבנה ונבדק בהתחלה, והוסר —
-          הרעיון המקורי של RonnieV הוא ברמת שוק, לא לכל טיקר). לא סף/אלרט שרץ במנוע —
-          תצוגה בלבד, בדיוק כמו ה-Fragility למעלה.
+          <strong>מה זה לא:</strong> לא סף ולא אלרט שרץ במנוע — תצוגה בלבד, בדיוק כמו
+          ה-Fragility למעלה. <strong>הקריאה העיקרית היא ברמת השוק</strong> (SPY ו-QQQ),
+          כי זה הרעיון המקורי של RonnieV. מ-2026-08 יש גם עמודת <code>W%R</code> בטבלה
+          לכל טיקר — היא נוסחה בחינם מסדרת ה-OHLC שהסורק כבר מושך, והיא הקשר נוסף
+          לשורה בודדת, לא סיגנל בפני עצמה ולא משהו שנבדק אחורה.
         </p>
       </section>
 
