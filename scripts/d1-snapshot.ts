@@ -22,8 +22,8 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 
-/** Tables the dashboard reads. All four are keyed by scan_date. */
-const TABLES = ['fragility_daily', 'setup_signals', 'rs_daily', 'lean_signals'] as const;
+/** Tables the dashboard reads. All five are keyed by scan_date. */
+const TABLES = ['fragility_daily', 'setup_signals', 'rs_daily', 'lean_signals', 'market_context'] as const;
 
 /** Columns excluded from the content hash — they change without meaning. */
 const HASH_EXCLUDED = new Set(['ingested_at']);

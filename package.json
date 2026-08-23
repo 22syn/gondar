@@ -34,7 +34,6 @@
     "oos-log": "tsx scripts/oos-log.ts",
     "oos-scorecard": "tsx scripts/oos-scorecard.ts",
     "tv-sync": "tsx scripts/sync-tv-watchlist.ts",
-    "capture-williams-r-snapshot": "tsx scripts/capture-williams-r-snapshot.ts",
     "watchlist-health": "node scripts/watchlist-health.mjs",
     "sync-friend-watchlists": "tsx scripts/sync-friend-watchlists.ts",
     "export-tv-cookies": "tsx scripts/export-tv-cookies.ts",

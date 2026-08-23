@@ -47,15 +47,6 @@ jobs:
           # every Monday (threshold tight enough to catch a same-day miss). It gets its own
           # cross-referenced check below instead.
           #
-          # williams-r-snapshot.yml runs Sunday 06:15 UTC and was NOT policed here until
-          # 2026-08-15. Its only visible output is two PNGs committed to `stable`, and the
-          # workflow deliberately commits nothing when the chart is unchanged — so a capture
-          # that silently stopped firing looked exactly like a quiet week, and the dashboard
-          # kept serving last month's chart with nothing to say otherwise. This entry catches
-          # the workflow going away (or hitting the 60-day inactivity auto-disable, a real
-          # risk for a weekly). The complementary case — it runs but fails every week, so the
-          # PNG never refreshes — is caught on the dashboard side, which dates the chart from
-          # the asset's own last commit and marks it stale past the same 10 days.
           # daily-scan.yml (the Smart radar) is deliberately absent, not an oversight:
           # it was deleted in #173 once GONDAR proved it had taken over everything Smart
           # owned. #173 merged 2026-08-18 08:55 UTC, after that day's 07:00 UTC watchdog
@@ -63,7 +54,11 @@ jobs:
           # found", and every morning after would have repeated it. A permanently-red
           # check for a correct, intentional state is worse than no check: it trains
           # everyone to expect this job to be red and stop reading it.
-          WORKFLOWS="daily-scan-lean.yml:4 weekly-stats-refresh.yml:10 weekly-analysis.yml:10 williams-r-snapshot.yml:10"
+          #
+          # williams-r-snapshot.yml was removed here 2026-08-23 along with the workflow
+          # itself: the Williams %R value is now computed in the Lean scan and stored in
+          # D1, so there is no weekly capture left to police.
+          WORKFLOWS="daily-scan-lean.yml:4 weekly-stats-refresh.yml:10 weekly-analysis.yml:10"
 
           PROBLEMS=""
           NOW=$(date -u +%s)
