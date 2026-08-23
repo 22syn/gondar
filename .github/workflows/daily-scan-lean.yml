@@ -82,7 +82,7 @@ jobs:
       # If no prior artifact exists (first run, all-runs pruned, etc.)
       # the step warns and the Graduated section degrades to empty.
       - name: Download previous Lean Radar snapshot
-        uses: dawidd6/action-download-artifact@v21
+        uses: dawidd6/action-download-artifact@v23
         continue-on-error: true
         with:
           workflow: daily-scan-lean.yml
