@@ -817,40 +817,12 @@ function closeFragilityModal() {
   $('#chart-modal').hidden = true;
   $('#chart-modal-overlay').hidden = true;
   document.body.style.overflow = '';
+  // Both panels render into #chart-modal-canvas, so whichever one is open must
+  // be destroyed here — leaving an instance attached leaks it and makes the
+  // next open render on top of a live chart.
   if (fragChartModal) { fragChartModal.destroy(); fragChartModal = null; }
+  if (wrChartModal) { wrChartModal.destroy(); wrChartModal = null; }
   if (modal._escHandler) { document.removeEventListener('keydown', modal._escHandler); modal._escHandler = null; }
-}
-
-/* ─── Image lightbox (zoomed TradingView snapshots) ───────────────────────── */
-
-/**
- * Opens the zoomed view of a thumbnail image at its natural size.
- * @param {HTMLImageElement} img the thumbnail that was clicked
- * @returns {void}
- */
-function openImgLightbox(img) {
-  const box = $('#img-lightbox');
-  const zoomed = $('#img-lightbox-img');
-  zoomed.src = img.currentSrc || img.src;
-  zoomed.alt = img.alt;
-  $('#img-lightbox-title').textContent = img.alt;
-  box.hidden = false;
-  $('#img-lightbox-overlay').hidden = false;
-  document.body.style.overflow = 'hidden';
-  $('#btn-close-img-lightbox').focus();
-
-  box._escHandler = (e) => { if (e.key === 'Escape') closeImgLightbox(); };
-  document.addEventListener('keydown', box._escHandler);
-}
-
-function closeImgLightbox() {
-  const box = $('#img-lightbox');
-  box.hidden = true;
-  $('#img-lightbox-overlay').hidden = true;
-  // Drop the source so a stale image never flashes on the next open.
-  $('#img-lightbox-img').removeAttribute('src');
-  document.body.style.overflow = '';
-  if (box._escHandler) { document.removeEventListener('keydown', box._escHandler); box._escHandler = null; }
 }
 
 /* ─── Filtering / sorting ─────────────────────────────────────────────────── */
@@ -1899,16 +1871,6 @@ async function boot() {
   $('#btn-close-chart-modal').addEventListener('click', closeFragilityModal);
   $('#chart-modal-overlay').addEventListener('click', closeFragilityModal);
 
-  // TradingView snapshots — click the thumbnail to view it at full size
-  document.querySelectorAll('.img-zoom-btn').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const img = btn.querySelector('img');
-      if (img) openImgLightbox(img);
-    });
-  });
-  $('#btn-close-img-lightbox').addEventListener('click', closeImgLightbox);
-  $('#img-lightbox-overlay').addEventListener('click', closeImgLightbox);
-
   // Tab navigation: signals ↔ watchlist ↔ explainer
   $('#tab-signals').addEventListener('click', () => switchTab('signals'));
   $('#tab-watchlist').addEventListener('click', () => switchTab('watchlist'));
@@ -2179,10 +2141,21 @@ function renderWrChart(rows, canvasId) {
   if (isModal) wrChartModal = chart; else wrChart = chart;
 }
 
-/** Expanded view of the Williams %R chart, mirroring openFragilityModal. */
+/**
+ * Expanded view of the Williams %R chart. Mirrors openFragilityModal exactly —
+ * same dialog, same overlay, same body-scroll lock, same Escape handler. The
+ * first version showed the dialog without the overlay, which left the backdrop
+ * un-dimmed, click-outside dead and Escape inert.
+ */
 function openWrModal() {
   if (marketContextRows.length === 0) return;
   $('#chart-modal-title').innerHTML = document.querySelector('#wr-wrap .chart-title').innerHTML;
   $('#chart-modal').hidden = false;
+  $('#chart-modal-overlay').hidden = false;
+  document.body.style.overflow = 'hidden';
   renderWrChart(marketContextRows, 'chart-modal-canvas');
+
+  const modal = $('#chart-modal');
+  modal._escHandler = (e) => { if (e.key === 'Escape') closeFragilityModal(); };
+  document.addEventListener('keydown', modal._escHandler);
 }
