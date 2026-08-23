@@ -694,80 +694,13 @@ main {
 .img-zoom-btn:hover .img-zoom-hint,
 .img-zoom-btn:focus-visible .img-zoom-hint { opacity: 1; }
 
-.img-zoom-btn:hover .williamsr-tv-img,
-.img-zoom-btn:focus-visible .williamsr-tv-img { border-color: var(--xsh-primary); }
 
-/* ═══════════════════════════════════════════════
-   WILLIAMS %R PANEL (separate from Purple Fragility —
-   a market-timing gauge, not a per-ticker one)
-═══════════════════════════════════════════════ */
-.chart-wrap--williamsr {
-  grid-column: 1 / -1;
-  border-color: rgba(255, 107, 53, 0.35);
-}
 
-/* Age of the served chart image. Sits in .chart-title-row opposite the title,
-   so it reads as metadata about the panel rather than part of the explainer. */
-.williamsr-freshness {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 0;
-  flex: none;
-  white-space: nowrap;
-  font-size: var(--fs-xs);
-  color: var(--muted);
-}
 
-.williamsr-freshness .material-symbols-outlined { font-size: 15px; }
 
-/* Overdue: same red the overbought legend uses, so the palette stays consistent. */
-.williamsr-freshness.is-stale {
-  color: #f85149;
-  font-weight: 600;
-  white-space: normal;
-}
 
-.williamsr-explainer {
-  font-size: var(--fs-xs);
-  color: var(--muted);
-  line-height: 1.55;
-  margin: 0 0 10px;
-  padding: 8px 10px;
-  background: var(--surface2);
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
 
-.williamsr-explainer b { color: var(--text); font-weight: 600; }
-.wr-legend-panic { color: #3fb950; }
-.wr-legend-overbought { color: #f85149; }
 
-.williamsr-tv-primary summary {
-  cursor: pointer;
-  font-size: var(--fs-xs);
-  color: var(--muted);
-  font-family: var(--mono);
-  margin-bottom: 8px;
-}
-
-.williamsr-tv-primary summary:hover { color: var(--text); }
-
-.williamsr-tv-primary + .williamsr-tv-primary { margin-top: 16px; }
-
-/* The TradingView capture is portrait-ish (~1:1) — capping height (not just
- * width:100%) keeps it proportional to the other charts in this section
- * instead of stretching to a huge block at full container width. */
-.williamsr-tv-img {
-  display: block;
-  width: auto;
-  max-width: 100%;
-  height: auto;
-  max-height: 340px;
-  margin: 0 auto;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-}
 
 /* ═══════════════════════════════════════════════
    CONTROLS
@@ -2228,7 +2161,6 @@ td.col-score {
   .btn-show-more,
   .ctrl-input,
   .ctrl-select,
-  .williamsr-tv-primary summary,
   .dd-tv-link {
     min-height: 44px;
   }

@@ -576,48 +576,6 @@ async function loadFragility() {
   fragilityRows = rows;
   $('#fragility-wrap').hidden = false;
   renderFragilityChart(rows, 'fragility-chart');
-  $('#williamsr-wrap').hidden = false;
-  loadWilliamsFreshness();
-}
-
-// Same 10-day window schedule-watchdog.yml uses for williams-r-snapshot.yml, so
-// the Telegram alert and this marker agree on what "overdue" means. The capture
-// runs Sundays: 10 days is one missed occurrence plus margin.
-const WILLIAMSR_STALE_DAYS = 10;
-
-/**
- * Date the Williams %R charts from the stamp deploy-dashboard.yml writes into
- * the bundle. This reports the age of the image actually being served — the
- * chart's last commit on `stable` — so it goes stale for any of the three real
- * causes: the capture stopped running, it runs but fails, or the dashboard was
- * never redeployed after a new chart landed.
- *
- * Deliberately silent on failure: a missing or malformed stamp hides the label
- * rather than showing a date that might be wrong.
- */
-async function loadWilliamsFreshness() {
-  const el = $('#williamsr-freshness');
-  if (!el) return;
-  try {
-    const resp = await fetch('/assets/williams-r-updated.json', { cache: 'no-store' });
-    if (!resp.ok) return;
-    const { chartCommittedAt } = await resp.json();
-    if (!chartCommittedAt) return;
-    const when = new Date(chartCommittedAt);
-    if (Number.isNaN(when.getTime())) return;
-
-    const ageDays = Math.floor((Date.now() - when.getTime()) / 86400000);
-    const stale = ageDays > WILLIAMSR_STALE_DAYS;
-    const label = new Intl.DateTimeFormat('he-IL', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-    }).format(when);
-
-    el.className = stale ? 'williamsr-freshness is-stale' : 'williamsr-freshness';
-    el.innerHTML = stale
-      ? `${iconHTML('warning')}הגרף מתאריך ${esc(label)} — ${ageDays} ימים, ייתכן שהעדכון השבועי נתקע`
-      : `${iconHTML('event_available')}הגרף מתאריך ${esc(label)}`;
-    el.hidden = false;
-  } catch { /* leave the label hidden */ }
 }
 
 function renderFragilityChart(rows, canvasId) {
