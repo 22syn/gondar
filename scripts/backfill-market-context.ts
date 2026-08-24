@@ -37,6 +37,7 @@ import {
     distanceFromSma,
     slope,
     ratioSeries,
+    aggregateWeekly,
     loadSp500,
     MIN_S5FI_CONSTITUENTS,
     MIN_UNIVERSE_TICKERS,
@@ -66,16 +67,21 @@ async function main(): Promise<void> {
     console.log(`\n📅 Backfilling the last ${days} trading days (${write ? 'WRITE' : 'dry run'})\n`);
 
     const t0 = Date.now();
-    const [spx, rsp, vix, xlp, xly, spyD, spyW, qqqD, qqqW] = await Promise.all([
+    // SPY/QQQ weekly bars are derived from these same daily fetches via
+    // aggregateWeekly(), not from a separate `1wk` Yahoo fetch — see that
+    // function's doc comment. A `1wk` fetch made today freezes each historical
+    // week with its FULL Monday-Friday range, which truncateTo() cannot safely
+    // reopen for a mid-week asOfDate; that is what produced identical
+    // spy_wr_1w/qqq_wr_1w for every day inside the same calendar week in the
+    // first backfill (fixed 2026-08-24).
+    const [spx, rsp, vix, xlp, xly, spyD, qqqD] = await Promise.all([
         fetchSeries('^GSPC', '1d', RANGE),
         fetchSeries('RSP', '1d', RANGE),
         fetchSeries('^VIX', '1d', RANGE),
         fetchSeries('XLP', '1d', RANGE),
         fetchSeries('XLY', '1d', RANGE),
         fetchSeries('SPY', '1d', RANGE),
-        fetchSeries('SPY', '1wk', RANGE),
         fetchSeries('QQQ', '1d', RANGE),
-        fetchSeries('QQQ', '1wk', RANGE),
     ]);
     if (!spx) throw new Error('^GSPC fetch failed — cannot pick the trading calendar');
 
@@ -159,11 +165,16 @@ async function main(): Promise<void> {
         const universeBreadth = u.answered >= MIN_UNIVERSE_TICKERS ? (u.above / u.answered) * 100 : null;
         const breadthSpread = s5fi != null && universeBreadth != null ? s5fi - universeBreadth : null;
 
-        const wr = (s: OhlcSeries | null): number | null => {
-            if (!s) return null;
+        const wr = (s: OhlcSeries | null): { daily: number | null; weekly: number | null } => {
+            if (!s) return { daily: null, weekly: null };
             const x = truncateTo(s, date);
-            return calculateWilliamsR(x.highs, x.lows, x.closes, WR_PERIODS) ?? null;
+            const daily = calculateWilliamsR(x.highs, x.lows, x.closes, WR_PERIODS) ?? null;
+            const w = aggregateWeekly(x);
+            const weekly = calculateWilliamsR(w.highs, w.lows, w.closes, WR_PERIODS) ?? null;
+            return { daily, weekly };
         };
+        const spyWr = wr(spyD);
+        const qqqWr = wr(qqqD);
         const xlpSpx = tXlp && tSpx ? ratioSeries(tXlp, tSpx) : [];
         const xlyXlp = tXly && tXlp ? ratioSeries(tXly, tXlp) : [];
 
@@ -181,8 +192,8 @@ async function main(): Promise<void> {
             xlyXlpSlope21: slope(xlyXlp),
             s5fi,
             s5fiN: answered,
-            spyWr1d: wr(spyD), spyWr1w: wr(spyW),
-            qqqWr1d: wr(qqqD), qqqWr1w: wr(qqqW),
+            spyWr1d: spyWr.daily, spyWr1w: spyWr.weekly,
+            qqqWr1d: qqqWr.daily, qqqWr1w: qqqWr.weekly,
             universeBreadth, universeBreadthN: u.answered, breadthSpread,
         });
     }
