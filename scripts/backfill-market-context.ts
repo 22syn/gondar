@@ -37,14 +37,13 @@ import {
     distanceFromSma,
     slope,
     ratioSeries,
-    aggregateWeekly,
     loadSp500,
     MIN_S5FI_CONSTITUENTS,
     MIN_UNIVERSE_TICKERS,
     type OhlcSeries,
     type MarketContextDay,
 } from '../src/services/marketContext.js';
-import { calculateSMA, calculateWilliamsR } from '../src/utils/technicalAnalysis.js';
+import { calculateSMA, calculateWilliamsR, aggregateWeekly } from '../src/utils/technicalAnalysis.js';
 import { fetchAndCacheWatchlist, loadWatchlist } from '../src/config/index.js';
 import { buildMarketContextBatches, ensureMarketContextSchema } from '../src/utils/marketContextD1Ingest.js';
 import { runBatch, d1ConfigFromEnv } from '../src/utils/d1Client.js';
