@@ -44,3 +44,12 @@ updates:
     groups:
       actions:
         patterns: ["*"]
+    ignore:
+      # Held at v22 on purpose. v23 is a rewrite its maintainer shipped with
+      # "I've used LLMs to get there. I can't vouch for all the changes", and it
+      # touches artifact filtering — which this repo's scan depends on to find
+      # the previous snapshot. The step is non-fatal, so a filtering regression
+      # would empty the Graduated section silently rather than fail the run.
+      # Revisit once v23+ has real mileage; delete this block to resume bumps.
+      - dependency-name: dawidd6/action-download-artifact
+        versions: [">=23"]

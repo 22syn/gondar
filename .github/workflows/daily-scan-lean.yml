@@ -82,7 +82,15 @@ jobs:
       # If no prior artifact exists (first run, all-runs pruned, etc.)
       # the step warns and the Graduated section degrades to empty.
       - name: Download previous Lean Radar snapshot
-        uses: dawidd6/action-download-artifact@v21
+        # v22, not v23. v22 is dependency bumps plus one functional change —
+        # dawidd6/action-download-artifact#413, "continue downloading after
+        # expired artifacts in non-fatal modes" — which lands squarely on this
+        # step's own configuration (continue-on-error + if_no_artifact_found:
+        # warn). v23 is a rewrite the maintainer released the same day with the
+        # note "I've used LLMs to get there. I can't vouch for all the changes",
+        # touching artifact filtering. Nothing here needs that, and a silent
+        # filtering change would empty the Graduated section without failing.
+        uses: dawidd6/action-download-artifact@v22
         continue-on-error: true
         with:
           workflow: daily-scan-lean.yml
