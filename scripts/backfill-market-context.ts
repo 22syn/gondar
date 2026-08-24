@@ -45,7 +45,7 @@ import {
 } from '../src/services/marketContext.js';
 import { calculateSMA, calculateWilliamsR } from '../src/utils/technicalAnalysis.js';
 import { fetchAndCacheWatchlist, loadWatchlist } from '../src/config/index.js';
-import { buildMarketContextBatches } from '../src/utils/marketContextD1Ingest.js';
+import { buildMarketContextBatches, ensureMarketContextSchema } from '../src/utils/marketContextD1Ingest.js';
 import { runBatch, d1ConfigFromEnv } from '../src/utils/d1Client.js';
 
 const WR_PERIODS = 14;
@@ -233,6 +233,11 @@ async function main(): Promise<void> {
     }
     const cfg = d1ConfigFromEnv();
     if (!cfg) { console.error('❌ CF_* not configured'); process.exit(2); }
+    // The table predates universe_breadth/breadth_spread. This script runs its
+    // own batches rather than going through ingestMarketContextToD1, so it has
+    // to apply the same migration — skipping it is how run 32703929257 died.
+    await ensureMarketContextSchema(cfg);
+
     let written = 0;
     for (const row of rows) {
         for (const batch of buildMarketContextBatches(row, new Date().toISOString())) {

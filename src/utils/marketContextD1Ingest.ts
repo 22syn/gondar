@@ -78,6 +78,27 @@ export function buildMarketContextBatches(day: MarketContextDay, stamp: string):
     ];
 }
 
+/**
+ * Add columns that arrived after the table already existed. Same
+ * duplicate-column-tolerant pattern as fragilityD1Ingest and
+ * dashboard/src/ingestD1.ts's ensureSchema.
+ *
+ * Exported because more than one writer exists: the live ingest below AND
+ * scripts/backfill-market-context.ts, which builds and runs its own batches to
+ * avoid re-deriving a day it already has. The backfill bypassing this is
+ * exactly how run 32703929257 failed with "no column named universe_breadth" —
+ * every writer must call it, so it lives here rather than inline.
+ */
+export async function ensureMarketContextSchema(config: D1Config): Promise<void> {
+    for (const col of ['universe_breadth REAL', 'universe_breadth_n INTEGER', 'breadth_spread REAL']) {
+        try {
+            await runBatch({ sql: `ALTER TABLE market_context ADD COLUMN ${col}`, params: [] }, config);
+        } catch (err) {
+            if (!/duplicate column/i.test((err as Error).message)) throw err;
+        }
+    }
+}
+
 export async function ingestMarketContextToD1(
     day: MarketContextDay | null,
     cfg?: D1Config
@@ -90,16 +111,7 @@ export async function ingestMarketContextToD1(
             return false;
         }
         const stamp = new Date().toISOString();
-        // Added 2026-08-24, after the table already existed. Same
-        // duplicate-column-tolerant pattern as fragilityD1Ingest and
-        // dashboard/src/ingestD1.ts ensureSchema.
-        for (const col of ['universe_breadth REAL', 'universe_breadth_n INTEGER', 'breadth_spread REAL']) {
-            try {
-                await runBatch({ sql: `ALTER TABLE market_context ADD COLUMN ${col}`, params: [] }, config);
-            } catch (err) {
-                if (!/duplicate column/i.test((err as Error).message)) throw err;
-            }
-        }
+        await ensureMarketContextSchema(config);
         for (const batch of buildMarketContextBatches(day, stamp)) {
             await runBatch(batch, config);
         }
