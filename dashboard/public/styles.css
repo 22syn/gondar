@@ -2327,3 +2327,11 @@ td.col-score {
 }
 
 .mc-subhead b { color: var(--text); font-weight: 600; }
+
+/* Same fixed height as the other two charts — Chart.js with
+   maintainAspectRatio:false needs an explicitly sized box. */
+.mc-chart-box {
+  position: relative;
+  height: 200px;
+  margin-top: 10px;
+}
