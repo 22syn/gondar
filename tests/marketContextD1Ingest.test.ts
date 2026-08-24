@@ -24,6 +24,9 @@ function day(overrides: Partial<MarketContextDay> = {}): MarketContextDay {
         spyWr1w: -21.739176924250863,
         qqqWr1d: -78.15166058571212,
         qqqWr1w: -40.23542228707095,
+        universeBreadth: 55.85,
+        universeBreadthN: 419,
+        breadthSpread: 1.44,
         ...overrides,
     };
 }
@@ -57,6 +60,9 @@ describe('buildMarketContextBatches', () => {
         expect((insert.sql.match(/\?/g) ?? []).length).toBe(MARKET_CONTEXT_COL_COUNT);
         expect(insert.params[0]).toBe('2026-08-21');
         expect(insert.params[MARKET_CONTEXT_COL_COUNT - 1]).toBe('stamp');
+        expect(insert.params[17]).toBe(55.85); // universe_breadth
+        expect(insert.params[18]).toBe(419);   // universe_breadth_n
+        expect(insert.params[19]).toBe(1.44);  // breadth_spread — s5fi minus universe
     });
 
     it('rounds without inventing precision, and keeps s5fi_n an integer', () => {

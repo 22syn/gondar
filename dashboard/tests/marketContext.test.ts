@@ -19,6 +19,7 @@ function row(date: string, over: Partial<MarketContextRow> = {}): MarketContextR
     xly_xlp_ratio: 1.37, xly_xlp_slope21: 1,
     s5fi: 55, s5fi_n: 500,
     spy_wr_1d: -70, spy_wr_1w: -20, qqq_wr_1d: -75, qqq_wr_1w: -40,
+    universe_breadth: 50, universe_breadth_n: 600, breadth_spread: 5,
     ...over,
   };
 }
@@ -111,5 +112,35 @@ describe('enrichMarketContext', () => {
     const rows = [row(day(1), blank)];
     enrichMarketContext(rows);
     expect(rows[0]!.warn_count).toBeNull();
+  });
+});
+
+describe('breadth spread', () => {
+  // The spread is scored so the panel can show its percentile, but it must NOT
+  // change warn_count — that number says "N/6" and 250 backfilled rows already
+  // carry that definition.
+  it('gets a percentile without joining the six', () => {
+    const rows = Array.from({ length: PCT_BURN_IN + 1 }, (_, i) => row(day(i + 1)));
+    rows[rows.length - 1]!.breadth_spread = 999;
+    enrichMarketContext(rows);
+    const last = rows[rows.length - 1]!;
+    expect(last.pct!.breadth_spread).toBe(100);
+    expect(last.warn_count).toBeLessThanOrEqual(GAUGES.length);
+  });
+
+  it('an extreme spread does not raise warn_count', () => {
+    const calm = Array.from({ length: PCT_BURN_IN + 1 }, (_, i) => row(day(i + 1)));
+    const spiked = calm.map((r) => ({ ...r }));
+    spiked[spiked.length - 1]!.breadth_spread = 999;
+    enrichMarketContext(calm);
+    enrichMarketContext(spiked);
+    expect(spiked[spiked.length - 1]!.warn_count).toBe(calm[calm.length - 1]!.warn_count);
+  });
+
+  it('leaves the spread percentile null when the value is missing', () => {
+    const rows = Array.from({ length: PCT_BURN_IN + 1 }, (_, i) => row(day(i + 1)));
+    rows[rows.length - 1]!.breadth_spread = null;
+    enrichMarketContext(rows);
+    expect(rows[rows.length - 1]!.pct!.breadth_spread).toBeNull();
   });
 });
