@@ -54,6 +54,11 @@ jobs:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+          # universeBreadth needs the watchlist. Without this the script logs
+          # "watchlist unavailable" and writes a null for it — every other gauge
+          # still computes, so the omission is quiet rather than fatal. That is
+          # precisely what happened on run 32703929257.
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
         run: |
           npx tsx scripts/backfill-market-context.ts \
             --days "${{ inputs.days }}" \
