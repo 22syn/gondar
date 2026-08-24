@@ -24,6 +24,11 @@ on:
         type: string
         required: false
         default: '250'
+      range:
+        description: 'Yahoo fetch window — must exceed `days` by ~200 trading days of runway for SMA200 at the far edge (e.g. days=504 needs range=5y, not the default 2y)'
+        type: string
+        required: false
+        default: '2y'
       write:
         description: 'Write to D1. Leave off for a dry run that only reports.'
         type: boolean
@@ -62,4 +67,5 @@ jobs:
         run: |
           npx tsx scripts/backfill-market-context.ts \
             --days "${{ inputs.days }}" \
+            --range "${{ inputs.range }}" \
             ${{ inputs.write && '--write' || '' }}
