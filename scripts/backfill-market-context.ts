@@ -28,6 +28,9 @@
  *   npx tsx scripts/backfill-market-context.ts --days 250            # dry run
  *   npx tsx scripts/backfill-market-context.ts --days 250 --dump /tmp/r.json
  *   npx tsx scripts/backfill-market-context.ts --days 250 --write    # + D1
+ *   npx tsx scripts/backfill-market-context.ts --days 504 --range 5y --write
+ *     # a 2y backfill needs a longer fetch window for SMA200 runway at the
+ *     # far edge — see the RANGE comment below
  */
 import fs from 'node:fs';
 import pLimit from 'p-limit';
@@ -59,9 +62,12 @@ function arg(name: string, fallback: string): string {
 async function main(): Promise<void> {
     const days = parseInt(arg('days', '250'), 10);
     const write = process.argv.includes('--write');
-    // 2y of daily bars: MA50 and MA200 both need runway before the first
-    // emitted date, and SMA200 is the longest lookback in the gauge set.
-    const RANGE = '2y';
+    // Fetch window must exceed --days by enough runway for SMA200 (the
+    // longest lookback in the gauge set) at the FAR edge of the window — a
+    // 2y fetch for a 2y (~504 trading day) backfill would leave the earliest
+    // ~200 rows with no prior bars to average, all null. Override with
+    // --range when --days approaches or exceeds the default's own runway.
+    const RANGE = arg('range', '2y');
 
     console.log(`\n📅 Backfilling the last ${days} trading days (${write ? 'WRITE' : 'dry run'})\n`);
 
