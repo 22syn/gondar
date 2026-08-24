@@ -145,12 +145,19 @@
         <div class="chart-title-row">
           <p class="chart-title"><span class="material-symbols-outlined" aria-hidden="true">public</span>Market Context <span class="chart-subtitle">לחץ שוק רחב — תיאורי בלבד, לא מסנן ולא מדרג שום סיגנל · אזהרה = האחוזון של המדד בהיסטוריה של עצמו, לא סף קבוע</span></p>
           <p class="mc-warncount" id="mc-warncount" hidden></p>
+          <button class="btn-expand" id="btn-expand-mc" aria-label="הגדל גרף" title="הגדל גרף" hidden><span class="material-symbols-outlined" aria-hidden="true">open_in_full</span></button>
         </div>
         <div class="mc-grid" id="mc-grid" role="list"></div>
         <!-- Reported beside the six, not inside them: warn_count says "N/6" and
              250 backfilled rows already carry that definition. -->
         <p class="mc-subhead">רוחב על היוניברס של הרדאר — <b>לא</b> תחליף ל-S5FI, מדד נפרד</p>
         <div class="mc-grid mc-grid--spread" id="mc-spread" role="list" hidden></div>
+        <!-- The two breadth lines with the gap between them shaded. The gap IS
+             the spread, so drawing it beats plotting the subtraction: you can
+             see which side is leading, not just by how much. -->
+        <div class="chart-box mc-chart-box" id="mc-chart-wrap" hidden>
+          <canvas id="mc-chart" aria-label="גרף רוחב: S5FI מול היוניברס, והפער ביניהם" role="img"></canvas>
+        </div>
         <p class="mc-note" id="mc-note" hidden></p>
       </div>
 

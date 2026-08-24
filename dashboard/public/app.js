@@ -107,6 +107,9 @@ let fragChartModal = null;
 /** @type {Chart|null} Williams %R weekly chart, and its expanded-modal twin. */
 let wrChart = null;
 let wrChartModal = null;
+/** @type {Chart|null} Breadth chart (S5FI vs universe), and its expanded twin. */
+let mcChart = null;
+let mcChartModal = null;
 /** Last-loaded market_context rows, kept so the modal can re-render the same data. */
 let marketContextRows = [];
 /** Last-loaded fragility rows, kept so the expanded modal can re-render the same data. */
@@ -886,6 +889,7 @@ function closeFragilityModal() {
   // next open render on top of a live chart.
   if (fragChartModal) { fragChartModal.destroy(); fragChartModal = null; }
   if (wrChartModal) { wrChartModal.destroy(); wrChartModal = null; }
+  if (mcChartModal) { mcChartModal.destroy(); mcChartModal = null; }
   if (modal._escHandler) { document.removeEventListener('keydown', modal._escHandler); modal._escHandler = null; }
   releaseDialogFocus(modal);
 }
@@ -1945,6 +1949,7 @@ async function boot() {
   // Fragility chart — expand to a larger modal view
   $('#btn-expand-fragility').addEventListener('click', openFragilityModal);
   $('#btn-expand-wr').addEventListener('click', openWrModal);
+  $('#btn-expand-mc').addEventListener('click', openMcModal);
   $('#btn-close-chart-modal').addEventListener('click', closeFragilityModal);
   $('#chart-modal-overlay').addEventListener('click', closeFragilityModal);
 
@@ -2162,6 +2167,16 @@ async function loadMarketContext() {
   note.hidden = false;
   $('#market-context-wrap').hidden = false;
 
+  // Chart.js sizes a canvas from its container at construction time, so this
+  // has to run AFTER the panel is visible — building it while an ancestor is
+  // still `hidden` yields a 0x0 canvas and a chart that reports 250 points and
+  // draws nothing. That is the failure a logic-only check calls a pass.
+  if (rows.some((r) => r.breadth_spread != null)) {
+    $('#mc-chart-wrap').hidden = false;
+    $('#btn-expand-mc').hidden = false;
+    renderMcChart(rows, 'mc-chart');
+  }
+
   // Williams %R panel — the four current readings plus the weekly series.
   const wrGrid = $('#wr-grid');
   wrGrid.textContent = '';
@@ -2234,6 +2249,17 @@ function renderWrChart(rows, canvasId) {
       ],
     },
     options: {
+      // Matches dist-chart and fragility-chart, which have always set this —
+      // and not for taste. Chart.js animates from the scale's base via
+      // requestAnimationFrame; when those frames do not fire, every point stays
+      // parked at the base and the canvas paints NOTHING, while the chart still
+      // reports its full dataset and a healthy scale. Reproduced 2026-08-24 at
+      // 460px on both this chart and the Williams one: 0% of the canvas
+      // painted, all 250 points at y=174, unchanged after 3s and an explicit
+      // update(). Rebuilding the identical chart with animation off painted
+      // 16.88% immediately. A reference line has no reason to animate, and this
+      // makes it either drawn or not — never blank.
+      animation: false,
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
@@ -2268,4 +2294,111 @@ function openWrModal() {
   modal._escHandler = (e) => { if (e.key === 'Escape') closeFragilityModal(); };
   document.addEventListener('keydown', modal._escHandler);
   captureDialogFocus(modal, $('#btn-expand-wr'));
+}
+
+
+
+/**
+ * The two breadth series with the gap between them shaded.
+ *
+ * Drawing the pair beats plotting `breadth_spread` on its own: the subtraction
+ * tells you the size of the gap, the two lines tell you which side is moving.
+ * On 2026-07-28 — the widest day in the backfilled series — S5FI sat at 71.4%
+ * while the radar's own universe was at 46.3%, and the shape of that says
+ * "the index broadened away from my names", which a single line does not.
+ *
+ * Chart.js fills BETWEEN datasets via `fill: { target: <index> }`; the fill
+ * belongs to the universe series so its colour reads as "the universe is
+ * below". Both series are percentages on one axis, so no second scale.
+ */
+function renderMcChart(rows, canvasId) {
+  const isModal = canvasId === 'chart-modal-canvas';
+  if (isModal) {
+    if (mcChartModal) { mcChartModal.destroy(); mcChartModal = null; }
+  } else if (mcChart) {
+    mcChart.destroy(); mcChart = null;
+  }
+  const ctx = document.getElementById(canvasId);
+  if (!ctx || typeof Chart === 'undefined') return;
+
+  // U+200E again: canvas text inherits the page's RTL context, so a negative
+  // tick renders as "20-" without it.
+  const ltr = (n) => `\u200E${n}`;
+  const spreadAt = (i) => rows[i]?.breadth_spread;
+
+  const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: rows.map((r) => r.scan_date.slice(5)),
+      datasets: [
+        {
+          label: 'S5FI (S&P 500)',
+          data: rows.map((r) => r.s5fi ?? null),
+          borderColor: '#5aa0ff',
+          backgroundColor: 'transparent',
+          borderWidth: 1.6, pointRadius: 0, spanGaps: true, tension: 0.2,
+        },
+        {
+          label: 'רוחב היוניברס',
+          data: rows.map((r) => r.universe_breadth ?? null),
+          borderColor: '#ff9f45',
+          // Fills the band back to dataset 0 — that band IS the spread.
+          backgroundColor: 'rgba(255, 159, 69, 0.16)',
+          fill: { target: 0 },
+          borderWidth: 1.6, pointRadius: 0, spanGaps: true, tension: 0.2,
+        },
+      ],
+    },
+    options: {
+      // Matches dist-chart and fragility-chart, which have always set this —
+      // and not for taste. Chart.js animates from the scale's base via
+      // requestAnimationFrame; when those frames do not fire, every point stays
+      // parked at the base and the canvas paints NOTHING, while the chart still
+      // reports its full dataset and a healthy scale. Reproduced 2026-08-24 at
+      // 460px on both this chart and the Williams one: 0% of the canvas
+      // painted, all 250 points at y=174, unchanged after 3s and an explicit
+      // update(). Rebuilding the identical chart with animation off painted
+      // 16.88% immediately. A reference line has no reason to animate, and this
+      // makes it either drawn or not — never blank.
+      animation: false,
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        y: { min: 0, max: 100, ticks: { font: { size: 10 }, callback: (v) => ltr(v + '%') } },
+        x: { ticks: { font: { size: 10 }, maxTicksLimit: 12 } },
+      },
+      plugins: {
+        legend: { labels: { boxWidth: 10, font: { size: 10 } } },
+        tooltip: {
+          callbacks: {
+            label: (c) => `${c.dataset.label}: ${ltr((c.parsed.y ?? 0).toFixed(1) + '%')}`,
+            // The gap is the reason this chart exists — state it outright
+            // rather than making the reader subtract two tooltip lines.
+            afterBody: (items) => {
+              const sp = spreadAt(items[0]?.dataIndex);
+              if (sp == null) return '';
+              return `פער: ${ltr((sp > 0 ? '+' : '') + sp.toFixed(1) + 'pp')} — ${sp > 0 ? 'היוניברס מפגר' : 'היוניברס מוביל'}`;
+            },
+          },
+        },
+      },
+    },
+  });
+  if (isModal) mcChartModal = chart; else mcChart = chart;
+}
+
+/** Expanded view of the breadth chart. Mirrors openFragilityModal exactly. */
+function openMcModal() {
+  if (marketContextRows.length === 0) return;
+  $('#chart-modal-title').innerHTML = document.querySelector('#market-context-wrap .chart-title').innerHTML;
+  $('#chart-modal').hidden = false;
+  $('#chart-modal-overlay').hidden = false;
+  document.body.style.overflow = 'hidden';
+  renderMcChart(marketContextRows, 'chart-modal-canvas');
+
+  const modal = $('#chart-modal');
+  modal._escHandler = (e) => { if (e.key === 'Escape') closeFragilityModal(); };
+  document.addEventListener('keydown', modal._escHandler);
+  captureDialogFocus(modal, $('#btn-expand-mc'));
 }
