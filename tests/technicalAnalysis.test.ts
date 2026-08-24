@@ -16,6 +16,7 @@ import {
     calculateEMA,
     countAccumulationDistributionDays,
     calculateWilliamsR,
+    aggregateWeekly,
 } from '../src/utils/technicalAnalysis.js';
 
 describe('calculateSMA', () => {
@@ -453,5 +454,103 @@ describe('calculateWilliamsR', () => {
         const r = calculateWilliamsR([9, 14, 11], [3, 6, 4], [8, 13, 7], 3)!;
         expect(r).toBeLessThanOrEqual(0);
         expect(r).toBeGreaterThanOrEqual(-100);
+    });
+});
+
+describe('aggregateWeekly', () => {
+    // Mon..Fri of one ISO week, ascending.
+    const oneWeek = {
+        dates:  ['2026-08-17', '2026-08-18', '2026-08-19', '2026-08-20', '2026-08-21'],
+        highs:  [776.78,       769.5,        772.47,       768.15,       767.85],
+        lows:   [772.51,       766.92,       768.1,        762.04,       764.17],
+        closes: [772.67,       767.45,       769.06,       762.6,        765.72],
+    };
+
+    it('collapses a full week to one bar: week-high, week-low, Friday close', () => {
+        const w = aggregateWeekly(oneWeek);
+        expect(w.dates).toEqual(['2026-08-17']); // stamped by the week's Monday
+        expect(w.highs[0]).toBeCloseTo(776.78, 6);  // Monday's high is the week's high
+        expect(w.lows[0]).toBeCloseTo(762.04, 6);   // Thursday's low is the week's low
+        expect(w.closes[0]).toBeCloseTo(765.72, 6); // Friday's close
+    });
+
+    // This is the whole point of the function: a caller that has only fed it
+    // Mon-Wed (because that is all it knew as of some Wednesday) must get a
+    // bar reflecting ONLY Mon-Wed — never Thursday's or Friday's numbers,
+    // which had not happened yet. This is what the old Yahoo-`1wk`-bar
+    // approach got wrong: it silently used the week's eventual Friday values
+    // for a Wednesday reading. See PROD data 2026-08-24: spy_wr_1w was
+    // identical across all 5 weekdays before this fix.
+    it('a partial week (fed fewer days) only ever sees the days it was given', () => {
+        const partial = {
+            dates: oneWeek.dates.slice(0, 3),
+            highs: oneWeek.highs.slice(0, 3),
+            lows: oneWeek.lows.slice(0, 3),
+            closes: oneWeek.closes.slice(0, 3),
+        };
+        const w = aggregateWeekly(partial);
+        expect(w.dates).toEqual(['2026-08-17']);
+        expect(w.highs[0]).toBeCloseTo(776.78, 6);       // Monday's high (still the max of Mon-Wed)
+        expect(w.lows[0]).toBeCloseTo(766.92, 6);        // Tuesday's low — NOT Thursday's 762.04
+        expect(w.closes[0]).toBeCloseTo(769.06, 6);      // Wednesday's close — NOT Friday's 765.72
+        // The full-week bar must differ from the partial one on low/close —
+        // proving the function does not silently reach past what it was given.
+        const full = aggregateWeekly(oneWeek);
+        expect(w.lows[0]).not.toBeCloseTo(full.lows[0]!, 3);
+        expect(w.closes[0]).not.toBeCloseTo(full.closes[0]!, 3);
+    });
+
+    it('splits multiple weeks into separate, correctly-ordered bars', () => {
+        const twoWeeks = {
+            dates:  ['2026-08-10', '2026-08-11', '2026-08-17', '2026-08-18'],
+            highs:  [775.05,       774.61,       776.78,       769.5],
+            lows:   [771.62,       769.2,        772.51,       766.92],
+            closes: [773.03,       770.56,       772.67,       767.45],
+        };
+        const w = aggregateWeekly(twoWeeks);
+        expect(w.dates).toEqual(['2026-08-10', '2026-08-17']);
+        expect(w.highs).toEqual([775.05, 776.78]);
+        expect(w.closes).toEqual([770.56, 767.45]); // last close within each week
+    });
+
+    it('a single day becomes its own single-day week bar', () => {
+        const oneDay = { dates: ['2026-08-19'], highs: [772.47], lows: [768.1], closes: [769.06] };
+        const w = aggregateWeekly(oneDay);
+        expect(w.dates).toEqual(['2026-08-17']);
+        expect(w.highs).toEqual([772.47]);
+        expect(w.lows).toEqual([768.1]);
+        expect(w.closes).toEqual([769.06]);
+    });
+
+    it('returns an empty series for empty input', () => {
+        const w = aggregateWeekly({ dates: [], highs: [], lows: [], closes: [] });
+        expect(w.dates).toEqual([]);
+    });
+
+    it('anchors weeks on Monday regardless of which weekday starts the input', () => {
+        // Data starting mid-week (Wednesday) must still be keyed to that week's Monday.
+        const w = aggregateWeekly({
+            dates: ['2026-08-19', '2026-08-20'], highs: [772.47, 768.15],
+            lows: [768.1, 762.04], closes: [769.06, 762.6],
+        });
+        expect(w.dates).toEqual(['2026-08-17']);
+    });
+
+    // The whole reason for the fix: feeding aggregateWeekly progressively more
+    // days of the SAME week (as a real caller would, day by day) must produce
+    // a smoothly evolving reading, not a value that jumps straight to the
+    // week's final outcome on day one.
+    it('evolves smoothly as more days of the same week are supplied', () => {
+        const closesSoFar = [];
+        for (let n = 1; n <= 5; n++) {
+            const w = aggregateWeekly({
+                dates: oneWeek.dates.slice(0, n),
+                highs: oneWeek.highs.slice(0, n),
+                lows: oneWeek.lows.slice(0, n),
+                closes: oneWeek.closes.slice(0, n),
+            });
+            closesSoFar.push(w.closes[0]);
+        }
+        expect(closesSoFar).toEqual(oneWeek.closes); // the n-th day's close each time
     });
 });

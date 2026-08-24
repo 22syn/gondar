@@ -432,3 +432,76 @@ export function calculateWilliamsR(
     // is persisted and charted, and a "-0.00" cell is a wart, not a reading.
     return (-100 * (highestHigh - close)) / range + 0;
 }
+
+/**
+ * Synthesize weekly bars from daily ones, Monday-anchored (ISO week) — the
+ * same grouping convention Yahoo's own `1wk` chart interval uses.
+ *
+ * Added 2026-08-24 to fix a real lookahead bug. Yahoo's `1wk` bars cannot be
+ * trusted for point-in-time reconstruction: once a week closes, Yahoo freezes
+ * its bar with the FULL week's high/low/close, stamped by the week's Monday.
+ * A date-only cutoff comparing that Monday stamp against a target date admits
+ * the whole frozen week the moment the stamp is reached — so for a bulk fetch
+ * made after the fact (a backfill, or any historical re-run), every day from
+ * Monday through Thursday of a week ends up reading data through Friday, days
+ * before Friday happened. Confirmed against production 2026-08-24: a deployed
+ * series showed the SAME weekly Williams %R on all five weekdays of a
+ * calendar week — every day was reading that week's eventual Friday outcome.
+ * Live same-day scans never hit this (Yahoo cannot return a day that has not
+ * traded yet), which is how the bug shipped unnoticed — the one date checked
+ * against a live re-fetch during development happened to be a Friday, where
+ * the frozen week and the true as-of-that-day week are identical by
+ * construction; every other weekday was silently wrong.
+ *
+ * The fix: build the weekly bar from daily bars that were ALREADY correctly
+ * date-cut, rather than from Yahoo's own pre-aggregated (and irreversibly
+ * frozen) weekly bars. A week still in progress as of the caller's cutoff then
+ * only ever aggregates the days that cutoff admitted. Verified against real
+ * SPY data: mid-week dates now produce a materially different (and correct)
+ * reading, while a week's own last trading day reproduces Yahoo's frozen bar
+ * exactly (SPY 2026-08-21 Williams %R: -21.7392 either way) — the two
+ * conventions only diverge before the week closes, which is exactly the case
+ * this function exists to fix.
+ *
+ * `daily` must already be date-ascending and pre-cut to the caller's cutoff —
+ * this function does no cutoff of its own, only grouping.
+ */
+export function aggregateWeekly(daily: {
+    dates: readonly string[];
+    highs: readonly number[];
+    lows: readonly number[];
+    closes: readonly number[];
+}): { dates: string[]; highs: number[]; lows: number[]; closes: number[] } {
+    const weekKeyOf = (d: string): string => {
+        const dt = new Date(`${d}T00:00:00Z`);
+        const isoDay = dt.getUTCDay() || 7; // Sunday (0) -> 7, so Mon=1..Sun=7
+        dt.setUTCDate(dt.getUTCDate() - (isoDay - 1)); // back up to that week's Monday
+        return dt.toISOString().slice(0, 10);
+    };
+
+    const order: string[] = [];
+    const weeks = new Map<string, { highs: number[]; lows: number[]; closes: number[] }>();
+    for (let i = 0; i < daily.dates.length; i++) {
+        const key = weekKeyOf(daily.dates[i]!);
+        let w = weeks.get(key);
+        if (!w) {
+            w = { highs: [], lows: [], closes: [] };
+            weeks.set(key, w);
+            order.push(key);
+        }
+        w.highs.push(daily.highs[i]!);
+        w.lows.push(daily.lows[i]!);
+        w.closes.push(daily.closes[i]!);
+    }
+    order.sort();
+
+    const out = { dates: [] as string[], highs: [] as number[], lows: [] as number[], closes: [] as number[] };
+    for (const key of order) {
+        const w = weeks.get(key)!;
+        out.dates.push(key);
+        out.highs.push(Math.max(...w.highs));
+        out.lows.push(Math.min(...w.lows));
+        out.closes.push(w.closes[w.closes.length - 1]!);
+    }
+    return out;
+}
