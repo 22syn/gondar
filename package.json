@@ -51,7 +51,7 @@
   "license": "MIT",
   "dependencies": {
     "dotenv": "^17.4.2",
-    "googleapis": "^174.0.1",
+    "googleapis": "^176.0.0",
     "p-limit": "^7.3.1",
     "rss-parser": "^3.13.0",
     "trading-signals": "^8.3.0",
