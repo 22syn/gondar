@@ -15,6 +15,10 @@
  *
  * Plus Williams %R for SPY and QQQ on both daily and weekly bars, which replaces
  * the weekly TradingView screenshot that used to carry this (see CHANGELOG).
+ * Weekly is derived from the daily fetch via aggregateWeekly() rather than a
+ * separate `1wk` Yahoo request — see that function's doc comment in
+ * technicalAnalysis.ts for why Yahoo's own weekly bars cannot be trusted for a
+ * historical `asOfDate` (fixed 2026-08-24, after it shipped a real bug).
  *
  * **s5fi is computed, not fetched.** No free API serves S5FI or any breadth
  * index — checked 2026-08-22: the entire public-apis Finance section has zero
@@ -30,7 +34,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import pLimit from 'p-limit';
-import { calculateSMA, calculateWilliamsR } from '../utils/technicalAnalysis.js';
+import { calculateSMA, calculateWilliamsR, aggregateWeekly } from '../utils/technicalAnalysis.js';
 import { computeUniverseBreadth } from '../utils/universeBreadth.js';
 import logger from '../utils/logger.js';
 
@@ -243,16 +247,25 @@ export async function computeS5fi(
     return { value: (above / answered.length) * 100, n: answered.length };
 }
 
-/** Williams %R for one symbol on one interval. Null on any fetch problem. */
+/**
+ * Daily and weekly Williams %R for one symbol, from a SINGLE daily fetch.
+ *
+ * Weekly is derived via aggregateWeekly() over the already-truncated daily
+ * bars rather than a separate `1wk` Yahoo fetch — see that function's doc
+ * comment for why the `1wk` endpoint cannot be trusted for a historical
+ * `asOfDate`. This also means one fewer Yahoo request per symbol than before.
+ */
 async function williamsFor(
     symbol: string,
-    interval: '1d' | '1wk',
     asOfDate: string
-): Promise<number | null> {
-    const s = await fetchSeries(symbol, interval, '2y');
-    if (!s) return null;
+): Promise<{ daily: number | null; weekly: number | null }> {
+    const s = await fetchSeries(symbol, '1d', '2y');
+    if (!s) return { daily: null, weekly: null };
     const t = truncateTo(s, asOfDate);
-    return calculateWilliamsR(t.highs, t.lows, t.closes, WR_PERIODS) ?? null;
+    const daily = calculateWilliamsR(t.highs, t.lows, t.closes, WR_PERIODS) ?? null;
+    const w = aggregateWeekly(t);
+    const weekly = calculateWilliamsR(w.highs, w.lows, w.closes, WR_PERIODS) ?? null;
+    return { daily, weekly };
 }
 
 /**
@@ -284,12 +297,10 @@ export async function computeMarketContext(
     const xlpSpx = xlp && spx ? ratioSeries(xlp, spx) : [];
     const xlyXlp = xly && xlp ? ratioSeries(xly, xlp) : [];
 
-    const [s5fi, spyWr1d, spyWr1w, qqqWr1d, qqqWr1w] = await Promise.all([
+    const [s5fi, spyWr, qqqWr] = await Promise.all([
         computeS5fi(asOfDate),
-        williamsFor('SPY', '1d', asOfDate),
-        williamsFor('SPY', '1wk', asOfDate),
-        williamsFor('QQQ', '1d', asOfDate),
-        williamsFor('QQQ', '1wk', asOfDate),
+        williamsFor('SPY', asOfDate),
+        williamsFor('QQQ', asOfDate),
     ]);
 
     const breadth = computeUniverseBreadth(universe);
@@ -310,10 +321,10 @@ export async function computeMarketContext(
         xlyXlpSlope21: slope(xlyXlp),
         s5fi: s5fi.value,
         s5fiN: s5fi.n,
-        spyWr1d,
-        spyWr1w,
-        qqqWr1d,
-        qqqWr1w,
+        spyWr1d: spyWr.daily,
+        spyWr1w: spyWr.weekly,
+        qqqWr1d: qqqWr.daily,
+        qqqWr1w: qqqWr.weekly,
         universeBreadth: breadth.value,
         universeBreadthN: breadth.n,
         breadthSpread: spread,
