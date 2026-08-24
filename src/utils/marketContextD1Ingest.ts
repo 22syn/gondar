@@ -24,10 +24,11 @@ import logger from './logger.js';
 const COLS =
     '(scan_date, spx_close, spx_dist_sma150, spx_dist_sma200, rsp_close, rsp_slope21, vix, ' +
     'xlp_spx_ratio, xlp_spx_slope21, xly_xlp_ratio, xly_xlp_slope21, s5fi, s5fi_n, ' +
-    'spy_wr_1d, spy_wr_1w, qqq_wr_1d, qqq_wr_1w, ingested_at)';
+    'spy_wr_1d, spy_wr_1w, qqq_wr_1d, qqq_wr_1w, ' +
+    'universe_breadth, universe_breadth_n, breadth_spread, ingested_at)';
 
-/** 18 columns, one row — far under D1's 100-bound-param cap. */
-export const MARKET_CONTEXT_COL_COUNT = 18;
+/** 21 columns, one row — far under D1's 100-bound-param cap. */
+export const MARKET_CONTEXT_COL_COUNT = 21;
 
 const round = (x: number | null, digits: number): number | null =>
     x == null || !Number.isFinite(x) ? null : Math.round(x * 10 ** digits) / 10 ** digits;
@@ -44,6 +45,7 @@ export function buildMarketContextBatches(day: MarketContextDay, stamp: string):
                 xly_xlp_ratio REAL, xly_xlp_slope21 REAL,
                 s5fi REAL, s5fi_n INTEGER,
                 spy_wr_1d REAL, spy_wr_1w REAL, qqq_wr_1d REAL, qqq_wr_1w REAL,
+                universe_breadth REAL, universe_breadth_n INTEGER, breadth_spread REAL,
                 ingested_at TEXT)`,
             params: [],
         },
@@ -67,6 +69,9 @@ export function buildMarketContextBatches(day: MarketContextDay, stamp: string):
                 round(day.spyWr1w, 4),
                 round(day.qqqWr1d, 4),
                 round(day.qqqWr1w, 4),
+                round(day.universeBreadth, 4),
+                day.universeBreadthN,
+                round(day.breadthSpread, 4),
                 stamp,
             ],
         },
@@ -85,6 +90,16 @@ export async function ingestMarketContextToD1(
             return false;
         }
         const stamp = new Date().toISOString();
+        // Added 2026-08-24, after the table already existed. Same
+        // duplicate-column-tolerant pattern as fragilityD1Ingest and
+        // dashboard/src/ingestD1.ts ensureSchema.
+        for (const col of ['universe_breadth REAL', 'universe_breadth_n INTEGER', 'breadth_spread REAL']) {
+            try {
+                await runBatch({ sql: `ALTER TABLE market_context ADD COLUMN ${col}`, params: [] }, config);
+            } catch (err) {
+                if (!/duplicate column/i.test((err as Error).message)) throw err;
+            }
+        }
         for (const batch of buildMarketContextBatches(day, stamp)) {
             await runBatch(batch, config);
         }

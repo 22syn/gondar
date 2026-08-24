@@ -2318,3 +2318,12 @@ td.col-score {
   position: relative;
   height: 200px;
 }
+
+.mc-subhead {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+  margin: 2px 0 6px;
+}
+
+.mc-subhead b { color: var(--text); font-weight: 600; }

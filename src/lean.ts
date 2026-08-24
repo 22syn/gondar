@@ -338,7 +338,7 @@ async function main(): Promise<void> {
         // Wrapped because it runs after the report has already gone out, so no
         // failure here may take the scan down with it.
         try {
-            const mc = await computeMarketContext(scanDate);
+            const mc = await computeMarketContext(scanDate, stocks);
             logger.info(
                 `🌍 Market context: SPX ${mc.spxDistSma150?.toFixed(1) ?? '—'}% vs SMA150 | ` +
                     `VIX ${mc.vix?.toFixed(2) ?? '—'} | ` +
@@ -346,7 +346,9 @@ async function main(): Promise<void> {
                     `RSP 21d ${mc.rspSlope21?.toFixed(1) ?? '—'}% | ` +
                     `XLP/SPX 21d ${mc.xlpSpxSlope21?.toFixed(2) ?? '—'}% | ` +
                     `XLY/XLP 21d ${mc.xlyXlpSlope21?.toFixed(2) ?? '—'}% | ` +
-                    `W%R SPY ${mc.spyWr1w?.toFixed(1) ?? '—'} (1W) / ${mc.spyWr1d?.toFixed(1) ?? '—'} (1D)`
+                    `W%R SPY ${mc.spyWr1w?.toFixed(1) ?? '—'} (1W) / ${mc.spyWr1d?.toFixed(1) ?? '—'} (1D) | ` +
+                    `universe ${mc.universeBreadth?.toFixed(1) ?? '—'}% (n=${mc.universeBreadthN ?? '—'}) ` +
+                    `| spread ${mc.breadthSpread == null ? '—' : (mc.breadthSpread > 0 ? '+' : '') + mc.breadthSpread.toFixed(1) + 'pp'}`
             );
             // One row per trading day, INSERT OR REPLACE — the 23:45 settled-close
             // re-run overwrites the 20:15 row rather than adding a second one.

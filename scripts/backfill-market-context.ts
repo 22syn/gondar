@@ -39,10 +39,12 @@ import {
     ratioSeries,
     loadSp500,
     MIN_S5FI_CONSTITUENTS,
+    MIN_UNIVERSE_TICKERS,
     type OhlcSeries,
     type MarketContextDay,
 } from '../src/services/marketContext.js';
 import { calculateSMA, calculateWilliamsR } from '../src/utils/technicalAnalysis.js';
+import { fetchAndCacheWatchlist, loadWatchlist } from '../src/config/index.js';
 import { buildMarketContextBatches } from '../src/utils/marketContextD1Ingest.js';
 import { runBatch, d1ConfigFromEnv } from '../src/utils/d1Client.js';
 
@@ -89,18 +91,58 @@ async function main(): Promise<void> {
             }))
         )
     ).filter((s): s is OhlcSeries => s !== null);
-    console.log(`📡 fetched ${ok}/${symbols.length} constituents + 9 index series in ${((Date.now() - t0) / 1000).toFixed(1)}s\n`);
+    console.log(`📡 fetched ${ok}/${symbols.length} constituents + 9 index series in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+
+    // The radar's own universe, for universeBreadth and the spread. Same
+    // fetch-once trick. Best-effort: if the watchlist sheet is unreachable the
+    // backfill still produces every other gauge.
+    let universe: OhlcSeries[] = [];
+    try {
+        await fetchAndCacheWatchlist();
+        const wl = loadWatchlist();
+        let uok = 0;
+        universe = (
+            await Promise.all(
+                wl.map((t) => limit(async () => {
+                    const r = await fetchSeries(t, '1d', RANGE);
+                    if (r) uok++;
+                    return r;
+                }))
+            )
+        ).filter((x): x is OhlcSeries => x !== null);
+        console.log(`📡 fetched ${uok}/${wl.length} universe tickers`);
+    } catch (err) {
+        console.warn(`⚠️  watchlist unavailable (${(err as Error).message}) — universeBreadth will be null`);
+    }
+    console.log();
 
     // Trading calendar = the index's own bar dates, newest `days` of them.
     const calendar = spx.dates.slice(-days);
 
     // Pre-index every constituent by date so each day is an O(1) lookup rather
     // than a scan of 500 arrays.
-    const byDate = constituents.map((c) => {
-        const idx = new Map<string, number>();
-        c.dates.forEach((d, i) => idx.set(d, i));
-        return { c, idx };
-    });
+    const index = (list: OhlcSeries[]) =>
+        list.map((c) => {
+            const idx = new Map<string, number>();
+            c.dates.forEach((d, i) => idx.set(d, i));
+            return { c, idx };
+        });
+    const byDate = index(constituents);
+    const uniByDate = index(universe);
+
+    /** % of `set` closing above its own SMA50 on `date`, plus how many answered. */
+    const breadthOn = (set: ReturnType<typeof index>, date: string) => {
+        let above = 0, answered = 0;
+        for (const { c, idx } of set) {
+            const i = idx.get(date);
+            if (i === undefined || i < 50) continue;
+            const sma50 = calculateSMA(c.closes.slice(i - 49, i + 1), 50);
+            if (sma50 == null) continue;
+            answered++;
+            if (c.closes[i]! > sma50) above++;
+        }
+        return { above, answered };
+    };
 
     const rows: MarketContextDay[] = [];
     const nCounts: number[] = [];
@@ -109,17 +151,13 @@ async function main(): Promise<void> {
         const tSpx = t(spx), tRsp = t(rsp), tVix = t(vix), tXlp = t(xlp), tXly = t(xly);
         const last = (s: OhlcSeries | null) => (s && s.closes.length ? s.closes[s.closes.length - 1]! : null);
 
-        let above = 0, answered = 0;
-        for (const { c, idx } of byDate) {
-            const i = idx.get(date);
-            if (i === undefined || i < 50) continue;
-            const sma50 = calculateSMA(c.closes.slice(i - 49, i + 1), 50);
-            if (sma50 == null) continue;
-            answered++;
-            if (c.closes[i]! > sma50) above++;
-        }
+        const { above, answered } = breadthOn(byDate, date);
         nCounts.push(answered);
         const s5fi = answered >= MIN_S5FI_CONSTITUENTS ? (above / answered) * 100 : null;
+
+        const u = breadthOn(uniByDate, date);
+        const universeBreadth = u.answered >= MIN_UNIVERSE_TICKERS ? (u.above / u.answered) * 100 : null;
+        const breadthSpread = s5fi != null && universeBreadth != null ? s5fi - universeBreadth : null;
 
         const wr = (s: OhlcSeries | null): number | null => {
             if (!s) return null;
@@ -145,6 +183,7 @@ async function main(): Promise<void> {
             s5fiN: answered,
             spyWr1d: wr(spyD), spyWr1w: wr(spyW),
             qqqWr1d: wr(qqqD), qqqWr1w: wr(qqqW),
+            universeBreadth, universeBreadthN: u.answered, breadthSpread,
         });
     }
 
@@ -155,7 +194,14 @@ async function main(): Promise<void> {
     console.log(`   all six gauges present: ${complete}/${rows.length}`);
     console.log(`   s5fi null (under ${MIN_S5FI_CONSTITUENTS} constituents): ${nullS5fi}`);
     console.log(`   constituents answering: min ${Math.min(...nCounts)}, max ${Math.max(...nCounts)}`);
-    console.log(`   ⚠️  survivorship: today's S&P membership applied to past dates`);
+    console.log(`   ⚠️  survivorship: today's S&P membership AND today's watchlist applied to past dates`);
+    const sp = rows.map((r) => r.breadthSpread).filter((v): v is number => v != null);
+    if (sp.length) {
+        const srt = [...sp].sort((a, b) => a - b);
+        const pct = (x: number) => srt[Math.floor((x / 100) * (srt.length - 1))]!.toFixed(1);
+        console.log(`   universeBreadth present on ${rows.filter((r) => r.universeBreadth != null).length}/${rows.length} rows`);
+        console.log(`   spread (s5fi − universe) pp: min ${pct(0)} p10 ${pct(10)} med ${pct(50)} p90 ${pct(90)} max ${pct(100)}`);
+    }
     const s5 = rows.map((r) => r.s5fi).filter((v): v is number => v != null).sort((a, b) => a - b);
     if (s5.length) {
         const p = (x: number) => s5[Math.floor((x / 100) * (s5.length - 1))]!.toFixed(1);
@@ -173,6 +219,8 @@ async function main(): Promise<void> {
             xlp_spx_ratio: r.xlpSpxRatio, xlp_spx_slope21: r.xlpSpxSlope21,
             xly_xlp_ratio: r.xlyXlpRatio, xly_xlp_slope21: r.xlyXlpSlope21,
             s5fi: r.s5fi, s5fi_n: r.s5fiN,
+            universe_breadth: r.universeBreadth, universe_breadth_n: r.universeBreadthN,
+            breadth_spread: r.breadthSpread,
             spy_wr_1d: r.spyWr1d, spy_wr_1w: r.spyWr1w,
             qqq_wr_1d: r.qqqWr1d, qqq_wr_1w: r.qqqWr1w,
         }))));

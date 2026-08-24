@@ -2125,6 +2125,38 @@ async function loadMarketContext() {
   }
   wc.hidden = false;
 
+  // Universe breadth + the spread — reported BESIDE the six, not inside them.
+  // warn_count says "N/6"; 250 backfilled rows carry that definition.
+  const spreadWrap = $('#mc-spread');
+  if (latest.universe_breadth == null) {
+    spreadWrap.hidden = true;
+  } else {
+    spreadWrap.textContent = '';
+    spreadWrap.append(mcTile({
+      label: 'רוחב היוניברס',
+      value: latest.universe_breadth,
+      unit: '%',
+      digits: 1,
+      pct: null,
+      warn: false,
+      extra: latest.universe_breadth_n != null ? `n=${latest.universe_breadth_n}` : '',
+    }));
+    const sp = latest.breadth_spread;
+    const spPct = latest.pct ? latest.pct.breadth_spread : null;
+    spreadWrap.append(mcTile({
+      label: 'הפער: S5FI פחות היוניברס',
+      value: sp,
+      unit: 'pp',
+      digits: 1,
+      pct: spPct,
+      // A large POSITIVE gap = the S&P is fine while the radar's own names are
+      // not. That is the reading neither number gives alone.
+      warn: spPct != null && spPct >= MC_WARN_PCT,
+      extra: sp == null ? '' : sp > 0 ? 'היוניברס מפגר' : 'היוניברס מוביל',
+    }));
+    spreadWrap.hidden = false;
+  }
+
   const note = $('#mc-note');
   note.textContent = `עודכן ${latest.scan_date} · ${rows.length} ימי מסחר בסדרה`;
   note.hidden = false;

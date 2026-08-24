@@ -31,6 +31,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import pLimit from 'p-limit';
 import { calculateSMA, calculateWilliamsR } from '../utils/technicalAnalysis.js';
+import { computeUniverseBreadth } from '../utils/universeBreadth.js';
 import logger from '../utils/logger.js';
 
 const SP500_PATH = path.join(process.cwd(), 'config', 'sp500.json');
@@ -48,6 +49,8 @@ const WR_PERIODS = 14;
 export const MIN_S5FI_CONSTITUENTS = 450;
 /** Concurrency for the constituent sweep. p-limit, never sleep() — house rule. */
 const S5FI_CONCURRENCY = 8;
+
+export { computeUniverseBreadth, MIN_UNIVERSE_TICKERS } from '../utils/universeBreadth.js';
 
 export interface OhlcSeries {
     /** YYYY-MM-DD ascending, aligned to the other arrays. */
@@ -76,6 +79,12 @@ export interface MarketContextDay {
     spyWr1w: number | null;
     qqqWr1d: number | null;
     qqqWr1w: number | null;
+    /** % of the radar's OWN scanned universe closing above its SMA50. */
+    universeBreadth: number | null;
+    /** Tickers that answered — the honesty column for universeBreadth. */
+    universeBreadthN: number | null;
+    /** s5fi − universeBreadth, in percentage points. Null unless both exist. */
+    breadthSpread: number | null;
 }
 
 /**
@@ -251,7 +260,10 @@ async function williamsFor(
  * null on its own. The caller still wraps this in try/catch so an unforeseen
  * failure cannot take the scan down with it.
  */
-export async function computeMarketContext(asOfDate: string): Promise<MarketContextDay> {
+export async function computeMarketContext(
+    asOfDate: string,
+    universe: ReadonlyArray<{ lastPrice?: number; sma50?: number }> = []
+): Promise<MarketContextDay> {
     const [spxRaw, rspRaw, vixRaw, xlpRaw, xlyRaw] = await Promise.all([
         fetchSeries('^GSPC'),
         fetchSeries('RSP'),
@@ -280,6 +292,10 @@ export async function computeMarketContext(asOfDate: string): Promise<MarketCont
         williamsFor('QQQ', '1wk', asOfDate),
     ]);
 
+    const breadth = computeUniverseBreadth(universe);
+    const spread =
+        s5fi.value != null && breadth.value != null ? s5fi.value - breadth.value : null;
+
     return {
         scanDate: asOfDate,
         spxClose: last(spx),
@@ -298,5 +314,8 @@ export async function computeMarketContext(asOfDate: string): Promise<MarketCont
         spyWr1w,
         qqqWr1d,
         qqqWr1w,
+        universeBreadth: breadth.value,
+        universeBreadthN: breadth.n,
+        breadthSpread: spread,
     };
 }
