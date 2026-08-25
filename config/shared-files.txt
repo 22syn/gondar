@@ -17,14 +17,18 @@
 # Not listed here (deliberately): files that legitimately differ because the two
 # radars have different feature sets — config/index.ts, index.ts, llmSummary.ts,
 # marketData.ts, telegramBot.ts, types/index.ts, championScore.ts, setup.ts,
-# snapshotWriter.ts — plus everything that exists on only
-# one branch (the fragility/OOS/D1-ingest layer on main, the lean/ modules on
-# stable).
+# snapshotWriter.ts — plus everything that exists on only one branch (the
+# lean/ modules on stable, the dashboard). The fragility rule layer IS listed:
+# purpleFragility.ts + src/shared/fragilityRule.ts + its test are the single
+# source of the Alert/Watch rule for both branches (2026-08-25) and must
+# never drift.
 
 src/config/israeliNames.json
 src/services/finnhubFundamentals.ts
 src/services/monitorTracker.ts
+src/services/purpleFragility.ts
 src/services/rvolCalculator.ts
+src/shared/fragilityRule.ts
 src/utils/acceleration.ts
 src/utils/errorHandler.ts
 src/utils/escapeHtml.ts
@@ -37,3 +41,4 @@ src/utils/tags.ts
 src/utils/technicalAnalysis.ts
 src/utils/tradingDate.ts
 src/utils/writeScanResults.ts
+tests/fragilityRule.test.ts

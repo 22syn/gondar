@@ -42,24 +42,25 @@ import pLimit from 'p-limit';
 import { normalizePriceUnitJumps } from './marketData.js';
 import { mean, stdDev, pearson, rollingMean, rollingStd, rollingMax, expandingZ } from '../utils/statistics.js';
 import logger from '../utils/logger.js';
+import {
+    alertHolds,
+    watchTrigger as ruleWatchTrigger,
+    watchAlertable as ruleWatchAlertable,
+    type FragilityRuleInput,
+} from '../shared/fragilityRule.js';
 
-// process.cwd() is the project root in every run mode (npm start, tsx scripts,
-// GHA) — same convention as championScore.ts, and keeps Jest (CJS transform)
-// away from import.meta.
+// process.cwd() is the project root in every run mode (tsx scripts, GHA) and
+// keeps Jest (CJS transform) away from import.meta.
 const PURPLE_LIST_PATH = path.join(process.cwd(), 'config', 'purple-list.json');
 
-export const FRAGILITY_THRESHOLD = 1.0;
-/** Watch-tier threshold on core3 (wick10+dist20+disp10 z-mean). Calibrated
- *  2026-07-20 on the fixed basket, 2y window, 3y fetch: core3>=1.0 preceded
- *  54% of >7% tops at 56% precision (vs 23% catch for mean6>=1.0); >=0.75
- *  preceded 77% (display tier only — no alert below 1.0). */
-export const CORE3_THRESHOLD = 1.0;
+// The Alert/Watch thresholds and conditions live in src/shared/fragilityRule.ts —
+// the single source shared by the engine on both branches and the dashboard API
+// (drift-guarded via config/shared-files.txt). Re-exported so existing importers
+// (telegramBot, oosLog) keep their import path.
+export { FRAGILITY_THRESHOLD, CORE3_THRESHOLD, CLIMAX_THRESHOLD } from '../shared/fragilityRule.js';
+/** Display-only tier (>=0.75 preceded 77% of tops — no alert below 1.0). Not
+ *  part of the Alert/Watch rule, so not in the shared module. */
 export const CORE3_WATCH_DISPLAY = 0.75;
-/** Watch-tier threshold on climax (contextual volume-z). Calibrated 2026-07-22
- *  via split-half stability testing: climax>=1.5 (AND indexNearHigh) contributed
- *  the majority of the OR-rule's recall lift over core3 alone, stable across
- *  both the 2023-24 and 2025-26 halves. */
-export const CLIMAX_THRESHOLD = 1.5;
 /** Rolling window for the per-ticker volume z-score baseline. */
 const CLIMAX_VOL_WINDOW = 60;
 /** A ticker counts toward climax only within this % of its own trailing 20d closing high. */
@@ -612,19 +613,9 @@ export function buildFragilityDays(
     return { days, tickers: series.map((s) => s.ticker) };
 }
 
-/** 🔴 Alert condition: mean6 >= FRAGILITY_THRESHOLD AND the basket is near its high. */
-function redFires(d: FragilityDay): boolean {
-    return d.indexNearHigh && d.score != null && d.score >= FRAGILITY_THRESHOLD;
-}
-
-/** Which leg(s) of the 🟡 Watch OR-condition are active on a given day, if any. */
-function watchTrigger(d: FragilityDay): 'core3' | 'climax' | 'both' | null {
-    const core3On = d.core3 != null && d.core3 >= CORE3_THRESHOLD;
-    const climaxOn = d.indexNearHigh && d.climax != null && d.climax >= CLIMAX_THRESHOLD;
-    if (core3On && climaxOn) return 'both';
-    if (core3On) return 'core3';
-    if (climaxOn) return 'climax';
-    return null;
+/** Adapt a FragilityDay to the shared rule's input shape (nearHigh = indexNearHigh). */
+function asRuleInput(d: FragilityDay): FragilityRuleInput {
+    return { score: d.score, core3: d.core3, climax: d.climax, nearHigh: d.indexNearHigh };
 }
 
 /**
@@ -647,7 +638,7 @@ export function computeFragilityFromSeries(
     const prev = days.length >= 2 ? days[days.length - 2]! : null;
     const prevScore = prev?.score ?? null;
     const prevCore3 = prev?.core3 ?? null;
-    const latestWatchTrigger = watchTrigger(latest);
+    const latestWatchTrigger = ruleWatchTrigger(asRuleInput(latest));
     return {
         scanDate: asOfDate,
         series: days,
@@ -655,14 +646,15 @@ export function computeFragilityFromSeries(
         prevScore,
         // 🔴 Alert: fires only on the day the compound condition — mean6 above
         // threshold AND the basket itself near its high — newly holds.
-        crossedUp: redFires(latest) && !(prev != null && redFires(prev)),
+        crossedUp: alertHolds(asRuleInput(latest)) && !(prev != null && alertHolds(asRuleInput(prev))),
         prevCore3,
         // 🟡 Watch: fires only on the day the OR-condition newly holds
         // (core3 alone, or climax while the basket is near its high).
-        core3CrossedUp: latestWatchTrigger != null && !(prev != null && watchTrigger(prev) != null),
+        core3CrossedUp:
+            latestWatchTrigger != null && !(prev != null && ruleWatchTrigger(asRuleInput(prev)) != null),
         watchTrigger: latestWatchTrigger,
         // Message-worthy only via the core3 arm — see watchAlertable's contract.
-        watchAlertable: latestWatchTrigger === 'core3' || latestWatchTrigger === 'both',
+        watchAlertable: ruleWatchAlertable(latestWatchTrigger),
         canaryCount: latest.canaryCount ?? 0,
         indexNearHigh: latest.indexNearHigh,
         tickersUsed: tickers,
