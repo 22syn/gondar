@@ -596,43 +596,24 @@ function renderFragilityChart(rows, canvasId) {
   const qqqIndex = rows.map((r) => r.qqq_index ?? null);
   const hasQqq = qqqIndex.some((v) => v != null);
 
-  // Real two-tier alert rule, reconstructed from fields already in the payload
-  // (no bare "score crossed 1.0" — that ignores the near-high gate). canary_count
-  // is populated ONLY within 2% of the trailing-250d index high, so it is an exact
-  // proxy for the engine's indexNearHigh (verified against the source + D1).
-  //   Alert: score >= 1.0 AND near-high
-  //   Watch: core3 >= 1.0 OR (climax >= 1.5 AND near-high)
+  // The Alert/Watch rule is NOT evaluated here anymore. Since 2026-08-25 the
+  // single source is src/shared/fragilityRule.ts (repo root, drift-guarded
+  // identical on both branches); /api/fragility evaluates it server-side and
+  // ships per-row `tier` (held state) and `cross` (newly-fired marker —
+  // one per crossing, matching the Telegram cadence). This file only renders.
   //
-  // The two Watch arms are drawn differently because they perform differently.
-  // Against the basket's own >=7% tops over the 252 sessions in D1 (study
-  // 2026-07-27, docs/research/fragility-calibration on main): core3 runs 81%
-  // precision, climax-only 33% — below the 31% base rate. As of PR #99 only the
-  // core3 arm sends a Telegram message; climax stays here because it does add
-  // real recall (11/11 top episodes with it, 7/11 without) and a chart you
-  // choose to look at pays no price for a mark that doesn't pan out.
-  const nearHigh = (r) => r.canary_count != null;
-  const isAlert = (r) => r.score != null && r.score >= 1.0 && nearHigh(r);
-  const isCore3 = (r) => r.core3 != null && r.core3 >= 1.0;
-  const isClimax = (r) => r.climax != null && r.climax >= 1.5 && nearHigh(r);
-  const isWatch = (r) => isCore3(r) || isClimax(r);
-  // Mark the day each tier NEWLY fires (matches the one-per-crossing Telegram
-  // alert), not every day it holds — held-days would flood the recent window.
-  // 'watch' = core3 arm (messaged); 'soft' = climax-only (chart-only).
-  const marker = rows.map((r, i) => {
-    const prev = i > 0 ? rows[i - 1] : null;
-    if (isAlert(r) && !(prev && isAlert(prev))) return 'alert';
-    if (isWatch(r) && !isAlert(r) && !(prev && isWatch(prev))) {
-      return isCore3(r) ? 'watch' : 'soft';
-    }
-    return null;
-  });
+  // Why the two Watch arms are DRAWN differently (styling below): core3 runs
+  // 81% precision and still messages; climax-only runs 33% — below the 31%
+  // base rate — so it is chart-only (study 2026-07-27,
+  // docs/research/fragility-calibration on main).
+  const marker = rows.map((r) => r.cross ?? null);
   const heldState = (r) =>
     // Plain text, no icon markup: this string is drawn into the Chart.js
     // canvas tooltip, where Material Symbols ligatures would render as the
     // literal word ("circle") instead of a glyph.
-    isAlert(r) ? 'Alert פעיל'
-      : isCore3(r) ? 'Watch פעיל (core3)'
-        : isClimax(r) ? 'climax בלבד — תיאורי, לא נשלחת הודעה'
+    r.tier === 'alert' ? 'Alert פעיל'
+      : r.tier === 'watch-core3' ? 'Watch פעיל (core3)'
+        : r.tier === 'climax-only' ? 'climax בלבד — תיאורי, לא נשלחת הודעה'
           : 'שקט';
 
   const ctx = $('#' + canvasId).getContext('2d');

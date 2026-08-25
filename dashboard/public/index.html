@@ -430,11 +430,12 @@
           </div>
 
           <div class="explainer-score-item">
-            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">warning</span>הכלל כתוב פעמיים</span>
+            <span class="explainer-score-label"><span class="material-symbols-outlined" aria-hidden="true">task_alt</span>הכלל הכפול — נסגר 2026-08-25</span>
             <span class="explainer-score-detail">
-              כלל ה-Alert/Watch מקודד גם במנוע (<code>purpleFragility.ts</code>, ענף <code>main</code>)
-              וגם בדאשבורד (<code>app.js</code>, ענף <code>stable</code>). הותאמו ידנית ב-2026-07-27,
-              אבל הם עלולים להיפרד בעתיד. תיקון אמיתי = מקור אחד משותף. חוב מוכר, לא דחוף.
+              כלל ה-Alert/Watch חי עכשיו במקור אחד: <code>src/shared/fragilityRule.ts</code>,
+              זהה בשני הענפים ונאכף ע"י שומר ה-drift (<code>config/shared-files.txt</code>).
+              המנוע מייבא אותו, ה-API מחשב ממנו <code>tier</code>/<code>cross</code> לכל שורה,
+              ו-<code>app.js</code> רק מצייר — לא מחשב את הכלל בעצמו יותר.
             </span>
           </div>
 
