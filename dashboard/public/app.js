@@ -1060,13 +1060,16 @@ function renderTable() {
 
       switch (k) {
         case 'ticker':
-          inner = r.ticker || '';
+          inner = esc(r.ticker || '');
           break;
         case 'region':
-          inner = r.region || '';
+          inner = esc(r.region || '');
           break;
         case 'sector':
-          inner = (r.sector || '').slice(0, 22); // truncate long sector names
+          // esc() before render — sector comes from Google Sheet column B,
+          // which (unlike the ticker in column A) gets no validateTicker gate,
+          // so it is the one attacker-controllable string that reaches the DOM.
+          inner = esc((r.sector || '').slice(0, 22)); // truncate long sector names
           break;
         case 'signals':
           inner = signalBadgesHTML(r);
@@ -1104,7 +1107,7 @@ function renderTable() {
           inner = fmtPrice(r.price);
           break;
         default:
-          inner = r[k] ?? '';
+          inner = esc(r[k] ?? '');
       }
       return `<td class="${extraCls}">${inner}</td>`;
     }).join('');
@@ -1364,13 +1367,13 @@ function openDeepDive(r, opener = null) {
   openPanel(`
     <button class="btn-close" id="btn-close-dd" aria-label="סגור פאנל">${iconHTML('close')}</button>
     ${gradBanner}
-    <div class="dd-ticker">${r.ticker || ''} ${streakNote}</div>
-    <div class="dd-sub">${r.sector || ''} · ${r.region || ''}</div>
+    <div class="dd-ticker">${esc(r.ticker || '')} ${streakNote}</div>
+    <div class="dd-sub">${esc(r.sector || '')} · ${esc(r.region || '')}</div>
     <div class="dd-badges">${signalBadgesHTML(r)}</div>
     <div class="dd-grid">${gridHTML}</div>
     ${scoreBreakdownHTML(r)}
-    <button type="button" class="dd-history-btn" data-ticker="${r.ticker || ''}">
-      ${iconHTML('history')}כל ההופעות של ${r.ticker || ''} בהיסטוריה
+    <button type="button" class="dd-history-btn" data-ticker="${esc(r.ticker || '')}">
+      ${iconHTML('history')}כל ההופעות של ${esc(r.ticker || '')} בהיסטוריה
     </button>
     <a class="dd-tv-link" href="${tvUrl}" target="_blank" rel="noopener noreferrer">
       פתח ב-TradingView ↗

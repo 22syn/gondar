@@ -1,5 +1,6 @@
-# Self-healing flow: Daily scan fails → Jules fixes → auto-merge → re-run scan
-# One workflow, full cycle.
+# Assisted-healing flow: Daily scan fails → Jules opens a fix PR → CI verifies →
+# Telegram pings a human → human reviews & merges → scan re-runs.
+# The merge is deliberately manual: Jules-written code is not auto-merged to main.
 
 name: Jules Fix on Daily Scan Failure
 
@@ -31,9 +32,19 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh run view ${{ github.event.workflow_run.id }} --repo ${{ github.repository }} --log-failed 2>&1 | tail -80 > logs.txt
-          echo "log<<LOGS_DELIM" >> $GITHUB_OUTPUT
-          cat logs.txt >> $GITHUB_OUTPUT
-          echo "LOGS_DELIM" >> $GITHUB_OUTPUT
+          # Random per-run heredoc delimiter. The log text is not fully
+          # first-party (it echoes third-party API error strings), so a fixed
+          # delimiter would let a crafted log line close the value early and set
+          # arbitrary step outputs — which then feed the Jules prompt below.
+          # An unpredictable delimiter makes that injection infeasible; the grep
+          # strips the astronomically unlikely genuine collision.
+          DELIM="LOGS_EOF_$(openssl rand -hex 16)"
+          grep -vxF "$DELIM" logs.txt > logs.clean || true
+          {
+            echo "log<<$DELIM"
+            cat logs.clean
+            echo "$DELIM"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Notify Telegram (Jules invoked)
         continue-on-error: true
@@ -82,17 +93,23 @@ jobs:
           include_last_commit: true
           include_commit_log: true
 
-  # 2. Jules opened fix/* PR → verify and merge
-  verify-and-merge:
+  # 2. Jules opened fix/* PR → verify, then hand off to a human.
+  # This job NO LONGER auto-merges. Jules-written code merged straight to main
+  # on green CI alone runs the next day with every scan secret (TELEGRAM/FINNHUB/
+  # GOOGLE_SHEET/CF), and the fix branch is chosen by name only — so a green
+  # lint/build/test was the sole gate on unreviewed code reaching production.
+  # It now verifies and pings Telegram; a human reviews and merges, and job 3
+  # (re-run-scan) fires the scan once that merge lands. Read-only permissions,
+  # and a same-repo gate so a stranger's fork PR named fix/* cannot run this.
+  verify:
     if: |
       github.event_name == 'pull_request' &&
       github.event.pull_request.state == 'open' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
       startsWith(github.event.pull_request.head.ref, 'fix/')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      pull-requests: write
-      actions: write
+      contents: read
 
     steps:
       - name: Checkout PR branch
@@ -118,28 +135,23 @@ jobs:
       - name: Test
         run: npm run test
 
-      - name: Merge PR
+      - name: Notify Telegram (verified, awaiting human review)
         if: success()
+        continue-on-error: true
         env:
-          GH_TOKEN: ${{ github.token }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          PR_NUM: ${{ github.event.pull_request.number }}
         run: |
-          gh pr merge ${{ github.event.pull_request.number }} --squash
-          echo "✅ PR merged (squash)"
+          if [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
+            MSG="✅ Jules fix PR #${PR_NUM} passed lint/build/test — review & merge: ${PR_URL}"
+            curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+              --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
+              --data-urlencode "text=${MSG}"
+          fi
 
-      - name: Re-run daily scan
-        if: success()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            await github.rest.actions.createWorkflowDispatch({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              workflow_id: 'daily-scan.yml',
-              ref: 'main'
-            });
-            core.info('✅ Triggered Smart Volume Radar - Daily Scan');
-
-  # 3. fix/* PR merged manually → re-run (fallback when merge done outside verify-and-merge)
+  # 3. fix/* PR merged manually → re-run (fires once a human merges the verified PR)
   re-run-scan:
     if: |
       github.event_name == 'pull_request' &&

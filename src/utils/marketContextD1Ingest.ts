@@ -94,7 +94,15 @@ export async function ensureMarketContextSchema(config: D1Config): Promise<void>
         try {
             await runBatch({ sql: `ALTER TABLE market_context ADD COLUMN ${col}`, params: [] }, config);
         } catch (err) {
-            if (!/duplicate column/i.test((err as Error).message)) throw err;
+            // "no such table" is safe to swallow: every caller runs the
+            // CREATE TABLE IF NOT EXISTS batch immediately after this, and that
+            // CREATE already declares all three columns — so on a fresh or
+            // restored D1 the table is bootstrapped complete and these ALTERs
+            // were never needed. Without this, the ALTER rethrows before the
+            // CREATE ever runs and the table can never be created (the live
+            // path and the backfill both dead-lock).
+            const msg = (err as Error).message;
+            if (!/duplicate column/i.test(msg) && !/no such table/i.test(msg)) throw err;
         }
     }
 }
