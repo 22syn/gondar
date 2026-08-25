@@ -2135,6 +2135,15 @@ function renderMcStatus(latest) {
   } else if (dailyPanic || (top && top.e >= MC_WARN_PCT)) {
     cls = 'watch';
     head = dailyPanic ? '🟡 pullback יומי (W%R בפאניקה)' : `🟡 ${top.g.label} באזור אזהרה`;
+  } else if (latest.warn_count == null || top == null) {
+    // Nothing scored: a young series still burning in, or an all-null row from
+    // a failed-fetch day (computeMarketContext is fail-open and lean.ts still
+    // writes the null row). Do NOT paint "🟢 שקט" — that asserts calm from data
+    // we never measured. Mirror the #mc-warncount "still warming up" wording.
+    // W%R panics are absolute readings and already handled above, so they still
+    // surface on such a day even though the percentiles are not ready.
+    cls = 'unscored';
+    head = '⚪ טרם נמדד — אחוזונים בהרצה';
   } else {
     cls = 'calm';
     head = '🟢 שקט';
