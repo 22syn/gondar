@@ -164,7 +164,8 @@ function readableSignal(name) {
 function badgeHTML(name, primary) {
   const meta = SIGNAL_META[name] || { label: name, icon: 'circle', cls: 'near' };
   const cls = primary ? `badge badge--${meta.cls} badge--primary` : `badge badge--${meta.cls}`;
-  return `<span class="${cls}" title="${meta.label}">${iconHTML(meta.icon)}${meta.label}</span>`;
+  const label = esc(meta.label);
+  return `<span class="${cls}" title="${label}">${iconHTML(meta.icon)}${label}</span>`;
 }
 
 /**
@@ -187,7 +188,7 @@ function signalBadgesHTML(row) {
 
   // Graduation badge first — highest priority
   if (row.graduated_from) {
-    const fromLabel = readableSignal(row.graduated_from);
+    const fromLabel = esc(readableSignal(row.graduated_from));
     html += `<span class="badge badge--grad" title="Graduated from ${fromLabel}">${iconHTML('school')}← ${fromLabel}</span>`;
   }
 
@@ -196,7 +197,7 @@ function signalBadgesHTML(row) {
 
   // ×N confluence tag with full signal list in title
   if (count > 1) {
-    const sigList = allSigs.map(readableSignal).join(' · ');
+    const sigList = esc(allSigs.map(readableSignal).join(' · '));
     html += `<span class="conf-tag" title="${sigList}">×${count}</span>`;
   }
 
@@ -1719,7 +1720,8 @@ async function selectDay(date) {
 
   showState('טוען…');
   try {
-    const url = date ? `/api/signals?from=${date}&to=${date}` : '/api/signals';
+    const d = encodeURIComponent(date);
+    const url = date ? `/api/signals?from=${d}&to=${d}` : '/api/signals';
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     allRows = await resp.json();
@@ -1775,7 +1777,8 @@ async function loadWatchlist() {
   const todayDate = summaryDays[0] ? summaryDays[0].scan_date : null;
   if (todayDate) {
     try {
-      const resp = await fetch(`/api/signals?from=${todayDate}&to=${todayDate}`);
+      const td = encodeURIComponent(todayDate);
+      const resp = await fetch(`/api/signals?from=${td}&to=${td}`);
       if (resp.ok) todayRows = await resp.json();
     } catch { /* status column degrades to "—" below */ }
   }
@@ -1860,8 +1863,8 @@ function renderWatchlist(state, todayRows, todayDate) {
         else status = `<span class="wl-aged">${iconHTML('schedule')}ותק בלבד</span>`;
         return `
         <tr>
-          <td>${r.ticker}</td>
-          <td class="et-sub">${r.signalDate}</td>
+          <td>${esc(r.ticker)}</td>
+          <td class="et-sub">${esc(r.signalDate)}</td>
           <td class="et-sub">${ageCell}</td>
           <td>${status}</td>
         </tr>
@@ -1870,7 +1873,7 @@ function renderWatchlist(state, todayRows, todayDate) {
       : `<tr><td colspan="4" class="et-sub">ריק כרגע</td></tr>`;
     return `
       <div class="explainer-section">
-        <div class="explainer-h2">${name} (${rows.length})</div>
+        <div class="explainer-h2">${esc(name)} (${rows.length})</div>
         <div class="explainer-table-wrap">
           <table class="explainer-table">
             <thead><tr><th>טיקר</th><th>איתות ראשון</th><th>ימים ברשימה</th><th>${statusHead}</th></tr></thead>
@@ -2191,10 +2194,13 @@ function renderMcHeatmap(rows) {
   const x = (i) => ML + (i / (n - 1)) * plotW;
 
   const closes = rows.map((r) => r.spx_close).filter((c) => c != null);
+  if (closes.length < 2) return;
   const lo = Math.min(...closes); const hi = Math.max(...closes);
-  const y = (c) => 4 + (1 - (c - lo) / (hi - lo)) * (spxH - 8);
-
-  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  // A frozen/stale series where every close is identical (a failure mode this
+  // project has hit on TASE tickers) gives hi===lo → 0/0 → NaN coordinates and
+  // a broken path. Flatten to the mid-row instead of dividing by zero.
+  const span = hi - lo;
+  const y = (c) => span === 0 ? 4 + 0.5 * (spxH - 8) : 4 + (1 - (c - lo) / span) * (spxH - 8);
   let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="direction:ltr">`;
 
   for (const dd of detectDrawdowns(rows)) {
@@ -2339,10 +2345,15 @@ async function loadMarketContext() {
     spreadWrap.hidden = false;
   }
 
-  // Extremity heatmap — needs scored percentiles to say anything.
+  // Extremity heatmap — needs scored percentiles to say anything. Isolated:
+  // it is the last thing built here and a throw (malformed row, bad date) must
+  // not take the freshness note, the breadth chart and the W%R panel down with
+  // it — those still run below.
   if (rows.some((r) => r.pct && r.spx_close != null)) {
-    $('#mc-heat-wrap').hidden = false;
-    renderMcHeatmap(rows);
+    try {
+      $('#mc-heat-wrap').hidden = false;
+      renderMcHeatmap(rows);
+    } catch { $('#mc-heat-wrap').hidden = true; /* heatmap optional — panel continues */ }
   }
 
   const note = $('#mc-note');

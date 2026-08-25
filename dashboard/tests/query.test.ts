@@ -28,6 +28,11 @@ describe('buildSignalsQuery', () => {
     expect(q.sql).toMatch(/scan_date BETWEEN \? AND \?/);
     expect(q.params).toEqual(['2026-06-01', '2026-06-29']);
   });
+
+  it('caps the range query with a row LIMIT (no unbounded dump)', () => {
+    const q = buildSignalsQuery({ from: '2026-06-01', to: '2026-06-29' });
+    expect(q.sql).toMatch(/LIMIT \d+/);
+  });
 });
 
 describe('buildRecentDatesQuery', () => {

@@ -16,7 +16,13 @@
     href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap"
   >
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <!-- Pinned to an exact version + SRI: a floating @4 with no integrity means
+       any jsDelivr compromise or malicious 4.x publish is full JS execution in
+       this origin. crossorigin=anonymous lets the browser enforce the hash on a
+       cross-origin script. -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"
+          integrity="sha384-jb8JQMbMoBUzgWatfe6COACi2ljcDdZQ2OxczGA3bGNeWe+6DChMTBJemed7ZnvJ"
+          crossorigin="anonymous"></script>
 </head>
 <body>
 

@@ -1,0 +1,19 @@
+# Cloudflare Pages security headers, applied to every response.
+# A CSP that forbids inline event handlers and unknown script hosts is the
+# single control that would have neutralised the sector/badge/watchlist XSS
+# classes outright, independent of any one sink escaping correctly.
+#
+# script-src: 'self' (app.js) + jsdelivr (Chart.js, pinned + SRI). No inline
+#   <script> exists in index.html, so no 'unsafe-inline' is needed for scripts.
+# style-src: 'unsafe-inline' is required — Chart.js sets inline canvas styles
+#   and the hand-rolled SVG uses style attributes; style injection is far lower
+#   risk than script. fonts.googleapis.com serves the Space Grotesk / Material
+#   Symbols stylesheets.
+# font-src: fonts.gstatic.com serves the actual font + icon glyph files.
+# connect-src 'self': the dashboard only ever fetches its own /api/*.
+# frame-ancestors 'none': the dashboard is not meant to be embedded.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY

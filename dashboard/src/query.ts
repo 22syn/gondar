@@ -21,7 +21,10 @@ const SELECT = (withWr14 = true): string =>
 export function buildSignalsQuery(p: SignalParams, withWr14 = true): Query {
   const sel = SELECT(withWr14);
   if (p.from && p.to) {
-    return { sql: `${sel} WHERE scan_date BETWEEN ? AND ? ORDER BY scan_date DESC, score DESC`, params: [p.from, p.to] };
+    // Hard backstop on row count. The Function already caps the span to 400
+    // days, but a 400-day window across the whole universe is still large; this
+    // bounds the worst case so no single request can exhaust D1 reads.
+    return { sql: `${sel} WHERE scan_date BETWEEN ? AND ? ORDER BY scan_date DESC, score DESC LIMIT 20000`, params: [p.from, p.to] };
   }
   return { sql: `${sel} WHERE scan_date = (SELECT MAX(scan_date) FROM lean_signals) ORDER BY score DESC`, params: [] };
 }
