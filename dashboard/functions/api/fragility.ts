@@ -6,6 +6,18 @@
 // until the first Smart ingest — treat errors as an empty series.
 import { buildFragilityQuery } from '../../src/query.js';
 import { fetchQqqIndex, applyQqqOverlay } from '../../src/qqqOverlay.js';
+// The Alert/Watch rule itself lives at the repo root, OUTSIDE dashboard/ — it is
+// the single source shared with the engine on both branches (drift-guarded via
+// config/shared-files.txt). Wrangler's esbuild bundles it into the Function at
+// deploy time. app.js no longer evaluates the rule; it renders the `tier` and
+// `cross` fields computed here.
+import {
+    nearHighFromCanaryCount,
+    tier,
+    cross,
+    type FragilityTier,
+    type FragilityCross,
+} from '../../../src/shared/fragilityRule.js';
 
 interface Env { DB: D1Database; }
 
@@ -36,6 +48,11 @@ interface FragilityRow {
    *  without a raw-price/score scale clash. Null when the Yahoo fetch fails
    *  or a given scan_date has no matching QQQ bar (holiday mismatch etc). */
   qqq_index?: number | null;
+  /** Held state of the Alert/Watch rule on this day — computed server-side from
+   *  the shared rule module so the client never re-implements the rule. */
+  tier?: FragilityTier;
+  /** Set on the day a tier NEWLY fires (chart marker / one-per-crossing alert). */
+  cross?: FragilityCross;
 }
 
 // fetchQqqIndex / applyQqqOverlay used to live here. They moved to
@@ -56,6 +73,20 @@ export const onRequestGet: PagesFunction<Env> = async ({ env }) => {
     } catch {
       // Benchmark overlay is best-effort — leave qqq_index unset on failure.
     }
+
+    // Evaluate the Alert/Watch rule once, here, from the shared module. The
+    // canary_count → nearHigh proxy is exact (populated only within 2% of the
+    // trailing-250d index high).
+    const asRuleInput = (r: FragilityRow) => ({
+      score: r.score ?? null,
+      core3: r.core3,
+      climax: r.climax,
+      nearHigh: nearHighFromCanaryCount(r.canary_count),
+    });
+    rows.forEach((r, i) => {
+      r.tier = tier(asRuleInput(r));
+      r.cross = cross(asRuleInput(r), i > 0 ? asRuleInput(rows[i - 1]!) : null);
+    });
 
     return Response.json(rows);
   } catch {
