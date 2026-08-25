@@ -144,3 +144,32 @@ describe('breadth spread', () => {
     expect(rows[rows.length - 1]!.pct!.breadth_spread).toBeNull();
   });
 });
+
+describe('universe breadth', () => {
+  // Same contract as breadth_spread: percentile scored for the tile's own
+  // warning badge, but must NOT join warn_count's "N/6".
+  it('gets a percentile without joining the six', () => {
+    const rows = Array.from({ length: PCT_BURN_IN + 1 }, (_, i) => row(day(i + 1)));
+    rows[rows.length - 1]!.universe_breadth = 999;
+    enrichMarketContext(rows);
+    const last = rows[rows.length - 1]!;
+    expect(last.pct!.universe_breadth).toBe(100);
+    expect(last.warn_count).toBeLessThanOrEqual(GAUGES.length);
+  });
+
+  it('an extreme universe_breadth does not raise warn_count', () => {
+    const calm = Array.from({ length: PCT_BURN_IN + 1 }, (_, i) => row(day(i + 1)));
+    const spiked = calm.map((r) => ({ ...r }));
+    spiked[spiked.length - 1]!.universe_breadth = 999;
+    enrichMarketContext(calm);
+    enrichMarketContext(spiked);
+    expect(spiked[spiked.length - 1]!.warn_count).toBe(calm[calm.length - 1]!.warn_count);
+  });
+
+  it('leaves the percentile null when the value is missing', () => {
+    const rows = Array.from({ length: PCT_BURN_IN + 1 }, (_, i) => row(day(i + 1)));
+    rows[rows.length - 1]!.universe_breadth = null;
+    enrichMarketContext(rows);
+    expect(rows[rows.length - 1]!.pct!.universe_breadth).toBeNull();
+  });
+});

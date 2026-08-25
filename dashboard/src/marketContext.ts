@@ -65,6 +65,18 @@ export type GaugeKey = (typeof GAUGES)[number]['key'];
  */
 export const SPREAD_GAUGE = { key: 'breadth_spread', label: 'S5FI פחות היוניברס', warnAt: 'high', unit: 'pp' } as const;
 
+/**
+ * Scored like a gauge, but deliberately NOT part of GAUGES — same reasoning as
+ * SPREAD_GAUGE: warn_count says "N/6" and must not silently become "N/8".
+ *
+ * Warning side is `high`: measured 2026-08-24 against the three real corrections
+ * in the 2-year backfill, an elevated reading (90th+ percentile) preceded one of
+ * three (Jan 2026, 2.7x its own base rate) and missed the other two. Weaker than
+ * the strongest of the original six in every case, but the direction is the one
+ * that actually showed lift, not the arbitrary alternative.
+ */
+export const UNIVERSE_GAUGE = { key: 'universe_breadth', label: 'רוחב היוניברס', warnAt: 'high', unit: '%' } as const;
+
 export interface MarketContextRow {
   scan_date: string;
   spx_close: number | null;
@@ -89,8 +101,8 @@ export interface MarketContextRow {
   /** s5fi − universe_breadth, in percentage points. */
   breadth_spread: number | null;
   /** Percentile of each gauge within its own trailing window; null during burn-in.
-   *  Includes `breadth_spread`, which is scored but excluded from warn_count. */
-  pct?: Partial<Record<GaugeKey | 'breadth_spread', number | null>>;
+   *  Includes `breadth_spread` and `universe_breadth`, scored but excluded from warn_count. */
+  pct?: Partial<Record<GaugeKey | 'breadth_spread' | 'universe_breadth', number | null>>;
   /** How many of the six gauges sit in their warning tail. Null during burn-in. */
   warn_count?: number | null;
 }
@@ -111,17 +123,17 @@ export function percentileRank(history: number[], value: number): number {
  */
 export function enrichMarketContext(rows: MarketContextRow[]): MarketContextRow[] {
   const history: Record<string, number[]> = {};
-  for (const g of [...GAUGES, SPREAD_GAUGE]) history[g.key] = [];
+  for (const g of [...GAUGES, SPREAD_GAUGE, UNIVERSE_GAUGE]) history[g.key] = [];
 
   for (const row of rows) {
-    const pct: Partial<Record<GaugeKey | 'breadth_spread', number | null>> = {};
+    const pct: Partial<Record<GaugeKey | 'breadth_spread' | 'universe_breadth', number | null>> = {};
     let warn = 0;
     let scored = 0;
 
-    // SPREAD_GAUGE rides the same percentile machinery but is skipped by the
-    // warn/scored counters below — see its doc comment.
-    for (const g of [...GAUGES, SPREAD_GAUGE]) {
-      const value = row[g.key as GaugeKey | 'breadth_spread'];
+    // SPREAD_GAUGE and UNIVERSE_GAUGE ride the same percentile machinery but
+    // are skipped by the warn/scored counters below — see their doc comments.
+    for (const g of [...GAUGES, SPREAD_GAUGE, UNIVERSE_GAUGE]) {
+      const value = row[g.key as GaugeKey | 'breadth_spread' | 'universe_breadth'];
       if (value == null || !Number.isFinite(value)) {
         pct[g.key] = null;
         continue;
@@ -139,7 +151,7 @@ export function enrichMarketContext(rows: MarketContextRow[]): MarketContextRow[
 
       const p = percentileRank(hist, value);
       pct[g.key] = p;
-      if (g.key === SPREAD_GAUGE.key) continue;   // scored, but not one of the six
+      if (g.key === SPREAD_GAUGE.key || g.key === UNIVERSE_GAUGE.key) continue;   // scored, but not one of the six
       scored++;
       const warning = g.warnAt === 'high' ? p >= WARN_PCT : p <= 100 - WARN_PCT;
       if (warning) warn++;
