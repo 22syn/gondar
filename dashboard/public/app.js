@@ -2061,6 +2061,30 @@ const MC_GAUGES = [
 /** Percentile at or beyond which a gauge is drawn as warning. Mirrors WARN_PCT. */
 const MC_WARN_PCT = 90;
 
+/**
+ * Every scored series in display order, with its warning direction — the six
+ * plus the two house metrics. Drives the status line and the heatmap; the
+ * warnHigh flags MUST agree with GAUGES/SPREAD_GAUGE/UNIVERSE_GAUGE in
+ * dashboard/src/marketContext.ts.
+ */
+const MC_HEAT_ROWS = [
+  { key: 'spx_dist_sma150', label: 'SPX מעל SMA150', warnHigh: true },
+  { key: 'rsp_slope21', label: 'RSP מגמת 21י', warnHigh: false },
+  { key: 'vix', label: 'VIX', warnHigh: false },
+  { key: 'xlp_spx_slope21', label: 'XLP/SPX 21י', warnHigh: true },
+  { key: 'xly_xlp_slope21', label: 'XLY/XLP 21י', warnHigh: false },
+  { key: 's5fi', label: 'S5FI רוחב', warnHigh: true },
+  { key: 'universe_breadth', label: 'רוחב היוניברס', warnHigh: true },
+  { key: 'breadth_spread', label: 'S5FI פחות היוניברס', warnHigh: true },
+];
+
+/** Depth into the gauge's own warning tail, 0-100. Null when unscored. */
+function mcExtremity(row, g) {
+  const p = row.pct ? row.pct[g.key] : null;
+  if (p == null) return null;
+  return g.warnHigh ? p : 100 - p;
+}
+
 function mcTile({ label, value, unit, digits, pct, warn, extra }) {
   const el = document.createElement('div');
   el.className = 'mc-tile' + (warn ? ' is-warn' : '') + (value == null ? ' is-empty' : '');
@@ -2087,6 +2111,162 @@ function mcTile({ label, value, unit, digits, pct, warn, extra }) {
 }
 
 /**
+ * One-line verdict above the tiles. The 2026-08-24 backtest showed warn_count
+ * has no predictive lift while single-gauge extremes ran 3-5x base rate — so
+ * the line always names the most extreme gauge, and the count is only one of
+ * the escalation triggers, never the headline.
+ */
+function renderMcStatus(latest) {
+  const el = $('#mc-status');
+  const panic = (v) => v != null && v <= -80;
+  const weeklyPanic = panic(latest.spy_wr_1w) || panic(latest.qqq_wr_1w);
+  const dailyPanic = panic(latest.spy_wr_1d) || panic(latest.qqq_wr_1d);
+
+  let top = null;
+  for (const g of MC_HEAT_ROWS) {
+    const e = mcExtremity(latest, g);
+    if (e != null && (top == null || e > top.e)) top = { g, e, p: latest.pct[g.key] };
+  }
+
+  let cls; let head;
+  if (weeklyPanic || (latest.warn_count ?? 0) >= 2) {
+    cls = 'hot';
+    head = weeklyPanic ? '🔴 פאניקה שבועית (W%R)' : `🔴 ${latest.warn_count}/6 מדדים באזהרה`;
+  } else if (dailyPanic || (top && top.e >= MC_WARN_PCT)) {
+    cls = 'watch';
+    head = dailyPanic ? '🟡 pullback יומי (W%R בפאניקה)' : `🟡 ${top.g.label} באזור אזהרה`;
+  } else {
+    cls = 'calm';
+    head = '🟢 שקט';
+  }
+
+  el.textContent = '';
+  el.append(head);
+  if (top) {
+    const d = document.createElement('span');
+    d.className = 'mc-status-detail';
+    d.textContent = ` · הכי קיצוני עכשיו: ${top.g.label} (אחוזון ${Math.round(top.p)})`;
+    el.append(d);
+  }
+  el.className = `mc-status mc-status--${cls}`;
+  el.hidden = false;
+}
+
+/**
+ * Peak-to-trough drawdowns of 5%+ on spx_close — same detection as the
+ * 2026-08-24 backtest. Returns [{peakIdx, troughIdx}] for band shading.
+ */
+function detectDrawdowns(rows, threshold = -5) {
+  const out = [];
+  let peakIdx = null; let peak = -Infinity; let troughIdx = null; let trough = Infinity;
+  rows.forEach((r, i) => {
+    const c = r.spx_close;
+    if (c == null) return;
+    if (c >= peak) {
+      // New high: close out any qualifying episode before resetting.
+      if (peakIdx != null && troughIdx != null && (trough - peak) / peak * 100 <= threshold) {
+        out.push({ peakIdx, troughIdx });
+      }
+      peak = c; peakIdx = i; trough = c; troughIdx = i;
+    } else if (c < trough) {
+      trough = c; troughIdx = i;
+    }
+  });
+  if (peakIdx != null && troughIdx != null && (trough - peak) / peak * 100 <= threshold) {
+    out.push({ peakIdx, troughIdx });
+  }
+  return out;
+}
+
+/**
+ * SPX line + one heat row per scored series, sharing an x-axis, drawdowns
+ * shaded. Hand-rolled SVG: a heatmap is rects on a shared scale and Chart.js
+ * has no native matrix type. Cell color encodes depth into the gauge's own
+ * warning tail — faint from extremity 50, orange from 70, red from 90.
+ */
+function renderMcHeatmap(rows) {
+  const host = document.getElementById('mc-heat');
+  if (!host) return;
+  const n = rows.length;
+  if (n < 2) return;
+
+  const ML = 30; const MR = 128; const W = 960; const plotW = W - ML - MR;
+  const spxH = 96; const gap = 10; const rowH = 15; const cellH = rowH - 2;
+  const heatTop = spxH + gap;
+  const heatH = MC_HEAT_ROWS.length * rowH;
+  const H = heatTop + heatH + 20;
+  const x = (i) => ML + (i / (n - 1)) * plotW;
+
+  const closes = rows.map((r) => r.spx_close).filter((c) => c != null);
+  const lo = Math.min(...closes); const hi = Math.max(...closes);
+  const y = (c) => 4 + (1 - (c - lo) / (hi - lo)) * (spxH - 8);
+
+  const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="direction:ltr">`;
+
+  for (const dd of detectDrawdowns(rows)) {
+    const bx = x(dd.peakIdx);
+    svg += `<rect x="${bx.toFixed(1)}" y="0" width="${(x(dd.troughIdx) - bx).toFixed(1)}" height="${heatTop + heatH}" fill="rgba(248,113,113,0.09)"/>`;
+  }
+
+  let path = '';
+  rows.forEach((r, i) => {
+    if (r.spx_close == null) return;
+    path += `${path ? 'L' : 'M'}${x(i).toFixed(1)},${y(r.spx_close).toFixed(1)}`;
+  });
+  svg += `<path d="${path}" fill="none" stroke="#60a5fa" stroke-width="1.6" stroke-linejoin="round"/>`;
+  svg += `<text x="${W - MR + 6}" y="12" fill="#9da6b9" font-size="10" font-family="monospace">S&amp;P 500</text>`;
+
+  const cellW = plotW / (n - 1) + 0.5;
+  MC_HEAT_ROWS.forEach((g, ri) => {
+    const cy = heatTop + ri * rowH;
+    rows.forEach((r, i) => {
+      const e = mcExtremity(r, g);
+      if (e == null || e < 50) return;
+      const fill = e >= MC_WARN_PCT ? 'rgba(248,113,113,0.9)'
+        : e >= 70 ? `rgba(255,107,53,${(0.25 + (e - 70) / 20 * 0.45).toFixed(2)})`
+          : `rgba(255,107,53,${(0.08 + (e - 50) / 20 * 0.15).toFixed(2)})`;
+      svg += `<rect x="${(x(i) - cellW / 2).toFixed(1)}" y="${cy}" width="${cellW.toFixed(1)}" height="${cellH}" fill="${fill}"/>`;
+    });
+    svg += `<text x="${W - MR + 6}" y="${cy + cellH - 3}" fill="#9da6b9" font-size="10">${esc(g.label)}</text>`;
+  });
+
+  const tickEvery = Math.max(1, Math.floor(n / 8));
+  for (let i = 0; i < n; i += tickEvery) {
+    svg += `<text x="${x(i).toFixed(1)}" y="${H - 6}" fill="#64748b" font-size="9" font-family="monospace" text-anchor="middle">${esc(rows[i].scan_date.slice(2))}</text>`;
+  }
+  svg += '</svg>';
+  host.innerHTML = svg;
+
+  // Hover: nearest day from cursor x; a heat row under the cursor names that
+  // gauge, the SPX area above shows the close.
+  const tip = document.getElementById('mc-heat-tip');
+  const svgEl = host.querySelector('svg');
+  svgEl.addEventListener('mousemove', (ev) => {
+    const b = svgEl.getBoundingClientRect();
+    const sx = (ev.clientX - b.left) / b.width * W;
+    const sy = (ev.clientY - b.top) / b.height * H;
+    const i = Math.max(0, Math.min(n - 1, Math.round((sx - ML) / plotW * (n - 1))));
+    const r = rows[i];
+    let text = `${r.scan_date}`;
+    if (sy >= heatTop && sy < heatTop + heatH) {
+      const g = MC_HEAT_ROWS[Math.floor((sy - heatTop) / rowH)];
+      if (g) {
+        const p = r.pct ? r.pct[g.key] : null;
+        text += ` · ${g.label}: ${p == null ? 'לא מנוקד' : `אחוזון ${Math.round(p)}`}`;
+      }
+    } else if (r.spx_close != null) {
+      text += ` · S&P ${r.spx_close.toFixed(0)}`;
+    }
+    tip.textContent = text;
+    tip.style.left = `${Math.min(ev.clientX + 12, window.innerWidth - tip.offsetWidth - 8)}px`;
+    tip.style.top = `${ev.clientY + 14}px`;
+    tip.hidden = false;
+  });
+  svgEl.addEventListener('mouseleave', () => { tip.hidden = true; });
+}
+
+/**
  * Load market_context and render the two panels. Silent on failure and hidden
  * on an empty series — the table does not exist until the first ingest, and a
  * missing panel is better than an empty frame full of dashes.
@@ -2101,6 +2281,7 @@ async function loadMarketContext() {
   marketContextRows = rows;
 
   const latest = rows[rows.length - 1];
+  renderMcStatus(latest);
   const grid = $('#mc-grid');
   grid.textContent = '';
   for (const g of MC_GAUGES) {
@@ -2163,6 +2344,12 @@ async function loadMarketContext() {
       extra: sp == null ? '' : sp > 0 ? 'היוניברס מפגר' : 'היוניברס מוביל',
     }));
     spreadWrap.hidden = false;
+  }
+
+  // Extremity heatmap — needs scored percentiles to say anything.
+  if (rows.some((r) => r.pct && r.spx_close != null)) {
+    $('#mc-heat-wrap').hidden = false;
+    renderMcHeatmap(rows);
   }
 
   const note = $('#mc-note');

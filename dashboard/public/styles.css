@@ -2328,6 +2328,55 @@ td.col-score {
 
 .mc-subhead b { color: var(--text); font-weight: 600; }
 
+/* One-line synthesized verdict above the tiles. */
+.mc-status {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  margin: 2px 0 10px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+}
+.mc-status--calm { color: var(--xsh-success); border-color: rgba(74, 222, 128, 0.35); }
+.mc-status--watch { color: #ff6b35; border-color: rgba(255, 107, 53, 0.5); }
+.mc-status--hot { color: var(--xsh-error); border-color: rgba(248, 113, 113, 0.55); }
+.mc-status .mc-status-detail { color: var(--muted); font-weight: 400; font-size: var(--fs-xs); }
+
+/* Extremity heatmap — hand-rolled SVG, so unlike the Chart.js boxes it needs
+   no fixed height; it scales from its viewBox. Scrolls sideways on narrow
+   panels instead of shrinking Hebrew row labels below legibility.
+   min-width:0 on the panel: it is a grid item, and without it the SVG's
+   720px floor propagates as the item's min-width and overflows the page
+   sideways on mobile instead of scrolling inside the box. */
+.chart-wrap--mc { min-width: 0; }
+.mc-heat-box {
+  position: relative;
+  overflow-x: auto;
+  margin-top: 10px;
+}
+#mc-heat svg { display: block; width: 100%; min-width: 720px; height: auto; }
+.mc-heat-legend {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: var(--mono);
+  margin-top: 4px;
+}
+.mc-heat-tip {
+  position: fixed;
+  z-index: 40;
+  pointer-events: none;
+  background: var(--xsh-bg-header);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--text);
+  white-space: nowrap;
+  box-shadow: var(--xsh-shadow-card);
+}
+
 /* Same fixed height as the other two charts — Chart.js with
    maintainAspectRatio:false needs an explicitly sized box. */
 .mc-chart-box {
