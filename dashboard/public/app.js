@@ -2137,13 +2137,16 @@ async function loadMarketContext() {
     spreadWrap.hidden = true;
   } else {
     spreadWrap.textContent = '';
+    const ubPct = latest.pct ? latest.pct.universe_breadth : null;
     spreadWrap.append(mcTile({
       label: 'רוחב היוניברס',
       value: latest.universe_breadth,
       unit: '%',
       digits: 1,
-      pct: null,
-      warn: false,
+      pct: ubPct,
+      // Elevated breadth preceded one of the three real corrections tested
+      // (2026-08-24 backtest, 2.7x its own base rate); low breadth is not warned.
+      warn: ubPct != null && ubPct >= MC_WARN_PCT,
       extra: latest.universe_breadth_n != null ? `n=${latest.universe_breadth_n}` : '',
     }));
     const sp = latest.breadth_spread;
