@@ -82,3 +82,44 @@ stays on the dashboard and leaves the Telegram path.
 
 Re-run after 2–3 more independent **episodes** (not alerts). The frozen OOS log
 (`src/utils/oosLog.ts`, PR #91) is the accumulating instrument for that.
+
+## Addendum (2026-08-25) — does the Alert `indexNearHigh` gate deserve loosening?
+
+Prompted by Kobi reading a 🟡 Watch marker (2026-08-17/18, the bounce off the
+July low) and expecting 🔴 Alert instead. `nearhigh.py` — full live 4.4y engine
+history (`fragility-full.json`, 1130 aligned days, 2022-01-27..2026-08-21,
+generated via `computePurpleFragility`), not just the 252-day D1 snapshot.
+
+**The premise doesn't hold.** On 2026-08-17/18, `score` (mean6 — Alert's own
+condition) topped at 0.81/0.58, never reaching 1.0. Only `core3` was elevated
+(1.16/1.36) — that's the Watch condition, a different signal. The
+`indexNearHigh` gate was never what blocked Alert here; mean6 itself didn't
+qualify, gate or no gate.
+
+**Tested loosening the gate anyway**, sweeping the near-high threshold 2%
+(current) → 4/6/8/10/15/20%/unlimited, against the basket's own top episodes
+(same method as `basket.py`):
+
+| Gate | Alert events | Hit rate (≤-8%/20d) | Lift | p |
+|---|---|---|---|---|
+| 2% (current) | 10 | **80%** | **2.53x** | 0.05 |
+| 4% | 7 | 71% | 2.26x | 0.12 |
+| 6% | 5 | 60% | 1.89x | 0.27 |
+| 8% | 6 | 50% | 1.58x | 0.36 |
+| 10% | 6 | 50% | 1.58x | 0.36 |
+| 15% | 5 | 40% | 1.26x | 0.53 |
+| 20% | 5 | 40% | 1.26x | 0.54 |
+| off (score-only) | 5 | 40% | 1.26x | 0.54 |
+
+Precision, lift, and significance degrade **monotonically** as the gate
+loosens. Event count doesn't even rise — a looser gate stays "satisfied"
+through a whole episode instead of re-triggering, so it fires less often, not
+more. Only 12 of 1130 scored days ever have score≥1.0 while nearHigh(2%) is
+false — the entire population a looser gate could touch — and none of the
+candidates that add days improve on the current rule.
+
+**Conclusion: the 2% gate is not an arbitrary restriction, it is carrying the
+signal. Left unchanged.** Consistent with [[radar-fragility-watch-calibration]]'s
+prior finding that 🔴 Alert (3.4x lift, p=0.0078) must not change — this is a
+second, independent test arriving at the same answer via a different lever
+(the gate, not the threshold) and a longer window (4.4y vs 252d).
