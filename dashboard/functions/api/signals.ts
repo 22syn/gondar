@@ -13,10 +13,25 @@ interface Env { DB: D1Database; }
 
 interface DayRow { scan_date: string; ticker: string; score: number; signal: string; signals: string; signal_count: number; rs?: number | null; [k: string]: unknown; }
 
+/** Accept only YYYY-MM-DD; anything else is treated as absent. */
+const isIsoDate = (s: string | null): s is string => s != null && /^\d{4}-\d{2}-\d{2}$/.test(s);
+
 export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   const url = new URL(request.url);
-  const from = url.searchParams.get('from') ?? undefined;
-  const to = url.searchParams.get('to') ?? undefined;
+  // Validate the range at the boundary. Params are already bound (no SQL
+  // injection), but an unvalidated, unbounded span like from=0000-01-01&
+  // to=9999-12-31 would dump the whole table and enrich it — a one-request
+  // CPU/D1 amplifier, and *.pages.dev bypasses Cloudflare Access. A malformed,
+  // inverted, or too-wide range falls back to the default latest-day view; the
+  // only real caller ever requests from===to (a single day).
+  const rawFrom = url.searchParams.get('from');
+  const rawTo = url.searchParams.get('to');
+  let from: string | undefined;
+  let to: string | undefined;
+  if (isIsoDate(rawFrom) && isIsoDate(rawTo) && rawFrom <= rawTo) {
+    const span = (Date.parse(rawTo) - Date.parse(rawFrom)) / 86_400_000;
+    if (span <= 400) { from = rawFrom; to = rawTo; }
+  }
   // wr14 may not exist yet — ensureSchema() adds it during ingest, so a deploy
   // can precede the column. Fall back to the legacy column list rather than
   // 500ing the whole signals table.
