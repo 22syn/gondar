@@ -7,7 +7,8 @@
 > reconciliation table at the bottom (which this pass confirms). Checkbox key:
 > `[x]` shipped & verified · `[-]` rejected or obsolete (won't do) · `[ ]` open decision.
 >
-> **Result: 27 shipped, 18 rejected/obsolete, 4 boxes = 2 open decisions.** Details:
+> **Result: 27 shipped, 21 rejected/obsolete/dropped, 1 deferred decision (2.6).**
+> Updated 2026-08-25 (later same day): Kobi ruled on both open decisions — see below. Details:
 >
 > - **Shipped (verified today):** Phases 0, 3 (`radar-deep-dive` skill exists and loads),
 >   4 (`.claude/agents/radar-criteria-tester.md` exists and loads), 6 (`rsPercentile` in
@@ -21,11 +22,12 @@
 >   the Gemini summary *deliberately live* — not dead config), 3.5, 4.4, 5.5, X.5 (superseded
 >   by `cabinet/outputs/2026-07-26-two-radar-improvement.md`).
 >
-> ### The only open decisions (pending Kobi's call):
-> 1. **2.6 aiCommentary** — Claude-generated 3-sentence thesis on graduation alerts.
->    Blocked on adding `ANTHROPIC_API_KEY` to GHA secrets + accepting per-cron cost.
-> 2. **10.1–10.3 Fundamental-acceleration composite** — not backtestable (no point-in-time
->    fundamentals); can only ship as a display-only badge with no gate, or be dropped.
+> ### Kobi's rulings (2026-08-25):
+> 1. **2.6 aiCommentary** — **DEFERRED**, stays the plan's single open box. Blocked on adding
+>    `ANTHROPIC_API_KEY` to GHA secrets + accepting per-cron cost; revisit when Kobi wants it.
+> 2. **10.1–10.3 Fundamental-acceleration composite** — **DROPPED**. Not backtestable (no
+>    point-in-time fundamentals), and the project rule is not to add unmeasurable layers.
+>    The two underlying flags already display separately.
 >
 > Everything below this block is historical record.
 
@@ -282,15 +284,15 @@ volume-confirmed AND fundamentally sound.
 > but never combines them. Adding a composite gives a fundamentally-confirmed signal
 > independent of price action.
 
-- [ ] **10.1** Add `fundamentalStrength: boolean` to `StockData`:
+- [-] **10.1** Add `fundamentalStrength: boolean` to `StockData`:
   - `fundamentalStrength = epsAcceleration && revAcceleration`
   - Margins data unavailable from Finnhub free tier — skip for now.
   - File: `src/services/finnhubFundamentals.ts` (compute after fetching both).
   - **Verify:** sample 20 tickers — ~30–40% have `fundamentalStrength = true`.
-- [ ] **10.2** Weight in `championScore`: add +10 points when `fundamentalStrength = true`.
+- [-] **10.2** Weight in `championScore`: add +10 points when `fundamentalStrength = true`.
   - File: `src/utils/championScore.ts`.
   - **Verify:** re-run score distribution — fundamentally-strong stocks gain 10pts.
-- [ ] **10.3** Surface in Telegram on Full BUY alerts: `⚡ EPS+Rev↑` badge when true.
+- [-] **10.3** Surface in Telegram on Full BUY alerts: `⚡ EPS+Rev↑` badge when true.
   - **Verify:** preview-report shows badge on qualifying stocks.
 
 ---
