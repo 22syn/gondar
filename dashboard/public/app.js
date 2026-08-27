@@ -2051,7 +2051,9 @@ const MC_SIGNALS = [
   {
     name: 'מרחק מ-SMA150',
     sub: 'כמה המחיר מתוח מעל המגמה',
-    trendKey: 'spx_dist_sma150',
+    // Trend tracks the SPX price, not the distance-% (whose % change reads as
+    // a jumpy +40% when price barely moved).
+    magKey: 'spx_close', magMode: 'pct',
     reading: (r) => {
       if (r.spx_dist_sma150 == null) return '—';
       const sma = r.spx_close != null
@@ -2064,7 +2066,8 @@ const MC_SIGNALS = [
   {
     name: 'רוחב השתתפות',
     sub: 'RSP + S5FI (50DMA) + S5TH (200DMA)',
-    trendKey: 's5fi',
+    // S5FI is itself a percentage → show its change in percentage points.
+    magKey: 's5fi', magMode: 'pp',
     reading: (r) => [
       r.rsp_close != null ? `RSP ${r.rsp_close.toFixed(2)}` : null,
       r.s5fi != null ? `S5FI ${r.s5fi.toFixed(1)}%` : null,
@@ -2077,7 +2080,7 @@ const MC_SIGNALS = [
   {
     name: 'סנטימנט ותנודתיות',
     sub: 'מצב הרוח, לפי ה-VIX',
-    trendKey: 'vix',
+    magKey: 'vix', magMode: 'pct',
     reading: (r) => r.vix != null ? `VIX ${r.vix.toFixed(2)}` : '—',
     // vix warns on the LOW tail (complacency, not panic) — the hot end is
     // over-calm, so the words run normal → too-calm → complacent.
@@ -2086,14 +2089,14 @@ const MC_SIGNALS = [
   {
     name: 'רוטציה הגנתית',
     sub: 'XLP מוצרי צריכה בסיסיים מול השוק',
-    trendKey: 'xlp_spx_ratio',
+    magKey: 'xlp_spx_ratio', magMode: 'pct',
     reading: (r) => r.xlp_spx_slope21 != null ? `XLP/SPX 21י ${pctSign(r.xlp_spx_slope21, 2)}` : '—',
     status: (r) => mcStatusWords(mcExtremityByKey(r, 'xlp_spx_slope21'), ['תוקפני', 'לתשומת לב', 'הגנתי']),
   },
   {
     name: 'תיאבון לסיכון',
     sub: 'XLY מול XLP — התקפה מול הגנה',
-    trendKey: 'xly_xlp_ratio',
+    magKey: 'xly_xlp_ratio', magMode: 'pct',
     reading: (r) => [
       r.xly_xlp_ratio != null ? `יחס ${r.xly_xlp_ratio.toFixed(3)}` : null,
       r.xly_xlp_slope21 != null ? `21י ${pctSign(r.xly_xlp_slope21, 2)}` : null,
@@ -2103,7 +2106,7 @@ const MC_SIGNALS = [
   {
     name: 'מבנה מחיר',
     sub: 'מרחק מהתמיכה הקרובה (swing low)',
-    trendKey: 'spx_close',
+    magKey: 'spx_close', magMode: 'pct',
     reading: (r) => {
       // Prefer the computed swing-low support; fall back to the 200-DMA on the
       // older rows that predate the support column.
@@ -2126,20 +2129,28 @@ const MC_SIGNALS = [
   },
 ];
 
-/** 1-month (≈21 rows) and 3-month (≈63 rows) direction of a signal's key level.
- *  Direction only — the verdict pill carries the good/bad judgment. */
-function mcTrendCell(rows, key) {
-  if (!key || rows.length < 2) return '';
+/**
+ * 1-month (≈21 rows) and 3-month (≈63 rows) trend of the signal's underlying
+ * instrument — so the magnitude reads as a real market move, not the % change
+ * of a derived metric (a distance-% or slope). `magKey` is the series measured;
+ * `magMode` is 'pct' for a price/ratio (relative %) or 'pp' for a value that is
+ * itself a percentage (S5FI breadth → percentage-point change). Direction only
+ * — the verdict pill carries the good/bad judgment.
+ */
+function mcTrendCell(rows, magKey, magMode) {
+  if (!magKey || rows.length < 2) return '';
   const n = rows.length;
-  const cur = rows[n - 1] ? rows[n - 1][key] : null;
+  const cur = rows[n - 1] ? rows[n - 1][magKey] : null;
+  const pp = magMode === 'pp';
   const arrow = (backIdx) => {
-    const prev = rows[n - 1 - backIdx] ? rows[n - 1 - backIdx][key] : null;
+    const prev = rows[n - 1 - backIdx] ? rows[n - 1 - backIdx][magKey] : null;
     if (cur == null || prev == null) return { g: '·', d: 'אין נתון', c: 'flat' };
-    const rel = prev !== 0 ? ((cur - prev) / Math.abs(prev)) * 100 : 0;
-    if (Math.abs(rel) < 1) return { g: '→', d: '‎≈0%', c: 'flat' };
+    const delta = pp ? cur - prev : (prev !== 0 ? ((cur - prev) / Math.abs(prev)) * 100 : 0);
+    const unit = pp ? 'pp' : '%';
+    if (Math.abs(delta) < 1) return { g: '→', d: `‎≈0${unit}`, c: 'flat' };   // <1% or <1pp reads as flat
     return cur > prev
-      ? { g: '▲', d: `+${rel.toFixed(1)}%`, c: 'up' }
-      : { g: '▼', d: `${rel.toFixed(1)}%`, c: 'down' };
+      ? { g: '▲', d: `+${delta.toFixed(1)}${unit}`, c: 'up' }
+      : { g: '▼', d: `${delta.toFixed(1)}${unit}`, c: 'down' };
   };
   const m1 = arrow(21); const m3 = arrow(63);
   const t = esc(`מגמה — חודש: ${m1.d} · 3 חודשים: ${m3.d}`);
@@ -2273,7 +2284,7 @@ function renderMcSignals(rows) {
     return `<tr>
       <td class="mcs-num">${i + 1}</td>
       <td class="mcs-name"><span class="mcs-name-t">${esc(s.name)}</span><span class="mcs-sub">${esc(s.sub)}</span></td>
-      <td class="mcs-reading"><span class="mcs-reading-v">${esc(s.reading(latest))}</span>${mcTrendCell(rows, s.trendKey)}</td>
+      <td class="mcs-reading"><span class="mcs-reading-v">${esc(s.reading(latest))}</span>${mcTrendCell(rows, s.magKey, s.magMode)}</td>
       <td class="mcs-status"><span class="mcs-pill mcs-pill--${st.cls}">${esc(st.word)}</span></td>
     </tr>`;
   }).join('');
