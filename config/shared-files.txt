@@ -22,7 +22,16 @@
 # purpleFragility.ts + src/shared/fragilityRule.ts + its test are the single
 # source of the Alert/Watch rule for both branches (2026-08-25) and must
 # never drift.
+#
+# The guard itself is listed (workflow + check script) so it cannot silently
+# diverge either — it lives on BOTH branches since 2026-08-27 (review-panel P1:
+# a guard that exists only on main never runs on PRs targeting stable). THIS
+# LIST FILE is deliberately NOT listed: adding an entry lands as two
+# synchronized PRs (stable first, then main), and during that window the two
+# copies legitimately differ — listing the list would deadlock the first PR.
 
+.github/workflows/branch-drift.yml
+scripts/check-branch-drift.sh
 src/config/israeliNames.json
 src/services/finnhubFundamentals.ts
 src/services/monitorTracker.ts
