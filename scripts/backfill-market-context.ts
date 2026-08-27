@@ -40,6 +40,7 @@ import {
     distanceFromSma,
     slope,
     ratioSeries,
+    nearestSupport,
     loadSp500,
     MIN_S5FI_CONSTITUENTS,
     MIN_UNIVERSE_TICKERS,
@@ -141,16 +142,16 @@ async function main(): Promise<void> {
     const byDate = index(constituents);
     const uniByDate = index(universe);
 
-    /** % of `set` closing above its own SMA50 on `date`, plus how many answered. */
-    const breadthOn = (set: ReturnType<typeof index>, date: string) => {
+    /** % of `set` closing above its own SMA(period) on `date`, plus how many answered. */
+    const breadthOn = (set: ReturnType<typeof index>, date: string, period = 50) => {
         let above = 0, answered = 0;
         for (const { c, idx } of set) {
             const i = idx.get(date);
-            if (i === undefined || i < 50) continue;
-            const sma50 = calculateSMA(c.closes.slice(i - 49, i + 1), 50);
-            if (sma50 == null) continue;
+            if (i === undefined || i < period) continue;
+            const sma = calculateSMA(c.closes.slice(i - (period - 1), i + 1), period);
+            if (sma == null) continue;
             answered++;
-            if (c.closes[i]! > sma50) above++;
+            if (c.closes[i]! > sma) above++;
         }
         return { above, answered };
     };
@@ -165,6 +166,11 @@ async function main(): Promise<void> {
         const { above, answered } = breadthOn(byDate, date);
         nCounts.push(answered);
         const s5fi = answered >= MIN_S5FI_CONSTITUENTS ? (above / answered) * 100 : null;
+
+        // S5TH: same constituents, SMA200. Null for the oldest dates in the
+        // window, where fewer than 200 prior bars exist in the fetched range.
+        const th = breadthOn(byDate, date, 200);
+        const s5th = th.answered >= MIN_S5FI_CONSTITUENTS ? (th.above / th.answered) * 100 : null;
 
         const u = breadthOn(uniByDate, date);
         const universeBreadth = u.answered >= MIN_UNIVERSE_TICKERS ? (u.above / u.answered) * 100 : null;
@@ -197,6 +203,9 @@ async function main(): Promise<void> {
             xlyXlpSlope21: slope(xlyXlp),
             s5fi,
             s5fiN: answered,
+            s5th,
+            s5thN: th.answered,
+            spxSupport: tSpx ? nearestSupport(tSpx.lows, last(tSpx)) : null,
             spyWr1d: spyWr.daily, spyWr1w: spyWr.weekly,
             qqqWr1d: qqqWr.daily, qqqWr1w: qqqWr.weekly,
             universeBreadth, universeBreadthN: u.answered, breadthSpread,

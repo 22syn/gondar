@@ -79,6 +79,12 @@ export interface MarketContextDay {
     s5fi: number | null;
     /** How many constituents actually answered — the honesty column for s5fi. */
     s5fiN: number | null;
+    /** % of S&P 500 above its own SMA200 (the longer-trend breadth, "S5TH"). */
+    s5th: number | null;
+    /** How many constituents had ≥200 bars to answer s5th. */
+    s5thN: number | null;
+    /** Nearest swing-low support below the current close, in index points. */
+    spxSupport: number | null;
     spyWr1d: number | null;
     spyWr1w: number | null;
     qqqWr1d: number | null;
@@ -210,41 +216,85 @@ export function loadSp500(): string[] {
     }
 }
 
+/** Reduce per-constituent votes to { value: % true, n: answered } with the honesty floor. */
+function tallyBreadth(votes: Array<boolean | null>, label: string, total: number): { value: number | null; n: number | null } {
+    const answered = votes.filter((v): v is boolean => v !== null);
+    if (answered.length < MIN_S5FI_CONSTITUENTS) {
+        logger.warn(
+            `⚠️ ${label}: only ${answered.length}/${total} constituents answered ` +
+                `(need ${MIN_S5FI_CONSTITUENTS}) — reporting null rather than a partial reading`
+        );
+        return { value: null, n: answered.length };
+    }
+    return { value: (answered.filter(Boolean).length / answered.length) * 100, n: answered.length };
+}
+
 /**
- * S5FI-equivalent: % of S&P 500 constituents closing above their own SMA50.
- * `range=3mo` is the smallest window that yields a 50-bar average with margin.
+ * Breadth above the 50- and 200-day moving averages in ONE fetch per
+ * constituent — s5fi (% above SMA50) and s5th (% above SMA200). `range=1y`
+ * (~252 bars) is the smallest Yahoo window that still leaves a 200-bar average
+ * with margin; s5th votes null for any constituent with fewer than 200 bars
+ * (recent listings), so its `n` can trail s5fi's slightly.
  */
-export async function computeS5fi(
+export async function computeBreadth(
     asOfDate: string
-): Promise<{ value: number | null; n: number | null }> {
+): Promise<{ s5fi: { value: number | null; n: number | null }; s5th: { value: number | null; n: number | null } }> {
     const symbols = loadSp500();
-    if (symbols.length === 0) return { value: null, n: null };
+    if (symbols.length === 0) return { s5fi: { value: null, n: null }, s5th: { value: null, n: null } };
 
     const limit = pLimit(S5FI_CONCURRENCY);
     const votes = await Promise.all(
         symbols.map((sym) =>
             limit(async () => {
-                const s = await fetchSeries(sym, '1d', '3mo');
-                if (!s) return null;
+                const s = await fetchSeries(sym, '1d', '1y');
+                if (!s) return { above50: null, above200: null };
                 const closes = truncateTo(s, asOfDate).closes;
-                const sma50 = calculateSMA(closes, 50);
                 const last = closes[closes.length - 1];
-                if (sma50 == null || last == null) return null;
-                return last > sma50;
+                if (last == null) return { above50: null, above200: null };
+                const sma50 = calculateSMA(closes, 50);
+                const sma200 = calculateSMA(closes, 200);
+                return {
+                    above50: sma50 == null ? null : last > sma50,
+                    above200: sma200 == null ? null : last > sma200,
+                };
             })
         )
     );
 
-    const answered = votes.filter((v): v is boolean => v !== null);
-    if (answered.length < MIN_S5FI_CONSTITUENTS) {
-        logger.warn(
-            `⚠️ s5fi: only ${answered.length}/${symbols.length} constituents answered ` +
-                `(need ${MIN_S5FI_CONSTITUENTS}) — reporting null rather than a partial reading`
-        );
-        return { value: null, n: answered.length };
+    return {
+        s5fi: tallyBreadth(votes.map((v) => v.above50), 's5fi', symbols.length),
+        s5th: tallyBreadth(votes.map((v) => v.above200), 's5th', symbols.length),
+    };
+}
+
+/**
+ * Nearest swing-low support below the current close. Scans the trailing
+ * `lookback` bars for pivot lows (a low that is the strict minimum of the
+ * ±`window` bars around it), keeps those below the close, and returns the
+ * highest such level — the first shelf price would fall to. Falls back to the
+ * lowest low in the window when no clean pivot sits below. Null when the series
+ * is too short or price is already at its low.
+ */
+export function nearestSupport(
+    lows: number[],
+    lastClose: number | null,
+    lookback = 126,
+    window = 5
+): number | null {
+    if (lastClose == null || lows.length < window * 2 + 1) return null;
+    const start = Math.max(window, lows.length - lookback);
+    const pivots: number[] = [];
+    for (let i = start; i < lows.length - window; i++) {
+        const lo = lows[i]!;
+        let isPivot = true;
+        for (let j = i - window; j <= i + window; j++) {
+            if (j !== i && lows[j]! <= lo) { isPivot = false; break; }
+        }
+        if (isPivot && lo < lastClose) pivots.push(lo);
     }
-    const above = answered.filter(Boolean).length;
-    return { value: (above / answered.length) * 100, n: answered.length };
+    if (pivots.length) return Math.max(...pivots);
+    const belows = lows.slice(Math.max(0, lows.length - lookback)).filter((l) => l < lastClose);
+    return belows.length ? Math.max(...belows) : null;
 }
 
 /**
@@ -297,11 +347,12 @@ export async function computeMarketContext(
     const xlpSpx = xlp && spx ? ratioSeries(xlp, spx) : [];
     const xlyXlp = xly && xlp ? ratioSeries(xly, xlp) : [];
 
-    const [s5fi, spyWr, qqqWr] = await Promise.all([
-        computeS5fi(asOfDate),
+    const [breadthMas, spyWr, qqqWr] = await Promise.all([
+        computeBreadth(asOfDate),
         williamsFor('SPY', asOfDate),
         williamsFor('QQQ', asOfDate),
     ]);
+    const s5fi = breadthMas.s5fi;
 
     const breadth = computeUniverseBreadth(universe);
     const spread =
@@ -321,6 +372,9 @@ export async function computeMarketContext(
         xlyXlpSlope21: slope(xlyXlp),
         s5fi: s5fi.value,
         s5fiN: s5fi.n,
+        s5th: breadthMas.s5th.value,
+        s5thN: breadthMas.s5th.n,
+        spxSupport: spx ? nearestSupport(spx.lows, last(spx)) : null,
         spyWr1d: spyWr.daily,
         spyWr1w: spyWr.weekly,
         qqqWr1d: qqqWr.daily,
