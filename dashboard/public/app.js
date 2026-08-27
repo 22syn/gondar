@@ -2051,6 +2051,7 @@ const MC_SIGNALS = [
   {
     name: 'מרחק מ-SMA150',
     sub: 'כמה המחיר מתוח מעל המגמה',
+    trendKey: 'spx_dist_sma150',
     reading: (r) => {
       if (r.spx_dist_sma150 == null) return '—';
       const sma = r.spx_close != null
@@ -2062,10 +2063,12 @@ const MC_SIGNALS = [
   },
   {
     name: 'רוחב השתתפות',
-    sub: 'RSP + S5FI — כמה מניות משתתפות',
+    sub: 'RSP + S5FI (50DMA) + S5TH (200DMA)',
+    trendKey: 's5fi',
     reading: (r) => [
       r.rsp_close != null ? `RSP ${r.rsp_close.toFixed(2)}` : null,
       r.s5fi != null ? `S5FI ${r.s5fi.toFixed(1)}%` : null,
+      r.s5th != null ? `S5TH ${r.s5th.toFixed(1)}%` : null,
     ].filter(Boolean).join(' · ') || '—',
     // s5fi warns on the HIGH tail (euphoric, saturated breadth precedes tops) —
     // so the hot word is "saturated", not "weak".
@@ -2074,6 +2077,7 @@ const MC_SIGNALS = [
   {
     name: 'סנטימנט ותנודתיות',
     sub: 'מצב הרוח, לפי ה-VIX',
+    trendKey: 'vix',
     reading: (r) => r.vix != null ? `VIX ${r.vix.toFixed(2)}` : '—',
     // vix warns on the LOW tail (complacency, not panic) — the hot end is
     // over-calm, so the words run normal → too-calm → complacent.
@@ -2082,12 +2086,14 @@ const MC_SIGNALS = [
   {
     name: 'רוטציה הגנתית',
     sub: 'XLP מוצרי צריכה בסיסיים מול השוק',
+    trendKey: 'xlp_spx_ratio',
     reading: (r) => r.xlp_spx_slope21 != null ? `XLP/SPX 21י ${pctSign(r.xlp_spx_slope21, 2)}` : '—',
     status: (r) => mcStatusWords(mcExtremityByKey(r, 'xlp_spx_slope21'), ['תוקפני', 'לתשומת לב', 'הגנתי']),
   },
   {
     name: 'תיאבון לסיכון',
     sub: 'XLY מול XLP — התקפה מול הגנה',
+    trendKey: 'xly_xlp_ratio',
     reading: (r) => [
       r.xly_xlp_ratio != null ? `יחס ${r.xly_xlp_ratio.toFixed(3)}` : null,
       r.xly_xlp_slope21 != null ? `21י ${pctSign(r.xly_xlp_slope21, 2)}` : null,
@@ -2096,15 +2102,49 @@ const MC_SIGNALS = [
   },
   {
     name: 'מבנה מחיר',
-    sub: 'מעל או מתחת ל-SMA200',
-    reading: (r) => r.spx_dist_sma200 == null ? '—'
-      : `${r.spx_dist_sma200 >= 0 ? 'מעל ' : 'מתחת ל-'}SMA200 · ${pctSign(r.spx_dist_sma200, 1)}`,
-    // Structure is a two-state trigger, not a percentile: above the 200-DMA is
-    // intact, below is broken. No "watch" middle.
-    status: (r) => r.spx_dist_sma200 == null ? { word: '—', cls: 'unscored' }
-      : r.spx_dist_sma200 >= 0 ? { word: 'שלם', cls: 'calm' } : { word: 'נשבר', cls: 'hot' },
+    sub: 'מרחק מהתמיכה הקרובה (swing low)',
+    trendKey: 'spx_close',
+    reading: (r) => {
+      // Prefer the computed swing-low support; fall back to the 200-DMA on the
+      // older rows that predate the support column.
+      if (r.spx_support != null && r.spx_close != null) {
+        const above = ((r.spx_close - r.spx_support) / r.spx_support) * 100;
+        return `תמיכה ${Math.round(r.spx_support).toLocaleString()} · ${pctSign(above, 1)} מעליה`;
+      }
+      return r.spx_dist_sma200 == null ? '—'
+        : `${r.spx_dist_sma200 >= 0 ? 'מעל ' : 'מתחת ל-'}SMA200 · ${pctSign(r.spx_dist_sma200, 1)}`;
+    },
+    // A two-state trigger, not a percentile: holding above support (or the
+    // 200-DMA fallback) is intact, losing it is broken. No "watch" middle.
+    status: (r) => {
+      if (r.spx_support != null && r.spx_close != null) {
+        return r.spx_close >= r.spx_support ? { word: 'שלם', cls: 'calm' } : { word: 'נשבר', cls: 'hot' };
+      }
+      if (r.spx_dist_sma200 == null) return { word: '—', cls: 'unscored' };
+      return r.spx_dist_sma200 >= 0 ? { word: 'שלם', cls: 'calm' } : { word: 'נשבר', cls: 'hot' };
+    },
   },
 ];
+
+/** 1-month (≈21 rows) and 3-month (≈63 rows) direction of a signal's key level.
+ *  Direction only — the verdict pill carries the good/bad judgment. */
+function mcTrendCell(rows, key) {
+  if (!key || rows.length < 2) return '';
+  const n = rows.length;
+  const cur = rows[n - 1] ? rows[n - 1][key] : null;
+  const arrow = (backIdx) => {
+    const prev = rows[n - 1 - backIdx] ? rows[n - 1 - backIdx][key] : null;
+    if (cur == null || prev == null) return { g: '·', d: 'אין נתון', c: 'flat' };
+    const rel = prev !== 0 ? ((cur - prev) / Math.abs(prev)) * 100 : 0;
+    if (Math.abs(rel) < 1) return { g: '→', d: '‎≈0%', c: 'flat' };
+    return cur > prev
+      ? { g: '▲', d: `+${rel.toFixed(1)}%`, c: 'up' }
+      : { g: '▼', d: `${rel.toFixed(1)}%`, c: 'down' };
+  };
+  const m1 = arrow(21); const m3 = arrow(63);
+  const t = esc(`מגמה — חודש: ${m1.d} · 3 חודשים: ${m3.d}`);
+  return `<span class="mcs-trend" title="${t}">1ח <span class="mcs-arr mcs-arr--${m1.c}">${m1.g}</span> · 3ח <span class="mcs-arr mcs-arr--${m3.c}">${m3.g}</span></span>`;
+}
 
 /** A gauge's extremity (0-100 into its warning tail) looked up by data key. */
 function mcExtremityByKey(latest, key) {
@@ -2222,16 +2262,18 @@ function renderMcStatus(latest) {
   el.hidden = false;
 }
 
-/** Render the signal-status table body from the latest row. */
-function renderMcSignals(latest) {
+/** Render the signal-status table body: latest row for the reading/verdict,
+ *  the full series for each signal's 1m/3m trend. */
+function renderMcSignals(rows) {
   const body = $('#mc-signals-body');
   if (!body) return;
+  const latest = rows[rows.length - 1];
   body.innerHTML = MC_SIGNALS.map((s, i) => {
     const st = s.status(latest);
     return `<tr>
       <td class="mcs-num">${i + 1}</td>
       <td class="mcs-name"><span class="mcs-name-t">${esc(s.name)}</span><span class="mcs-sub">${esc(s.sub)}</span></td>
-      <td class="mcs-reading">${esc(s.reading(latest))}</td>
+      <td class="mcs-reading"><span class="mcs-reading-v">${esc(s.reading(latest))}</span>${mcTrendCell(rows, s.trendKey)}</td>
       <td class="mcs-status"><span class="mcs-pill mcs-pill--${st.cls}">${esc(st.word)}</span></td>
     </tr>`;
   }).join('');
@@ -2254,7 +2296,7 @@ async function loadMarketContext() {
 
   const latest = rows[rows.length - 1];
   renderMcStatus(latest);
-  renderMcSignals(latest);
+  renderMcSignals(rows);
 
   const wc = $('#mc-warncount');
   if (latest.warn_count == null) {

@@ -286,6 +286,7 @@ export interface MarketContextParams { limit?: number; from?: string; }
 export function buildMarketContextQuery(p: MarketContextParams = {}): Query {
   const SEL = 'SELECT scan_date,spx_close,spx_dist_sma150,spx_dist_sma200,rsp_close,rsp_slope21,vix,'
     + 'xlp_spx_ratio,xlp_spx_slope21,xly_xlp_ratio,xly_xlp_slope21,s5fi,s5fi_n,'
+    + 's5th,s5th_n,spx_support,'
     + 'spy_wr_1d,spy_wr_1w,qqq_wr_1d,qqq_wr_1w,'
     + 'universe_breadth,universe_breadth_n,breadth_spread FROM market_context';
   const limit = p.limit ?? 756;

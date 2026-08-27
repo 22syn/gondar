@@ -2381,7 +2381,18 @@ td.col-score {
 }
 .mcs-name-t { display: block; font-weight: 600; color: var(--text); }
 .mcs-sub { display: block; font-size: var(--fs-xs); color: var(--muted); margin-top: 2px; }
-.mcs-reading { font-family: var(--mono); color: var(--text); white-space: nowrap; }
+.mcs-reading { font-family: var(--mono); white-space: nowrap; }
+.mcs-reading-v { color: var(--text); }
+/* Trend chip — direction only, muted; the arrow glyph carries up/down/flat. */
+.mcs-trend {
+  display: inline-block;
+  margin-inline-start: 10px;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+/* Neutral on purpose: a rising level is not universally "good" (up VIX is bad,
+   up breadth is fine) — the glyph shows direction, the verdict pill judges. */
+.mcs-arr { font-weight: 700; color: var(--text); }
 .mc-signals .mcs-status,
 .mc-signals th.mcs-status-h { text-align: left; white-space: nowrap; }
 

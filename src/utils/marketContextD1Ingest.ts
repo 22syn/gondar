@@ -24,11 +24,12 @@ import logger from './logger.js';
 const COLS =
     '(scan_date, spx_close, spx_dist_sma150, spx_dist_sma200, rsp_close, rsp_slope21, vix, ' +
     'xlp_spx_ratio, xlp_spx_slope21, xly_xlp_ratio, xly_xlp_slope21, s5fi, s5fi_n, ' +
+    's5th, s5th_n, spx_support, ' +
     'spy_wr_1d, spy_wr_1w, qqq_wr_1d, qqq_wr_1w, ' +
     'universe_breadth, universe_breadth_n, breadth_spread, ingested_at)';
 
-/** 21 columns, one row — far under D1's 100-bound-param cap. */
-export const MARKET_CONTEXT_COL_COUNT = 21;
+/** 24 columns, one row — far under D1's 100-bound-param cap. */
+export const MARKET_CONTEXT_COL_COUNT = 24;
 
 const round = (x: number | null, digits: number): number | null =>
     x == null || !Number.isFinite(x) ? null : Math.round(x * 10 ** digits) / 10 ** digits;
@@ -44,6 +45,7 @@ export function buildMarketContextBatches(day: MarketContextDay, stamp: string):
                 xlp_spx_ratio REAL, xlp_spx_slope21 REAL,
                 xly_xlp_ratio REAL, xly_xlp_slope21 REAL,
                 s5fi REAL, s5fi_n INTEGER,
+                s5th REAL, s5th_n INTEGER, spx_support REAL,
                 spy_wr_1d REAL, spy_wr_1w REAL, qqq_wr_1d REAL, qqq_wr_1w REAL,
                 universe_breadth REAL, universe_breadth_n INTEGER, breadth_spread REAL,
                 ingested_at TEXT)`,
@@ -65,6 +67,9 @@ export function buildMarketContextBatches(day: MarketContextDay, stamp: string):
                 round(day.xlyXlpSlope21, 4),
                 round(day.s5fi, 4),
                 day.s5fiN,
+                round(day.s5th, 4),
+                day.s5thN,
+                round(day.spxSupport, 2),
                 round(day.spyWr1d, 4),
                 round(day.spyWr1w, 4),
                 round(day.qqqWr1d, 4),
@@ -90,13 +95,16 @@ export function buildMarketContextBatches(day: MarketContextDay, stamp: string):
  * every writer must call it, so it lives here rather than inline.
  */
 export async function ensureMarketContextSchema(config: D1Config): Promise<void> {
-    for (const col of ['universe_breadth REAL', 'universe_breadth_n INTEGER', 'breadth_spread REAL']) {
+    for (const col of [
+        'universe_breadth REAL', 'universe_breadth_n INTEGER', 'breadth_spread REAL',
+        's5th REAL', 's5th_n INTEGER', 'spx_support REAL',
+    ]) {
         try {
             await runBatch({ sql: `ALTER TABLE market_context ADD COLUMN ${col}`, params: [] }, config);
         } catch (err) {
             // "no such table" is safe to swallow: every caller runs the
             // CREATE TABLE IF NOT EXISTS batch immediately after this, and that
-            // CREATE already declares all three columns — so on a fresh or
+            // CREATE already declares all these columns — so on a fresh or
             // restored D1 the table is bootstrapped complete and these ALTERs
             // were never needed. Without this, the ALTER rethrows before the
             // CREATE ever runs and the table can never be created (the live

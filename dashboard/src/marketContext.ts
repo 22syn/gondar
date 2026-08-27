@@ -91,6 +91,12 @@ export interface MarketContextRow {
   xly_xlp_slope21: number | null;
   s5fi: number | null;
   s5fi_n: number | null;
+  /** % of S&P 500 above its own SMA200 (longer-trend breadth). Display only, not scored.
+   *  Optional: rows written before this column existed simply omit it. */
+  s5th?: number | null;
+  s5th_n?: number | null;
+  /** Nearest swing-low support below the current close, index points. Display only. */
+  spx_support?: number | null;
   spy_wr_1d: number | null;
   spy_wr_1w: number | null;
   qqq_wr_1d: number | null;

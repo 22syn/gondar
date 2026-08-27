@@ -20,6 +20,9 @@ function day(overrides: Partial<MarketContextDay> = {}): MarketContextDay {
         xlyXlpSlope21: 5.005964793069899,
         s5fi: 57.28542914171657,
         s5fiN: 501,
+        s5th: 61.4771457085828,
+        s5thN: 498,
+        spxSupport: 7123.45,
         spyWr1d: -72.41401640989774,
         spyWr1w: -21.739176924250863,
         qqqWr1d: -78.15166058571212,
@@ -60,9 +63,12 @@ describe('buildMarketContextBatches', () => {
         expect((insert.sql.match(/\?/g) ?? []).length).toBe(MARKET_CONTEXT_COL_COUNT);
         expect(insert.params[0]).toBe('2026-08-21');
         expect(insert.params[MARKET_CONTEXT_COL_COUNT - 1]).toBe('stamp');
-        expect(insert.params[17]).toBe(55.85); // universe_breadth
-        expect(insert.params[18]).toBe(419);   // universe_breadth_n
-        expect(insert.params[19]).toBe(1.44);  // breadth_spread — s5fi minus universe
+        expect(insert.params[13]).toBe(61.4771); // s5th, 4dp
+        expect(insert.params[14]).toBe(498);     // s5th_n
+        expect(insert.params[15]).toBe(7123.45); // spx_support, 2dp
+        expect(insert.params[20]).toBe(55.85);   // universe_breadth
+        expect(insert.params[21]).toBe(419);     // universe_breadth_n
+        expect(insert.params[22]).toBe(1.44);    // breadth_spread — s5fi minus universe
     });
 
     it('rounds without inventing precision, and keeps s5fi_n an integer', () => {
