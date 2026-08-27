@@ -1,0 +1,54 @@
+# One-shot, manually-dispatched backfill for the two columns #219 added to
+# market_context — s5th (% S&P above SMA200) and spx_support (swing low).
+# Writes ONLY those columns via UPDATE (scripts/backfill-s5th-support.ts), so it
+# cannot disturb s5fi / universe_breadth / Williams %R on the rows the daily
+# scan has already recorded. No Telegram, no Google Sheet — Cloudflare only.
+name: Backfill s5th + support
+
+on:
+  workflow_dispatch:
+    inputs:
+      days:
+        description: 'Trading days back to fill (market_context spans ~506)'
+        required: false
+        default: '520'
+      range:
+        description: 'Yahoo fetch window — must exceed `days` by ~200 bars for the SMA200'
+        required: false
+        default: '3y'
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+      CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+      D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+
+    steps:
+      # Always run stable's code, whichever branch fired the dispatch — the
+      # market_context columns and the backfill script live on stable.
+      - name: Checkout stable branch
+        uses: actions/checkout@v6
+        with:
+          ref: stable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Backfill s5th + spx_support
+        run: |
+          if [ -z "$CF_API_TOKEN" ]; then
+            echo "❌ CF_API_TOKEN not set — cannot write to D1"; exit 1
+          fi
+          npx tsx scripts/backfill-s5th-support.ts \
+            --days "${{ inputs.days }}" --range "${{ inputs.range }}" --write
