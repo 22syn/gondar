@@ -1,0 +1,53 @@
+# Files that MUST stay byte-identical between `main` (Smart Radar) and
+# `stable` (Lean Radar).
+#
+# Why this file exists: the two radars run from two branches and each carries its
+# own copy of the shared layer. A fix applied to one silently does not reach the
+# other. That is not hypothetical — PR #49 migrated SMA/RSI to `trading-signals`
+# on `main` only, and `stable` kept the hand-rolled version unnoticed for two
+# months. Decision 2026-07-26 (see cabinet decisions-log): keep the two-branch
+# split, but make the drift loud instead of silent.
+#
+# Checked by scripts/check-branch-drift.sh (CI: branch-drift.yml).
+#
+# INTENTIONALLY DIVERGING a file? Delete its line and say why in the commit
+# message. Removing a line is the supported escape hatch — do not weaken the
+# check itself.
+#
+# Not listed here (deliberately): files that legitimately differ because the two
+# radars have different feature sets — config/index.ts, index.ts, llmSummary.ts,
+# marketData.ts, telegramBot.ts, types/index.ts, championScore.ts, setup.ts,
+# snapshotWriter.ts — plus everything that exists on only one branch (the
+# lean/ modules on stable, the dashboard). The fragility rule layer IS listed:
+# purpleFragility.ts + src/shared/fragilityRule.ts + its test are the single
+# source of the Alert/Watch rule for both branches (2026-08-25) and must
+# never drift.
+#
+# The guard itself is listed (workflow + check script) so it cannot silently
+# diverge either — it lives on BOTH branches since 2026-08-27 (review-panel P1:
+# a guard that exists only on main never runs on PRs targeting stable). THIS
+# LIST FILE is deliberately NOT listed: adding an entry lands as two
+# synchronized PRs (stable first, then main), and during that window the two
+# copies legitimately differ — listing the list would deadlock the first PR.
+
+.github/workflows/branch-drift.yml
+scripts/check-branch-drift.sh
+src/config/israeliNames.json
+src/services/finnhubFundamentals.ts
+src/services/monitorTracker.ts
+src/services/purpleFragility.ts
+src/services/rvolCalculator.ts
+src/shared/fragilityRule.ts
+src/utils/acceleration.ts
+src/utils/errorHandler.ts
+src/utils/escapeHtml.ts
+src/utils/formatters.ts
+src/utils/logger.ts
+src/utils/monitorStore.ts
+src/utils/rsPercentile.ts
+src/utils/scanResultWriter.ts
+src/utils/tags.ts
+src/utils/technicalAnalysis.ts
+src/utils/tradingDate.ts
+src/utils/writeScanResults.ts
+tests/fragilityRule.test.ts
