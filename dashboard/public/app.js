@@ -2036,14 +2036,88 @@ boot();
  * MUST stay in sync with GAUGES in dashboard/src/marketContext.ts, which is what
  * actually computes warn_count — this copy only decides how a tile is drawn.
  */
-const MC_GAUGES = [
-  { key: 'spx_dist_sma150', label: 'SPX מעל SMA150', unit: '%', digits: 1 },
-  { key: 'rsp_slope21', label: 'RSP מגמת 21י', unit: '%', digits: 1 },
-  { key: 'vix', label: 'VIX', unit: '', digits: 2 },
-  { key: 'xlp_spx_slope21', label: 'XLP/SPX 21י', unit: '%', digits: 2 },
-  { key: 'xly_xlp_slope21', label: 'XLY/XLP 21י', unit: '%', digits: 2 },
-  { key: 's5fi', label: 'S5FI רוחב', unit: '%', digits: 1 },
+/**
+ * The signal-status table: one row per market-context gauge, in plain language
+ * — name, what it measures, the live reading, and a one-word verdict. This is
+ * the panel's primary current-state view (it replaced the raw tiles and the
+ * historical heatmap). `status` returns { word, cls } where cls is a semantic
+ * colour (calm/watch/hot/unscored). The verdict severity comes from the gauge's
+ * own percentile via mcExtremityByKey, so the table and warn_count never
+ * disagree about what "in warning" means.
+ */
+const pctSign = (v, d) => `${v >= 0 ? '+' : ''}${v.toFixed(d)}%`;
+
+const MC_SIGNALS = [
+  {
+    name: 'מרחק מ-SMA150',
+    sub: 'כמה המחיר מתוח מעל המגמה',
+    reading: (r) => {
+      if (r.spx_dist_sma150 == null) return '—';
+      const sma = r.spx_close != null
+        ? ` · SMA150 ${Math.round(r.spx_close / (1 + r.spx_dist_sma150 / 100)).toLocaleString()}`
+        : '';
+      return pctSign(r.spx_dist_sma150, 1) + sma;
+    },
+    status: (r) => mcStatusWords(mcExtremityByKey(r, 'spx_dist_sma150'), ['תקין', 'מתוח', 'מתוח מאוד']),
+  },
+  {
+    name: 'רוחב השתתפות',
+    sub: 'RSP + S5FI — כמה מניות משתתפות',
+    reading: (r) => [
+      r.rsp_close != null ? `RSP ${r.rsp_close.toFixed(2)}` : null,
+      r.s5fi != null ? `S5FI ${r.s5fi.toFixed(1)}%` : null,
+    ].filter(Boolean).join(' · ') || '—',
+    // s5fi warns on the HIGH tail (euphoric, saturated breadth precedes tops) —
+    // so the hot word is "saturated", not "weak".
+    status: (r) => mcStatusWords(mcExtremityByKey(r, 's5fi'), ['בריא', 'מלא', 'רווי']),
+  },
+  {
+    name: 'סנטימנט ותנודתיות',
+    sub: 'מצב הרוח, לפי ה-VIX',
+    reading: (r) => r.vix != null ? `VIX ${r.vix.toFixed(2)}` : '—',
+    // vix warns on the LOW tail (complacency, not panic) — the hot end is
+    // over-calm, so the words run normal → too-calm → complacent.
+    status: (r) => mcStatusWords(mcExtremityByKey(r, 'vix'), ['נורמלי', 'רגוע מדי', 'שאננות']),
+  },
+  {
+    name: 'רוטציה הגנתית',
+    sub: 'XLP מוצרי צריכה בסיסיים מול השוק',
+    reading: (r) => r.xlp_spx_slope21 != null ? `XLP/SPX 21י ${pctSign(r.xlp_spx_slope21, 2)}` : '—',
+    status: (r) => mcStatusWords(mcExtremityByKey(r, 'xlp_spx_slope21'), ['תוקפני', 'לתשומת לב', 'הגנתי']),
+  },
+  {
+    name: 'תיאבון לסיכון',
+    sub: 'XLY מול XLP — התקפה מול הגנה',
+    reading: (r) => [
+      r.xly_xlp_ratio != null ? `יחס ${r.xly_xlp_ratio.toFixed(3)}` : null,
+      r.xly_xlp_slope21 != null ? `21י ${pctSign(r.xly_xlp_slope21, 2)}` : null,
+    ].filter(Boolean).join(' · ') || '—',
+    status: (r) => mcStatusWords(mcExtremityByKey(r, 'xly_xlp_slope21'), ['חיובי', 'מתהפך', 'שלילי']),
+  },
+  {
+    name: 'מבנה מחיר',
+    sub: 'מעל או מתחת ל-SMA200',
+    reading: (r) => r.spx_dist_sma200 == null ? '—'
+      : `${r.spx_dist_sma200 >= 0 ? 'מעל ' : 'מתחת ל-'}SMA200 · ${pctSign(r.spx_dist_sma200, 1)}`,
+    // Structure is a two-state trigger, not a percentile: above the 200-DMA is
+    // intact, below is broken. No "watch" middle.
+    status: (r) => r.spx_dist_sma200 == null ? { word: '—', cls: 'unscored' }
+      : r.spx_dist_sma200 >= 0 ? { word: 'שלם', cls: 'calm' } : { word: 'נשבר', cls: 'hot' },
+  },
 ];
+
+/** A gauge's extremity (0-100 into its warning tail) looked up by data key. */
+function mcExtremityByKey(latest, key) {
+  const g = MC_HEAT_ROWS.find((r) => r.key === key);
+  return g ? mcExtremity(latest, g) : null;
+}
+
+/** Verdict from extremity: [ok, watch, hot] words + matching colour class. */
+function mcStatusWords(e, words) {
+  if (e == null) return { word: '—', cls: 'unscored' };
+  const lvl = e >= MC_WARN_PCT ? 2 : e >= 70 ? 1 : 0;
+  return { word: words[lvl], cls: ['calm', 'watch', 'hot'][lvl] };
+}
 
 /** Percentile at or beyond which a gauge is drawn as warning. Mirrors WARN_PCT. */
 const MC_WARN_PCT = 90;
@@ -2148,122 +2222,21 @@ function renderMcStatus(latest) {
   el.hidden = false;
 }
 
-/**
- * Peak-to-trough drawdowns of 5%+ on spx_close — same detection as the
- * 2026-08-24 backtest. Returns [{peakIdx, troughIdx}] for band shading.
- */
-function detectDrawdowns(rows, threshold = -5) {
-  const out = [];
-  let peakIdx = null; let peak = -Infinity; let troughIdx = null; let trough = Infinity;
-  rows.forEach((r, i) => {
-    const c = r.spx_close;
-    if (c == null) return;
-    if (c >= peak) {
-      // New high: close out any qualifying episode before resetting.
-      if (peakIdx != null && troughIdx != null && (trough - peak) / peak * 100 <= threshold) {
-        out.push({ peakIdx, troughIdx });
-      }
-      peak = c; peakIdx = i; trough = c; troughIdx = i;
-    } else if (c < trough) {
-      trough = c; troughIdx = i;
-    }
-  });
-  if (peakIdx != null && troughIdx != null && (trough - peak) / peak * 100 <= threshold) {
-    out.push({ peakIdx, troughIdx });
-  }
-  return out;
+/** Render the signal-status table body from the latest row. */
+function renderMcSignals(latest) {
+  const body = $('#mc-signals-body');
+  if (!body) return;
+  body.innerHTML = MC_SIGNALS.map((s, i) => {
+    const st = s.status(latest);
+    return `<tr>
+      <td class="mcs-num">${i + 1}</td>
+      <td class="mcs-name"><span class="mcs-name-t">${esc(s.name)}</span><span class="mcs-sub">${esc(s.sub)}</span></td>
+      <td class="mcs-reading">${esc(s.reading(latest))}</td>
+      <td class="mcs-status"><span class="mcs-pill mcs-pill--${st.cls}">${esc(st.word)}</span></td>
+    </tr>`;
+  }).join('');
 }
 
-/**
- * SPX line + one heat row per scored series, sharing an x-axis, drawdowns
- * shaded. Hand-rolled SVG: a heatmap is rects on a shared scale and Chart.js
- * has no native matrix type. Cell color encodes depth into the gauge's own
- * warning tail — faint from extremity 50, orange from 70, red from 90.
- */
-function renderMcHeatmap(rows) {
-  const host = document.getElementById('mc-heat');
-  if (!host) return;
-  const n = rows.length;
-  if (n < 2) return;
-
-  const ML = 30; const MR = 128; const W = 960; const plotW = W - ML - MR;
-  const spxH = 96; const gap = 10; const rowH = 15; const cellH = rowH - 2;
-  const heatTop = spxH + gap;
-  const heatH = MC_HEAT_ROWS.length * rowH;
-  const H = heatTop + heatH + 20;
-  const x = (i) => ML + (i / (n - 1)) * plotW;
-
-  const closes = rows.map((r) => r.spx_close).filter((c) => c != null);
-  if (closes.length < 2) return;
-  const lo = Math.min(...closes); const hi = Math.max(...closes);
-  // A frozen/stale series where every close is identical (a failure mode this
-  // project has hit on TASE tickers) gives hi===lo → 0/0 → NaN coordinates and
-  // a broken path. Flatten to the mid-row instead of dividing by zero.
-  const span = hi - lo;
-  const y = (c) => span === 0 ? 4 + 0.5 * (spxH - 8) : 4 + (1 - (c - lo) / span) * (spxH - 8);
-  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="direction:ltr">`;
-
-  for (const dd of detectDrawdowns(rows)) {
-    const bx = x(dd.peakIdx);
-    svg += `<rect x="${bx.toFixed(1)}" y="0" width="${(x(dd.troughIdx) - bx).toFixed(1)}" height="${heatTop + heatH}" fill="rgba(248,113,113,0.09)"/>`;
-  }
-
-  let path = '';
-  rows.forEach((r, i) => {
-    if (r.spx_close == null) return;
-    path += `${path ? 'L' : 'M'}${x(i).toFixed(1)},${y(r.spx_close).toFixed(1)}`;
-  });
-  svg += `<path d="${path}" fill="none" stroke="#60a5fa" stroke-width="1.6" stroke-linejoin="round"/>`;
-  svg += `<text x="${W - MR + 6}" y="12" fill="#9da6b9" font-size="10" font-family="monospace">S&amp;P 500</text>`;
-
-  const cellW = plotW / (n - 1) + 0.5;
-  MC_HEAT_ROWS.forEach((g, ri) => {
-    const cy = heatTop + ri * rowH;
-    rows.forEach((r, i) => {
-      const e = mcExtremity(r, g);
-      if (e == null || e < 50) return;
-      const fill = e >= MC_WARN_PCT ? 'rgba(248,113,113,0.9)'
-        : e >= 70 ? `rgba(255,107,53,${(0.25 + (e - 70) / 20 * 0.45).toFixed(2)})`
-          : `rgba(255,107,53,${(0.08 + (e - 50) / 20 * 0.15).toFixed(2)})`;
-      svg += `<rect x="${(x(i) - cellW / 2).toFixed(1)}" y="${cy}" width="${cellW.toFixed(1)}" height="${cellH}" fill="${fill}"/>`;
-    });
-    svg += `<text x="${W - MR + 6}" y="${cy + cellH - 3}" fill="#9da6b9" font-size="10">${esc(g.label)}</text>`;
-  });
-
-  const tickEvery = Math.max(1, Math.floor(n / 8));
-  for (let i = 0; i < n; i += tickEvery) {
-    svg += `<text x="${x(i).toFixed(1)}" y="${H - 6}" fill="#64748b" font-size="9" font-family="monospace" text-anchor="middle">${esc(rows[i].scan_date.slice(2))}</text>`;
-  }
-  svg += '</svg>';
-  host.innerHTML = svg;
-
-  // Hover: nearest day from cursor x; a heat row under the cursor names that
-  // gauge, the SPX area above shows the close.
-  const tip = document.getElementById('mc-heat-tip');
-  const svgEl = host.querySelector('svg');
-  svgEl.addEventListener('mousemove', (ev) => {
-    const b = svgEl.getBoundingClientRect();
-    const sx = (ev.clientX - b.left) / b.width * W;
-    const sy = (ev.clientY - b.top) / b.height * H;
-    const i = Math.max(0, Math.min(n - 1, Math.round((sx - ML) / plotW * (n - 1))));
-    const r = rows[i];
-    let text = `${r.scan_date}`;
-    if (sy >= heatTop && sy < heatTop + heatH) {
-      const g = MC_HEAT_ROWS[Math.floor((sy - heatTop) / rowH)];
-      if (g) {
-        const p = r.pct ? r.pct[g.key] : null;
-        text += ` · ${g.label}: ${p == null ? 'לא מנוקד' : `אחוזון ${Math.round(p)}`}`;
-      }
-    } else if (r.spx_close != null) {
-      text += ` · S&P ${r.spx_close.toFixed(0)}`;
-    }
-    tip.textContent = text;
-    tip.style.left = `${Math.min(ev.clientX + 12, window.innerWidth - tip.offsetWidth - 8)}px`;
-    tip.style.top = `${ev.clientY + 14}px`;
-    tip.hidden = false;
-  });
-  svgEl.addEventListener('mouseleave', () => { tip.hidden = true; });
-}
 
 /**
  * Load market_context and render the two panels. Silent on failure and hidden
@@ -2281,22 +2254,7 @@ async function loadMarketContext() {
 
   const latest = rows[rows.length - 1];
   renderMcStatus(latest);
-  const grid = $('#mc-grid');
-  grid.textContent = '';
-  for (const g of MC_GAUGES) {
-    const pct = latest.pct ? latest.pct[g.key] : null;
-    const warnHigh = ['spx_dist_sma150', 'xlp_spx_slope21', 's5fi'].includes(g.key);
-    const warn = pct != null && (warnHigh ? pct >= MC_WARN_PCT : pct <= 100 - MC_WARN_PCT);
-    grid.append(mcTile({
-      label: g.label,
-      value: latest[g.key],
-      unit: g.unit,
-      digits: g.digits,
-      pct,
-      warn,
-      extra: g.key === 's5fi' && latest.s5fi_n != null ? `n=${latest.s5fi_n}` : '',
-    }));
-  }
+  renderMcSignals(latest);
 
   const wc = $('#mc-warncount');
   if (latest.warn_count == null) {
@@ -2343,17 +2301,6 @@ async function loadMarketContext() {
       extra: sp == null ? '' : sp > 0 ? 'היוניברס מפגר' : 'היוניברס מוביל',
     }));
     spreadWrap.hidden = false;
-  }
-
-  // Extremity heatmap — needs scored percentiles to say anything. Isolated:
-  // it is the last thing built here and a throw (malformed row, bad date) must
-  // not take the freshness note, the breadth chart and the W%R panel down with
-  // it — those still run below.
-  if (rows.some((r) => r.pct && r.spx_close != null)) {
-    try {
-      $('#mc-heat-wrap').hidden = false;
-      renderMcHeatmap(rows);
-    } catch { $('#mc-heat-wrap').hidden = true; /* heatmap optional — panel continues */ }
   }
 
   const note = $('#mc-note');

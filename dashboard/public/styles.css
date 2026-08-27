@@ -2344,39 +2344,62 @@ td.col-score {
 .mc-status--unscored { color: var(--muted); border-color: var(--border); }
 .mc-status .mc-status-detail { color: var(--muted); font-weight: 400; font-size: var(--fs-xs); }
 
-/* Extremity heatmap — hand-rolled SVG, so unlike the Chart.js boxes it needs
-   no fixed height; it scales from its viewBox. Scrolls sideways on narrow
-   panels instead of shrinking Hebrew row labels below legibility.
-   min-width:0 on the panel: it is a grid item, and without it the SVG's
-   720px floor propagates as the item's min-width and overflows the page
-   sideways on mobile instead of scrolling inside the box. */
+/* min-width:0 keeps the panel (a grid item) from being forced wide by its
+   content and overflowing the page on mobile. */
 .chart-wrap--mc { min-width: 0; }
-.mc-heat-box {
-  position: relative;
-  overflow-x: auto;
-  margin-top: 10px;
+
+/* Signal-status table — the panel's primary current-state view. */
+.mc-signals-wrap { overflow-x: auto; margin: 6px 0 4px; }
+.mc-signals {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
 }
-#mc-heat svg { display: block; width: 100%; min-width: 720px; height: auto; }
-.mc-heat-legend {
-  font-size: 11px;
+.mc-signals thead th {
+  text-align: right;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  padding: 4px 10px 8px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.mc-signals td {
+  padding: 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.mc-signals tbody tr:last-child td { border-bottom: 0; }
+.mc-signals .mcs-num,
+.mc-signals th.mcs-num {
+  width: 1.5rem;
   color: var(--muted);
   font-family: var(--mono);
-  margin-top: 4px;
+  font-size: var(--fs-xs);
+  text-align: center;
 }
-.mc-heat-tip {
-  position: fixed;
-  z-index: 40;
-  pointer-events: none;
-  background: var(--xsh-bg-header);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 11px;
-  font-family: var(--mono);
-  color: var(--text);
+.mcs-name-t { display: block; font-weight: 600; color: var(--text); }
+.mcs-sub { display: block; font-size: var(--fs-xs); color: var(--muted); margin-top: 2px; }
+.mcs-reading { font-family: var(--mono); color: var(--text); white-space: nowrap; }
+.mc-signals .mcs-status,
+.mc-signals th.mcs-status-h { text-align: left; white-space: nowrap; }
+
+/* Verdict pill — outlined, colour by severity, mirrors the status-line palette. */
+.mcs-pill {
+  display: inline-block;
+  padding: 3px 11px;
+  border-radius: 999px;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  border: 1px solid currentColor;
   white-space: nowrap;
-  box-shadow: var(--xsh-shadow-card);
 }
+.mcs-pill--calm { color: var(--xsh-success); }
+.mcs-pill--watch { color: #ff6b35; }
+.mcs-pill--hot { color: var(--xsh-error); }
+.mcs-pill--unscored { color: var(--muted); }
 
 /* Same fixed height as the other two charts — Chart.js with
    maintainAspectRatio:false needs an explicitly sized box. */

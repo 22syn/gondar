@@ -158,21 +158,27 @@
              single-gauge extremes ran 3-5x base rate, so the line always names
              the most extreme gauge — never just the count. -->
         <p class="mc-status" id="mc-status" hidden></p>
-        <div class="mc-grid" id="mc-grid" role="list"></div>
+        <!-- Signal-status table: one row per gauge — plain-language name +
+             what it measures + the live reading + a verdict pill. Replaced the
+             raw tiles and the historical heatmap/breadth chart, which showed
+             numbers without a takeaway; the pill states the verdict in words. -->
+        <div class="mc-signals-wrap">
+          <table class="mc-signals" id="mc-signals">
+            <thead>
+              <tr>
+                <th class="mcs-num" scope="col">#</th>
+                <th scope="col">סיגנל</th>
+                <th scope="col">קריאה</th>
+                <th class="mcs-status-h" scope="col">סטטוס</th>
+              </tr>
+            </thead>
+            <tbody id="mc-signals-body"></tbody>
+          </table>
+        </div>
         <!-- Reported beside the six, not inside them: warn_count says "N/6" and
              250 backfilled rows already carry that definition. -->
         <p class="mc-subhead">רוחב על היוניברס של הרדאר — <b>לא</b> תחליף ל-S5FI, מדד נפרד</p>
         <div class="mc-grid mc-grid--spread" id="mc-spread" role="list" hidden></div>
-        <!-- Extremity heatmap: SPX price on top, one heat row per gauge below,
-             sharing the x-axis, with 5%+ peak-to-trough drawdowns shaded.
-             Encodes depth into each gauge's OWN warning tail. Hand-rolled SVG
-             rather than Chart.js — a heatmap is rects on a shared scale and
-             Chart.js has no native matrix type. -->
-        <div class="chart-box mc-heat-box" id="mc-heat-wrap" hidden>
-          <div id="mc-heat" role="img" aria-label="מפת חום: עומק כל מדד באזור האזהרה שלו לאורך זמן, מול S&P 500 ונפילות של 5%+"></div>
-          <div class="mc-heat-tip" id="mc-heat-tip" hidden></div>
-          <p class="mc-heat-legend">צבע = עומק בכיוון האזהרה של המדד · כתום מאחוזון 70 · אדום מ-90 · רקע אדמדם = ירידת שיא→שפל של ‎5%+‎ ב-S&P</p>
-        </div>
         <!-- The two breadth lines with the gap between them shaded. The gap IS
              the spread, so drawing it beats plotting the subtraction: you can
              see which side is leading, not just by how much. -->
