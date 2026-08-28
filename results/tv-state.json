@@ -511,6 +511,14 @@
       {
         "ticker": "HPE",
         "signalDate": "2026-08-28"
+      },
+      {
+        "ticker": "FTNT",
+        "signalDate": "2026-08-28"
+      },
+      {
+        "ticker": "GLBE",
+        "signalDate": "2026-08-28"
       }
     ],
     "Lean Radar - Near": [
@@ -1006,6 +1014,14 @@
       },
       {
         "ticker": "HPE",
+        "signalDate": "2026-08-28"
+      },
+      {
+        "ticker": "FTNT",
+        "signalDate": "2026-08-28"
+      },
+      {
+        "ticker": "GLBE",
         "signalDate": "2026-08-28"
       }
     ],
