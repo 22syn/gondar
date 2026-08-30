@@ -135,7 +135,7 @@ jobs:
       - name: Prepare TradingView cookies
         run: |
           echo "${{ secrets.TV_COOKIES }}" | base64 -d > /tmp/tv-cookies.json
-          echo "TV_COOKIES_FILE=/tmp/tv-cookies.json" >> $GITHUB_ENV
+          echo "TV_COOKIES_FILE=/tmp/tv-cookies.json" >> "$GITHUB_ENV"
 
       - name: Run TV sync
         env:

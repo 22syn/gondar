@@ -161,7 +161,7 @@ jobs:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          DATE=$(ls results/dashboard-*.json | sort | tail -1 | sed 's/.*dashboard-//;s/.json//')
+          DATE=$(find results -maxdepth 1 -name 'dashboard-*.json' -printf '%f\n' | sort | tail -1 | sed 's/dashboard-//;s/\.json//')
           HI=$(jq '[.[]|select(.score>=70)]|length' "results/dashboard-${DATE}.json")
           TOT=$(jq 'length' "results/dashboard-${DATE}.json")
           curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
