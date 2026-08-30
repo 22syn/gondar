@@ -97,6 +97,9 @@ jobs:
         run: npm audit --audit-level=high
         continue-on-error: true
 
+  # Also lints this file's own siblings under .github/workflows/ via actionlint —
+  # kept in the same job as secrets-scan rather than a separate call, since two
+  # simultaneous calls to the shared template collide on its concurrency group.
   secrets-scan:
     uses: 22syn/ci-templates/.github/workflows/node-ci.yml@main
     with:
@@ -104,3 +107,4 @@ jobs:
       run-test: false
       run-build: false
       run-secrets-scan: true
+      run-actionlint: true
