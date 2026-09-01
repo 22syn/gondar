@@ -2,7 +2,13 @@
   "updatedAt": "2026-09-01",
   "watchlists": {
     "Lean Radar - Breakouts": [],
-    "Lean Radar - Near": [],
+    "Lean Radar - Near": [
+      {
+        "ticker": "ALV",
+        "signalDate": "2026-09-01",
+        "exchange": "XETR"
+      }
+    ],
     "Lean Radar - Creep": [
       {
         "ticker": "EMBJ3",
@@ -12,6 +18,14 @@
       {
         "ticker": "OKTA",
         "signalDate": "2026-08-29"
+      },
+      {
+        "ticker": "ESTC",
+        "signalDate": "2026-09-01"
+      },
+      {
+        "ticker": "ASH",
+        "signalDate": "2026-09-01"
       }
     ]
   }
