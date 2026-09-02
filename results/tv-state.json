@@ -7,6 +7,14 @@
         "ticker": "ALV",
         "signalDate": "2026-09-01",
         "exchange": "XETR"
+      },
+      {
+        "ticker": "DB",
+        "signalDate": "2026-09-02"
+      },
+      {
+        "ticker": "V",
+        "signalDate": "2026-09-02"
       }
     ],
     "Lean Radar - Creep": [
@@ -26,6 +34,10 @@
       {
         "ticker": "ASH",
         "signalDate": "2026-09-01"
+      },
+      {
+        "ticker": "APH",
+        "signalDate": "2026-08-10"
       }
     ]
   }
