@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-08-29T14:58:03.240Z",
-  "sourceFile": "precision-analysis-2026-08-29.json",
+  "generatedAt": "2026-09-05T13:16:32.043Z",
+  "sourceFile": "precision-analysis-2026-09-05.json",
   "config": {
     "SECTOR_BLACKLIST_RATE": 0.2,
     "SECTOR_BLACKLIST_MIN_N": 25,
@@ -9,123 +9,151 @@
     "SECTOR_BLACKLIST_HEAVY_BLEED": -0.05
   },
   "perSector": {
-    "Semiconductor": {
-      "alerts": 331,
-      "winRate": 0.38368580060422963,
-      "medianPeak21d": 0.07486849674599849,
-      "medianForwardNow": -0.20646344905447356,
-      "blacklisted": true
-    },
-    "Banks": {
-      "alerts": 172,
-      "winRate": 0.0872093023255814,
-      "medianPeak21d": 0.040334710465087964,
-      "medianForwardNow": 0.004532484700702888,
-      "blacklisted": false
-    },
-    "Software": {
-      "alerts": 90,
-      "winRate": 0.25555555555555554,
-      "medianPeak21d": 0.05257788048099843,
-      "medianForwardNow": 0.08047181053824337,
-      "blacklisted": false
-    },
     "Finance": {
-      "alerts": 35,
-      "winRate": 0.05714285714285714,
-      "medianPeak21d": 0.03454162725791643,
-      "medianForwardNow": 0.005729198455810547,
+      "alerts": 208,
+      "winRate": 0.10576923076923077,
+      "medianPeak21d": 0.04316603576040623,
+      "medianForwardNow": 0.013255733700833439,
       "blacklisted": false
     },
     "ETF - world": {
-      "alerts": 180,
+      "alerts": 192,
       "winRate": 0,
-      "medianPeak21d": 0.024178532028658495,
-      "medianForwardNow": 0.02827846948822632,
-      "blacklisted": false
-    },
-    "OIL": {
-      "alerts": 7,
-      "winRate": 0.2857142857142857,
-      "medianPeak21d": 0.028486710908893098,
-      "medianForwardNow": 0.0489285388479499,
-      "blacklisted": false
-    },
-    "מגורים": {
-      "alerts": 6,
-      "winRate": 0.5,
-      "medianPeak21d": 0.10864682762492972,
-      "medianForwardNow": -0.08268551236749122,
-      "blacklisted": false
-    },
-    "Chemicals": {
-      "alerts": 17,
-      "winRate": 0,
-      "medianPeak21d": 0.020009720400174125,
-      "medianForwardNow": 0.01809048293223925,
-      "blacklisted": false
-    },
-    "Cruise": {
-      "alerts": 17,
-      "winRate": 0.4117647058823529,
-      "medianPeak21d": 0.0548867265216626,
-      "medianForwardNow": 0.05104891835660985,
+      "medianPeak21d": 0.02234066132390522,
+      "medianForwardNow": 0.026904937569096843,
       "blacklisted": false
     },
     "ETF - US": {
-      "alerts": 106,
-      "winRate": 0.03773584905660377,
-      "medianPeak21d": 0.030752795039146852,
-      "medianForwardNow": 0.01289533174678792,
+      "alerts": 92,
+      "winRate": 0.043478260869565216,
+      "medianPeak21d": 0.031374977250862246,
+      "medianForwardNow": 0.002631856181481096,
       "blacklisted": false
+    },
+    "AI - Chain": {
+      "alerts": 38,
+      "winRate": 0.42105263157894735,
+      "medianPeak21d": 0.07538424069426553,
+      "medianForwardNow": -0.15530521439746703,
+      "blacklisted": true
     },
     "Data Centers": {
       "alerts": 24,
       "winRate": 0,
       "medianPeak21d": 0.010634430663060801,
-      "medianForwardNow": -0.10306263230567103,
+      "medianForwardNow": -0.08997878647955937,
+      "blacklisted": false
+    },
+    "Chemicals": {
+      "alerts": 38,
+      "winRate": 0.15789473684210525,
+      "medianPeak21d": 0.02553285966097585,
+      "medianForwardNow": 0.025810572367075846,
       "blacklisted": false
     },
     "gas stations": {
-      "alerts": 40,
-      "winRate": 0.325,
-      "medianPeak21d": 0.035268804078461,
-      "medianForwardNow": 0.0004301173712617512,
+      "alerts": 56,
+      "winRate": 0.23214285714285715,
+      "medianPeak21d": 0.03856758227032442,
+      "medianForwardNow": 0.014252211180211694,
       "blacklisted": false
     },
+    "OIL": {
+      "alerts": 22,
+      "winRate": 0.045454545454545456,
+      "medianPeak21d": 0.017147848050232506,
+      "medianForwardNow": -0.00866784297100165,
+      "blacklisted": false
+    },
+    "Software": {
+      "alerts": 102,
+      "winRate": 0.19607843137254902,
+      "medianPeak21d": 0.03671071898173173,
+      "medianForwardNow": -0.013359536809147365,
+      "blacklisted": true
+    },
     "Food chain": {
-      "alerts": 84,
-      "winRate": 0.40476190476190477,
-      "medianPeak21d": 0.07903429433373388,
-      "medianForwardNow": 0.0351531205577742,
+      "alerts": 90,
+      "winRate": 0.37777777777777777,
+      "medianPeak21d": 0.06713930946978719,
+      "medianForwardNow": 0.021555448913555653,
       "blacklisted": false
     },
     "מניב": {
       "alerts": 17,
       "winRate": 0,
       "medianPeak21d": 0.04287183642200332,
-      "medianForwardNow": -0.0018399294879563044,
+      "medianForwardNow": -0.020403999882624646,
       "blacklisted": false
+    },
+    "Airlines": {
+      "alerts": 45,
+      "winRate": 0.28888888888888886,
+      "medianPeak21d": 0.03654134760685479,
+      "medianForwardNow": -0.0992135037197156,
+      "blacklisted": true
+    },
+    "BASIC": {
+      "alerts": 72,
+      "winRate": 0,
+      "medianPeak21d": 0.032667220171748834,
+      "medianForwardNow": -0.04071159951217784,
+      "blacklisted": true
     },
     "Others": {
       "alerts": 3,
       "winRate": 0.6666666666666666,
       "medianPeak21d": 0.11400540155268302,
-      "medianForwardNow": -0.14532595342053112,
+      "medianForwardNow": -0.1485270556187277,
+      "blacklisted": false
+    },
+    "Cruise": {
+      "alerts": 16,
+      "winRate": 0.375,
+      "medianPeak21d": 0.0548867265216626,
+      "medianForwardNow": -0.09545452817564037,
+      "blacklisted": false
+    },
+    "cleantech": {
+      "alerts": 5,
+      "winRate": 0,
+      "medianPeak21d": -0.0012857984429365255,
+      "medianForwardNow": -0.33987524148145476,
       "blacklisted": false
     },
     "Housing": {
       "alerts": 3,
       "winRate": 0,
       "medianPeak21d": 0.02819871606293667,
-      "medianForwardNow": -0.08978367132145271,
+      "medianForwardNow": -0.09090914294720354,
+      "blacklisted": false
+    },
+    "Defense&Aerspace": {
+      "alerts": 33,
+      "winRate": 0.06060606060606061,
+      "medianPeak21d": 0.015320909981114239,
+      "medianForwardNow": -0.0870275314979001,
+      "blacklisted": true
+    },
+    "מגורים": {
+      "alerts": 4,
+      "winRate": 0.5,
+      "medianPeak21d": 0.10864682762492972,
+      "medianForwardNow": -0.08005249343832022,
+      "blacklisted": false
+    },
+    "TLV - 125": {
+      "alerts": 3,
+      "winRate": 0,
+      "medianPeak21d": 0.022522522522522515,
+      "medianForwardNow": -0.023582405935347106,
       "blacklisted": false
     },
     "commodities": {
-      "alerts": 3,
+      "alerts": 10,
       "winRate": 0,
-      "medianPeak21d": -0.002585647133974467,
-      "medianForwardNow": 0.008521657806105365,
+      "medianPeak21d": 0.0009395170375872119,
+      "medianForwardNow": -0.01852537992738512,
       "blacklisted": false
     }
   }
