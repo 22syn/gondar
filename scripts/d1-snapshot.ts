@@ -46,12 +46,24 @@ const OUT_PATH = arg('out', 'results/d1-snapshot.json');
  * gap is what made alpha-engine's vendored copy of this dashboard visibly
  * disagree with the live one.
  *
+ * market_context is the same shape (one row/day) but got the shared default
+ * (60) when it was added to TABLES, not this override — /api/market-context
+ * has no limit at all (dashboard/functions/api/market-context.ts selects the
+ * whole table), so the live mc-chart/wr-chart draw ~2 years while the vendored
+ * copy's 60-date snapshot could only ever draw two months. Same visible-gap
+ * bug fragility_daily already fixed, just never applied here. 756 matches
+ * PCT_WINDOW in dashboard/src/marketContext.ts, so the vendored copy also
+ * finally has enough rows for enrichMarketContext's 60-row burn-in to clear
+ * on most of the recent history instead of reporting every percentile as
+ * "running in" — a fix for a currently-invisible symptom of the same gap.
+ *
  * Raising the shared limit instead would have been ~15 MB: rs_daily alone is
  * ~630 rows PER DAY (1.0 MB at 29 days), and lean_signals ~55/day. Those two are
  * read per-day by the grid and genuinely do not need a year in the artifact.
  */
 const DATE_LIMIT_BY_TABLE: Record<string, number> = {
     fragility_daily: Math.max(DATE_LIMIT, 250),
+    market_context: Math.max(DATE_LIMIT, 756),
 };
 const dateLimitFor = (table: string): number => DATE_LIMIT_BY_TABLE[table] ?? DATE_LIMIT;
 
