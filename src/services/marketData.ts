@@ -18,6 +18,7 @@ import {
     countConsecutiveGreenDays,
     detectEarningsGap,
     calculateAVWAP,
+    calculateAvwapFromAth,
     calculateDaysSinceLastHigh,
     calculateBollingerBands,
     calculateEMA,
@@ -228,6 +229,9 @@ export async function parseYahooChartResult(
         gap != null
             ? calculateAVWAP(highs, lows, closes, alignedVolumes, gap.index)
             : undefined;
+    // AVWAP anchored at the 52w-high bar. Display-only (dashboard "vs AVWAP" column): the
+    // 2026-10-06 study found no edge, so no tag, score or signal may read it.
+    const avwapFromAth = calculateAvwapFromAth(highs, lows, closes, alignedVolumes, 252);
     // projectedRvol: only meaningful intraday. After-close it equals raw rvol.
     const minutesElapsed = marketSessionMinutesElapsed();
     const projected = computeProjectedRvol(currentVolume, avgVolume, minutesElapsed);
@@ -268,6 +272,7 @@ export async function parseYahooChartResult(
         consecutiveGreenDays,
         gapDay,
         avwapFromGap,
+        avwapFromAth,
         projectedRvol: projected,
         // Phase 2 (ChampionScan):
         bbUpper: bb?.upper,

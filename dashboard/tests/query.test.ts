@@ -11,6 +11,7 @@ import {
   buildTickerMatchQuery,
   buildTickerListQuery,
   buildAllScanDatesQuery,
+  COLUMN_TIERS,
 } from '../src/query.js';
 
 describe('buildSignalsQuery', () => {
@@ -185,21 +186,33 @@ describe('ticker history queries', () => {
   });
 });
 
-describe('wr14 column guard', () => {
-  // A dashboard deploy can land before ensureSchema() adds wr14 during ingest.
-  // SQLite fails the whole SELECT on an unknown column, which took /api/signals
-  // to a 500 on the 2026-08-22 deploy. Both shapes must stay buildable.
-  it('includes wr14 by default', () => {
-    expect(buildSignalsQuery({}).sql).toContain(',wr14,');
-    expect(buildTickerLeanQuery('ARM').sql).toContain(',wr14,');
+describe('optional column guard (wr14, avwap_ath_pct)', () => {
+  // A dashboard deploy can land before ensureSchema() adds an optional column
+  // during ingest. SQLite fails the whole SELECT on an unknown column, which took
+  // /api/signals to a 500 on the 2026-08-22 deploy. Every tier must stay buildable.
+  it('includes both optional columns by default', () => {
+    expect(buildSignalsQuery({}).sql).toContain(',wr14,avwap_ath_pct,');
+    expect(buildTickerLeanQuery('ARM').sql).toContain(',wr14,avwap_ath_pct,');
   });
 
-  it('omits wr14 when asked, keeping every other column', () => {
-    const legacy = buildSignalsQuery({}, false).sql;
+  it("'noAvwap' keeps wr14 (D1 has migration 0004 but not 0005) and drops only avwap_ath_pct", () => {
+    const sql = buildSignalsQuery({}, 'noAvwap').sql;
+    expect(sql).toContain(',wr14,');
+    expect(sql).not.toContain('avwap_ath_pct');
+    expect(buildTickerLeanQuery('ARM', 'noAvwap').sql).not.toContain('avwap_ath_pct');
+  });
+
+  it("'legacy' omits both, keeping every other column", () => {
+    const legacy = buildSignalsQuery({}, 'legacy').sql;
     expect(legacy).not.toContain('wr14');
+    expect(legacy).not.toContain('avwap_ath_pct');
     for (const c of ['scan_date', 'ticker', 'score', 'price', 'ingested_at', 'rs']) {
       expect(legacy).toContain(c);
     }
-    expect(buildTickerLeanQuery('ARM', false).sql).not.toContain('wr14');
+    expect(buildTickerLeanQuery('ARM', 'legacy').sql).not.toContain('wr14');
+  });
+
+  it('tiers are ordered richest first', () => {
+    expect(COLUMN_TIERS).toEqual(['full', 'noAvwap', 'legacy']);
   });
 });

@@ -39,6 +39,10 @@ export interface Row {
   /** Williams %R(14) on daily bars, [-100, 0]. Optional: reconstructed rows
    *  (rowsFromReconstructed) have no OHLC series to compute it from. */
   wr14?: number | null;
+  /** Price vs the AVWAP anchored at the 52w-high bar, in percent (+ = above the average cost of
+   *  everyone who bought since the peak). DISPLAY ONLY — scoreRow must never read it. Optional:
+   *  reconstructed rows have no volume series, and old rows predate the column. */
+  avwapAthPct?: number | null;
 }
 
 const BASE: Record<SignalKind, number> = {
@@ -79,6 +83,12 @@ function isStage2(s: StockData): 0 | 1 {
     s.lastPrice > s.sma50 && s.sma50 > s.sma200 ? 1 : 0;
 }
 
+/** Price vs AVWAP-from-ATH in percent, or null when the anchor/price is missing. Display only. */
+export function pctVsAvwapAth(s: StockData): number | null {
+  if (s.avwapFromAth == null || s.lastPrice == null || s.avwapFromAth <= 0) return null;
+  return (s.lastPrice / s.avwapFromAth - 1) * 100;
+}
+
 /** Build one Row for a ticker given ALL its matched signals + the stock object. */
 function buildRow(
   scanDate: string, stock: StockData, signals: SignalKind[], distPivot: number | null,
@@ -92,6 +102,7 @@ function buildRow(
     rvol: stock.rvol ?? 0, athPct: stock.pctFromAth ?? null,
     dayPct: stock.priceChange ?? 0, stage2: isStage2(stock),
     distPivot, price: stock.lastPrice ?? 0, wr14: stock.wr14 ?? null,
+    avwapAthPct: pctVsAvwapAth(stock),
   };
   return { ...r, score: scoreRow(r, ctx) };
 }

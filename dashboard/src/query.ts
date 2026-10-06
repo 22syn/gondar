@@ -10,16 +10,26 @@ const BASE_COLS = 'scan_date,ticker,region,sector,signal,signals,signal_count,rv
  * whole SELECT on an unknown column, taking /api/signals to a 500. That is not
  * hypothetical: it happened on the 2026-08-22 deploy.
  *
- * So the column is opt-out. Callers try the full select and fall back to the
- * legacy one when D1 rejects it; once the first ingest has run the fallback is
- * never taken again. `wr14` is simply absent from the payload in the meantime,
- * which the client already handles (it renders "—").
+ * So the columns are opt-out. Callers try the richest select and fall back one
+ * tier at a time when D1 rejects it (see withColumnFallback); once the first
+ * ingest has run the fallback is never taken again. A missing column is simply
+ * absent from the payload in the meantime, which the client already handles
+ * (it renders "—").
+ *
+ * Tiers, richest first: 'full' (wr14 + avwap_ath_pct), 'noAvwap' (wr14 only —
+ * D1 has migration 0004 but not 0005), 'legacy' (neither).
  */
-const SELECT = (withWr14 = true): string =>
-  `SELECT ${BASE_COLS}${withWr14 ? ',wr14' : ''},ingested_at,rs FROM lean_signals`;
+export type ColumnTier = 'full' | 'noAvwap' | 'legacy';
+export const COLUMN_TIERS: readonly ColumnTier[] = ['full', 'noAvwap', 'legacy'];
 
-export function buildSignalsQuery(p: SignalParams, withWr14 = true): Query {
-  const sel = SELECT(withWr14);
+const SELECT = (tier: ColumnTier = 'full'): string => {
+  const wr14 = tier === 'legacy' ? '' : ',wr14';
+  const avwap = tier === 'full' ? ',avwap_ath_pct' : '';
+  return `SELECT ${BASE_COLS}${wr14}${avwap},ingested_at,rs FROM lean_signals`;
+};
+
+export function buildSignalsQuery(p: SignalParams, tier: ColumnTier = 'full'): Query {
+  const sel = SELECT(tier);
   if (p.from && p.to) {
     // Hard backstop on row count. The Function already caps the span to 400
     // days, but a 400-day window across the whole universe is still large; this
@@ -41,8 +51,8 @@ export function buildSignalsQuery(p: SignalParams, withWr14 = true): Query {
  */
 
 /** Every lean row for one ticker, newest first. */
-export function buildTickerLeanQuery(ticker: string, withWr14 = true): Query {
-  return { sql: `${SELECT(withWr14)} WHERE ticker = ? ORDER BY scan_date DESC`, params: [ticker] };
+export function buildTickerLeanQuery(ticker: string, tier: ColumnTier = 'full'): Query {
+  return { sql: `${SELECT(tier)} WHERE ticker = ? ORDER BY scan_date DESC`, params: [ticker] };
 }
 
 /** Every setup row for one ticker (merged into the lean rows by mergeSetupRows). */

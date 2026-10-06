@@ -90,6 +90,7 @@ const COLS = [
   ['signals',   'סיגנלים',   'col-signals'],
   ['rvol',      'RVOL',      'col-mono'],
   ['ath_pct',   'ATH%',      'col-mono'],
+  ['avwap_ath_pct', 'vs AVWAP', 'col-mono'],
   ['day_pct',   'יום%',      'col-mono'],
   ['stage2',    'S2',        'col-mono'],
   ['rs',        'RS',        'col-mono'],
@@ -1087,6 +1088,14 @@ function renderTable() {
         case 'ath_pct':
           inner = `<span class="${fmtPctClass(r.ath_pct)}">${fmtPct(r.ath_pct)}</span>`;
           break;
+        case 'avwap_ath_pct': {
+          // Price vs the AVWAP anchored at the 52w-high bar: the average cost basis of everyone who
+          // bought since the peak. A level to look at — nothing scores or ranks on it (2026-10-06
+          // study: no edge). Sorts numerically via data-v; nulls last. Absent until the first ingest
+          // after deploy adds the column, and for rows with no volume series.
+          if (r.avwap_ath_pct == null) return `<td class="${cls}" data-v="-999">—</td>`;
+          return `<td class="${cls}" data-v="${r.avwap_ath_pct}"><span class="${fmtPctClass(r.avwap_ath_pct)}">${fmtPct(r.avwap_ath_pct)}</span></td>`;
+        }
         case 'day_pct':
           inner = `<span class="${fmtPctClass(r.day_pct)}">${fmtPct(r.day_pct)}</span>`;
           break;
@@ -1350,6 +1359,7 @@ function openDeepDive(r, opener = null) {
     ['RS',     r.rs != null ? `${r.rs}${rsFlameHTML(r.rs)}` : '—'],
     ['RVOL',   fmtRvol(r.rvol)],
     ['ATH%',   fmtPct(r.ath_pct)],
+    ['vs AVWAP', fmtPct(r.avwap_ath_pct)],
     ['יום%',   fmtPct(r.day_pct)],
     ['לפיבוט', r.dist_pivot != null ? fmtPct(r.dist_pivot) : '—'],
     ['מחיר',   fmtPrice(r.price)],
