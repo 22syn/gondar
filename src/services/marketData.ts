@@ -18,12 +18,12 @@ import {
     countConsecutiveGreenDays,
     detectEarningsGap,
     calculateAVWAP,
-    calculateAvwapFromAth,
     calculateDaysSinceLastHigh,
     calculateBollingerBands,
     calculateEMA,
     countAccumulationDistributionDays,
 } from '../utils/technicalAnalysis.js';
+import { calculateAvwapFromAth } from '../utils/avwapAnchor.js';
 import { marketSessionMinutesElapsed, projectedRvol as computeProjectedRvol } from './rvolCalculator.js';
 
 /** Common ticker typos and their correct symbols */

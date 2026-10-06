@@ -5,7 +5,9 @@
 ### Added
 - **"vs AVWAP" column (2026-10-06):** price vs the AVWAP anchored at the 52w-high bar, in percent —
   display only, it feeds no score, ranking or signal.
-  - `findAthAnchorIndex()` / `calculateAvwapFromAth()` in `src/utils/technicalAnalysis.ts`;
+  - `findAthAnchorIndex()` / `calculateAvwapFromAth()` in `src/utils/avwapAnchor.ts` — a Lean-only
+    module on purpose: `technicalAnalysis.ts` is on `config/shared-files.txt` and must stay byte-identical
+    to `main` (the `drift` check failed on the first push for exactly this reason);
     `StockData.avwapFromAth` computed in `marketData.ts` next to `avwapFromGap`.
   - `Row.avwapAthPct` → D1 `lean_signals.avwap_ath_pct`, added via the self-applying
     `ensureSchema()` pattern (migration 0005). Upsert batch size 6 → 5: 17 columns x 6 = 102 bound
