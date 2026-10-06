@@ -3,6 +3,20 @@
 ## Unreleased
 
 ### Added
+- **"vs AVWAP" column (2026-10-06):** price vs the AVWAP anchored at the 52w-high bar, in percent —
+  display only, it feeds no score, ranking or signal.
+  - `findAthAnchorIndex()` / `calculateAvwapFromAth()` in `src/utils/avwapAnchor.ts` — a Lean-only
+    module on purpose: `technicalAnalysis.ts` is on `config/shared-files.txt` and must stay byte-identical
+    to `main` (the `drift` check failed on the first push for exactly this reason);
+    `StockData.avwapFromAth` computed in `marketData.ts` next to `avwapFromGap`.
+  - `Row.avwapAthPct` → D1 `lean_signals.avwap_ath_pct`, added via the self-applying
+    `ensureSchema()` pattern (migration 0005). Upsert batch size 6 → 5: 17 columns x 6 = 102 bound
+    params breaks D1's 100 cap.
+  - `/api/signals` and `/api/ticker` fall back tier by tier (`withColumnFallback`: full → no AVWAP →
+    legacy), so a dashboard deploy that lands before the first ingest cannot 500 (as `wr14` did on 2026-08-22).
+  - Why display only: a 2026-10-06 study on 583 tickers x 4y found no edge for reclaiming or losing the
+    level — the mean is right-tail only, the median trade lags same-RS peers
+    (research note and scripts: branch `claude/avwap-anchor-psychology-07f845`, not merged).
 - **Market Context Panel (2026-08-22):** market-wide pressure gauge — display only.
   - `config/sp500.json` — 502 S&P 500 constituents, pulled 2026-08-22 from
     `en.wikipedia.org/wiki/List_of_S%26P_500_companies`. **Refresh quarterly by

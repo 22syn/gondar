@@ -99,6 +99,10 @@ export interface StockData {
     gapDay?: { date: string; level: number; barsAgo: number } | null;
     /** Anchored VWAP from gapDay forward (price still above it = signal valid) */
     avwapFromGap?: number;
+    /** Anchored VWAP from the highest-high bar of the last 252 sessions (52w proxy). Display
+     *  only (dashboard "vs AVWAP" column) — a 2026-10-06 study found no edge, so nothing may
+     *  gate or score on it. */
+    avwapFromAth?: number;
     /** Time-weighted RVOL: currentVolume / (minutesElapsed/390) / avg63DayVolume. Equals rvol after close. */
     projectedRvol?: number;
     /** Market regime at scan time (set from SPY) — affects RVOL threshold for Full */

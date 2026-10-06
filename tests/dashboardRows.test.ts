@@ -210,3 +210,45 @@ describe('rowsFromReconstructed', () => {
     expect(rows[0].score).toBe(62);
   });
 });
+
+describe('avwapAthPct (display only)', () => {
+  const resultFor = (over: any) => ({
+    consolidationBreakouts: [], pullbacks: [], nearConsolidation: [], nearPullback: [],
+    highVolume: [{ stock: stub('HV', over), signal: { level: 'high' } }],
+    creep: [{ stock: stub('CR', over), signal: { mom63: 40 } }],
+    nearVolume: [{ stock: stub('NV', over), signal: { rvol: 2.7 } }],
+  });
+
+  it('is the price vs the AVWAP-from-ATH, in percent', () => {
+    const rows = rowsFromLeanResult('2026-10-06', resultFor({ avwapFromAth: 80 }) as any);
+    for (const r of rows) expect(r.avwapAthPct).toBeCloseTo(25, 6); // lastPrice 100 vs 80
+    const below = rowsFromLeanResult('2026-10-06', resultFor({ avwapFromAth: 125 }) as any);
+    for (const r of below) expect(r.avwapAthPct).toBeCloseTo(-20, 6);
+  });
+
+  it('is null when the AVWAP is missing or not positive', () => {
+    for (const over of [{}, { avwapFromAth: undefined }, { avwapFromAth: 0 }, { avwapFromAth: -3 }, { lastPrice: null, avwapFromAth: 80 }]) {
+      for (const r of rowsFromLeanResult('2026-10-06', resultFor(over) as any)) expect(r.avwapAthPct).toBeNull();
+    }
+  });
+
+  it('never changes score, signals or order — whatever the AVWAP is', () => {
+    const strip = (rows: any[]) => rows.map(({ avwapAthPct: _drop, ...rest }) => rest);
+    const plain = strip(rowsFromLeanResult('2026-10-06', resultFor({}) as any));
+    for (const avwapFromAth of [0.01, 50, 99.99, 100, 250, 1e9]) {
+      expect(strip(rowsFromLeanResult('2026-10-06', resultFor({ avwapFromAth }) as any))).toEqual(plain);
+    }
+  });
+
+  it('reconstructed rows carry no avwapAthPct (no volume series to compute it from)', () => {
+    const recon = {
+      signalsByDate: {
+        '2026-06-29': {
+          X: { sector: 'Semis', rvol: 0, barGain: 1, pctFromAth: -20, lastPrice: 100, isStage2: false,
+               signals: ['pullback'], distanceToPivotPct: null },
+        },
+      },
+    };
+    expect(rowsFromReconstructed(recon as never)[0].avwapAthPct).toBeUndefined();
+  });
+});

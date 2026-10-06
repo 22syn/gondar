@@ -14,6 +14,7 @@ import {
   buildTickerMatchQuery,
   buildAllScanDatesQuery,
 } from '../../src/query.js';
+import { withColumnFallback } from '../../src/columnFallback.js';
 import { mergeSetupRows, type SetupRowD1, type RsDailyRow } from '../../src/mergeSetup.js';
 import { buildTickerHistory, normalizeTicker, type TickerRow } from '../../src/tickerHistory.js';
 
@@ -32,18 +33,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
   const dates = await env.DB.prepare(dq.sql).all<{ scan_date: string }>();
   const datesDesc = (dates.results ?? []).map((d) => d.scan_date);
 
-  // Same wr14 guard as /api/signals: the column arrives with the first ingest,
-  // so a deploy can land before it exists and SQLite fails the whole SELECT.
-  let rows: TickerRow[];
-  try {
-    const lq = buildTickerLeanQuery(ticker);
+  // Same column guard as /api/signals: wr14 / avwap_ath_pct arrive with the
+  // first ingest, so a deploy can land before they exist and SQLite fails the
+  // whole SELECT. Fall back tier by tier.
+  let rows = await withColumnFallback(async (tier) => {
+    const lq = buildTickerLeanQuery(ticker, tier);
     const lean = await env.DB.prepare(lq.sql).bind(...lq.params).all<TickerRow>();
-    rows = (lean.results ?? []) as TickerRow[];
-  } catch {
-    const lq = buildTickerLeanQuery(ticker, false);
-    const lean = await env.DB.prepare(lq.sql).bind(...lq.params).all<TickerRow>();
-    rows = (lean.results ?? []) as TickerRow[];
-  }
+    return (lean.results ?? []) as TickerRow[];
+  });
 
   // Same read-time merge /api/signals does — setup and RS live in their own
   // tables and may not exist yet. Treat a failure as "lean rows only".

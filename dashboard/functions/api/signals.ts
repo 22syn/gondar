@@ -6,6 +6,7 @@ import {
   buildSetupRowsQuery,
   buildRsDailyQuery,
 } from '../../src/query.js';
+import { withColumnFallback } from '../../src/columnFallback.js';
 import { enrichRows, type HistoryRow } from '../../src/enrich.js';
 import { mergeSetupRows, type SetupRowD1, type RsDailyRow } from '../../src/mergeSetup.js';
 
@@ -32,19 +33,14 @@ export const onRequestGet: PagesFunction<Env> = async ({ env, request }) => {
     const span = (Date.parse(rawTo) - Date.parse(rawFrom)) / 86_400_000;
     if (span <= 400) { from = rawFrom; to = rawTo; }
   }
-  // wr14 may not exist yet — ensureSchema() adds it during ingest, so a deploy
-  // can precede the column. Fall back to the legacy column list rather than
-  // 500ing the whole signals table.
-  let dayRows: DayRow[];
-  try {
-    const q = buildSignalsQuery({ from, to });
+  // wr14 / avwap_ath_pct may not exist yet — ensureSchema() adds them during
+  // ingest, so a deploy can precede the columns. Fall back tier by tier rather
+  // than 500ing the whole signals table.
+  let dayRows = await withColumnFallback(async (tier) => {
+    const q = buildSignalsQuery({ from, to }, tier);
     const { results } = await env.DB.prepare(q.sql).bind(...q.params).all<DayRow>();
-    dayRows = (results ?? []) as DayRow[];
-  } catch {
-    const q = buildSignalsQuery({ from, to }, false);
-    const { results } = await env.DB.prepare(q.sql).bind(...q.params).all<DayRow>();
-    dayRows = (results ?? []) as DayRow[];
-  }
+    return (results ?? []) as DayRow[];
+  });
 
   // Read-time merge of the Smart pipeline's setup_signals + rs_daily tables.
   // They may not exist until the first Smart ingest runs — treat errors as empty.
