@@ -6,7 +6,7 @@ interface Env { DB: D1Database; }
 
 interface SummaryRow {
   scan_date: string; total?: number; setup_full?: number; setup_other?: number;
-  rs80?: number; rs90?: number; [k: string]: unknown;
+  rs80?: number; rs90?: number; rs95?: number; [k: string]: unknown;
 }
 
 export const onRequestGet: PagesFunction<Env> = async ({ env }) => {

@@ -129,6 +129,7 @@ export interface RsSummaryRow {
   scan_date: string;
   rs80: number;
   rs90: number;
+  rs95?: number; // optional: older callers/fixtures predate the 95 tier
 }
 
 /**
@@ -146,7 +147,7 @@ export interface RsSummaryRow {
 export function mergeSummary<
   T extends {
     scan_date: string; total?: number; setup_full?: number; setup_other?: number;
-    rs80?: number; rs90?: number;
+    rs80?: number; rs90?: number; rs95?: number;
   },
 >(summaryRows: T[], setupSummary: SetupSummaryRow[], rsSummary: RsSummaryRow[] = []): T[] {
   if (setupSummary.length === 0 && rsSummary.length === 0) return summaryRows;
@@ -165,6 +166,7 @@ export function mergeSummary<
     if (rs) {
       merged.rs80 = rs.rs80 ?? 0;
       merged.rs90 = rs.rs90 ?? 0;
+      merged.rs95 = rs.rs95 ?? 0;
     }
     return merged;
   });
