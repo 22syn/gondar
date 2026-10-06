@@ -112,6 +112,24 @@ describe('mergeSummary', () => {
     expect(merged[0]).toMatchObject({ total: 44, setup_other: 1, rs80: 16, rs90: 11 });
   });
 
+  it('carries the RS 95 top-tier count from the rs summary', () => {
+    const merged = mergeSummary(
+      [{ scan_date: '2026-09-30', total: 40, rs80: 0, rs90: 0, rs95: 0 }],
+      [],
+      [{ scan_date: '2026-09-30', rs80: 20, rs90: 12, rs95: 5 }],
+    );
+    expect(merged[0]).toMatchObject({ rs80: 20, rs90: 12, rs95: 5 });
+  });
+
+  it('reports rs95 = 0 when the rs summary row predates the 95 tier', () => {
+    const merged = mergeSummary(
+      [{ scan_date: '2026-09-30', total: 40 }],
+      [],
+      [{ scan_date: '2026-09-30', rs80: 20, rs90: 12 }],
+    );
+    expect(merged[0]).toMatchObject({ rs80: 20, rs90: 12, rs95: 0 });
+  });
+
   it('does not double count RS when the lean row already had a value', () => {
     const merged = mergeSummary(
       [{ scan_date: '2026-06-18', total: 90, rs80: 30, rs90: 40 }],

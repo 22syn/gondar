@@ -198,7 +198,8 @@ export function buildRsSummaryQuery(): Query {
   return {
     sql: `SELECT scan_date,
       SUM(rs>=80) AS rs80,
-      SUM(rs>=90) AS rs90
+      SUM(rs>=90) AS rs90,
+      SUM(rs>=95) AS rs95
       FROM (
         SELECT l.scan_date AS scan_date, COALESCE(l.rs, r.rs) AS rs
           FROM lean_signals l
@@ -234,6 +235,7 @@ export function buildSummaryQuery(_p: SignalParams): Query {
       -- buildRsSummaryQuery whenever rs_daily is present.
       SUM(rs>=80) AS rs80,
       SUM(rs>=90) AS rs90,
+      SUM(rs>=95) AS rs95,
       MAX(ingested_at) AS last_run
       FROM lean_signals GROUP BY scan_date ORDER BY scan_date DESC`,
     params: [],

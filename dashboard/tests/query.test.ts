@@ -69,6 +69,27 @@ describe('buildSummaryQuery', () => {
     const q = buildSummaryQuery({});
     expect(q.sql).toMatch(/GROUP BY scan_date/);
   });
+
+  it('counts the RS 80 / 90 / 95 tiers as the lean fallback', () => {
+    const q = buildSummaryQuery({});
+    for (const col of ['rs80', 'rs90', 'rs95']) {
+      expect(q.sql).toContain(`AS ${col}`);
+    }
+    expect(q.sql).toContain('SUM(rs>=95) AS rs95');
+  });
+});
+
+describe('buildRsSummaryQuery', () => {
+  const { buildRsSummaryQuery } = require('../src/query.js');
+
+  it('counts every RS tier, including the 95 top tier, per date', () => {
+    const q = buildRsSummaryQuery();
+    for (const col of ['SUM(rs>=80) AS rs80', 'SUM(rs>=90) AS rs90', 'SUM(rs>=95) AS rs95']) {
+      expect(q.sql).toContain(col);
+    }
+    expect(q.sql).toMatch(/GROUP BY scan_date/);
+    expect(q.params).toEqual([]);
+  });
 });
 
 describe('buildFragilityQuery', () => {

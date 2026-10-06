@@ -50,6 +50,27 @@ function iconHTML(name, extraCls) {
 }
 
 /**
+ * RS tiers that earn a flame. 90 keeps the single flame it always had; 95 is
+ * the top tier and gets two. Display only — it ranks and filters nothing.
+ *
+ * Why 95: in the 3-year RS-score study the edge sits almost entirely at the top
+ * — RS 95+ beat the watchlist in 97% of entry months at 126 days, while 80-89
+ * was close to flat and 90-94 much weaker — and the gradient holds inside the
+ * dashboard's own signal rows. It is still not an entry signal on its own: in
+ * June 2026 it was the worst-hit tier (see the momentum-crash note in the
+ * explainer).
+ */
+const RS_FLAME_MIN = 90;
+const RS_TOP_MIN = 95;
+
+/** Flame marker for an RS value: none below 90, one from 90, two from 95. */
+function rsFlameHTML(rs) {
+  if (rs == null || rs < RS_FLAME_MIN) return '';
+  const flame = iconHTML('local_fire_department', 'rs-flame');
+  return rs >= RS_TOP_MIN ? flame + flame : flame;
+}
+
+/**
  * TradingView exchange tag → SVR ticker suffix. Used to resolve a watchlist
  * entry (exchange-stripped, e.g. {ticker:'NICE', exchange:'TASE'}) back to the
  * D1 ticker ('NICE.TA') — a plain base match alone would confuse the TASE NICE
@@ -492,6 +513,10 @@ function renderCards() {
     // full-market 12-month weighted RS Rating — same name, narrower universe.
     ['RS≥80',         s.rs80 ?? 0,   'stat-card--highlight',  'fitness_center',         'RS: percentile rank within our watchlist, not IBD\'s market-wide RS Rating'],
     ['RS≥90',         s.rs90 ?? 0,   'stat-card--highlight',  'local_fire_department',  'RS: percentile rank within our watchlist, not IBD\'s market-wide RS Rating'],
+    // Top tier. The tooltip carries the caution on purpose: this card is the one
+    // most likely to be read as "buy these", and RS 95+ is also the tier that
+    // took the biggest hit when momentum turned (June 2026).
+    ['RS≥95',         s.rs95 ?? 0,   'stat-card--highlight',  'whatshot',               'RS≥95: הקצה העליון של הרשימה. לא איתות כניסה בפני עצמו — קודם בדקו Fragility; בשבירת מומנטום (כמו ביוני 2026) זו השכבה שנפגעת הכי חזק.'],
   ];
 
   container.innerHTML = defs.map(([lbl, val, extra, icon, title]) => `
@@ -1071,7 +1096,7 @@ function renderTable() {
         case 'rs': {
           // RS percentile — the ranking metric that survived the 2y score study.
           if (r.rs == null) return `<td class="${cls}" data-v="-1">—</td>`;
-          const flame = r.rs >= 90 ? iconHTML('local_fire_department', 'rs-flame') : '';
+          const flame = rsFlameHTML(r.rs);
           return `<td class="${cls}" data-v="${r.rs}"><span class="${r.rs >= 90 ? 'num-up' : ''}">${r.rs}${flame}</span></td>`;
         }
         case 'score': {
@@ -1137,7 +1162,7 @@ function renderTable() {
           <div class="sc-kv"><span class="sc-k">יום%</span><span class="sc-v ${fmtPctClass(r.day_pct)}">${fmtPct(r.day_pct)}</span></div>
           <div class="sc-kv"><span class="sc-k">ATH%</span><span class="sc-v ${fmtPctClass(r.ath_pct)}">${fmtPct(r.ath_pct)}</span></div>
           <div class="sc-kv"><span class="sc-k">מחיר</span><span class="sc-v">${fmtPrice(r.price)}</span></div>
-          <div class="sc-kv"><span class="sc-k">RS</span><span class="sc-v ${(r.rs ?? 0) >= 90 ? 'num-up' : ''}">${r.rs != null ? r.rs + (r.rs >= 90 ? iconHTML('local_fire_department', 'rs-flame') : '') : '—'}</span></div>
+          <div class="sc-kv"><span class="sc-k">RS</span><span class="sc-v ${(r.rs ?? 0) >= 90 ? 'num-up' : ''}">${r.rs != null ? r.rs + rsFlameHTML(r.rs) : '—'}</span></div>
           <div class="sc-kv"><span class="sc-k">S2</span><span class="sc-v ${r.stage2 ? 'num-up' : ''}">${r.stage2 ? iconHTML('check') : '—'}</span></div>
         </div>
       </div>`;
@@ -1322,7 +1347,7 @@ function openDeepDive(r, opener = null) {
 
   const pairs = [
     ['Score',  `${r.score ?? '—'}${deltaHtml ? ' ' + deltaHtml.replace(/class="delta-/g, 'class="delta-') : ''}`],
-    ['RS',     r.rs != null ? `${r.rs}${r.rs >= 90 ? iconHTML('local_fire_department', 'rs-flame') : ''}` : '—'],
+    ['RS',     r.rs != null ? `${r.rs}${rsFlameHTML(r.rs)}` : '—'],
     ['RVOL',   fmtRvol(r.rvol)],
     ['ATH%',   fmtPct(r.ath_pct)],
     ['יום%',   fmtPct(r.day_pct)],
