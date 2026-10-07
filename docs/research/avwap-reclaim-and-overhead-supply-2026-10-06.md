@@ -31,9 +31,11 @@ Result files (gitignored): `results/research/avwap-event-study-ath.json`,
 | | n | 63d excess mean | 63d excess median | 90%-trimmed mean | 21d win (base 55.1%) |
 |---|---|---|---|---|---|
 | V1: cross + RVOL>=2 | 200 | +9.1% [+0.3, +20.2] | -4.1% | -1.2% | 47.4% |
-| V3: +5% confirmation + RVOL>=2 | 133 | +11.2% [-0.8, +24.4] | -5.6% | -2.6% | 45.8% |
+| V3: +5% confirmation + RVOL>=2 | 133 | +11.2% [-0.8, +24.4] | -5.6% | -1.5% | 45.8% |
 
-All right tail: the top-5 events (ASTS +670%, OPEN +413%, QBTS, AAOI ...) explain >100% of the excess.
+All right tail: the top-5 events (ASTS +670%, OPEN +413%, QBTS, AAOI ...) explain >100% of the excess
+(111% / 123%). The "lottery" rate (+50% within 63d) is 8.7% (V1) / 10.6% (V3) vs 4.5% across all
+ticker-days — about 2x — while the median trade lags same-RS peers.
 Unstable by year (V1 63d: 2023 -5%, 2024 +20%, 2025 +2%). YTD and gap anchors: null (gap V3 n=62, no
 conclusion). Unweighted-average placebo: same direction, weaker, overlapping CIs.
 
@@ -70,7 +72,28 @@ volume); the real break was 2026-10-02 / 10-05 (+8.9% / +16.9% above the level, 
 not have qualified under N=60. Yahoo returns hourly bars for `range=max&interval=1d` on a fresh IPO —
 aggregate to daily before computing anything.
 
+## Catch-rate check for a possible GONDAR signal (`scripts/research-avwap-catch-rate.py`)
+
+987 "monster episodes" (fwd63 >= +50%) in 583 tickers x 4y. Spec frozen before the run; S4 was designed
+after studying SPCX, so SPCX is a design example for it, not evidence.
+
+| signal | n | precision (+50% @63d) | same-RS peers | recall of episodes | random placement |
+|---|---|---|---|---|---|
+| S1 reclaim after >=60 below, RVOL>=2 | 200 | 8.7% | 3.8% | 1.2% | 1.6% |
+| S2 S1 + 5% confirmation | 133 | 10.6% | 4.1% | 0.6% | 1.0% |
+| S4 base-on-the-level breakout (SPCX-shaped) | 751 | 4.8% | 4.7% | 4.9% | 5.7% |
+
+S1/S2 enrich lottery outcomes about 2x but find ~1% of monsters (no better than random placement) and the
+median trade lags. S4 has no lift. SPCX: S1/S2 do not fire (38 < 60 sessions below); S4 fires on 2026-10-05,
+day two of the break. Base rate for +50% in 63d over all ticker-days is 4.5% (an earlier draft of this note
+quoted 6%, which was the event-rows subset — wrong base).
+
 ## Decision
 
-No score or gate from any AVWAP formulation. Display-only lens is fine; never imply an edge. RS remains
-the only signal that carries forward returns here (see the Albert triple-confluence and RS-score studies).
+No score or gate from any AVWAP formulation; no new signal. RS remains the only signal that carries forward
+returns here (see the Albert triple-confluence and RS-score studies).
+
+Shipped as a **display-only column** instead: GONDAR "vs AVWAP" (price vs the AVWAP anchored at the 52w-high
+bar, beside ATH%) — 22syn/gondar#234, merged to `stable` 2026-10-06 (e35dfb8), dashboard deployed the same
+day; the first post-merge ingests filled 100% of rows. Nothing scores, ranks or gates on it, and it must
+never be presented as an edge.
