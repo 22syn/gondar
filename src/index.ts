@@ -4,7 +4,7 @@
  */
 
 import { loadWatchlist, validateConfig, config, getSectorForTicker, fetchAndCacheWatchlist, getInvalidTickersFromWatchlist, getIndexSkippedFromWatchlist, getDisabledTickersFromWatchlist } from './config/index.js';
-import { classifyTickersWithGroq } from './services/llmSummary.js';
+import { classifyTickers } from './services/llmSummary.js';
 import { fetchAllStocksAsOfDate, fetchMarketRegime, fetchSpy63dReturn, fetchMarketHealth } from './services/marketData.js';
 import { evaluateMomentumSetup } from './utils/setup.js';
 import { applyChampionScore } from './utils/championScore.js';
@@ -108,8 +108,8 @@ async function main(): Promise<void> {
         }
 
         // (LLM summary feature removed 2026-05-22 — see decisions-log.)
-        // The Groq key is still used for ticker classification by classifyTickersWithGroq.
-        logger.info(`Ticker classification (Groq): key=${config.groqApiKey ? '✓ set' : '✗ missing — will skip'}`);
+        // The Anthropic key is still used for ticker classification by classifyTickers.
+        logger.info(`Ticker classification (Claude): key=${config.anthropicApiKey ? '✓ set' : '✗ missing — will skip'}`);
 
         // 4. Fetch watchlist from Google Sheet and load symbols
         await fetchAndCacheWatchlist();
@@ -281,14 +281,14 @@ async function main(): Promise<void> {
             isVolumeWithoutPrice: false,
         }));
 
-        // 8. Classify problematic tickers (invalid + failed) with Groq – INDEX/BOND excluded from Jules
+        // 8. Classify problematic tickers (invalid + failed) with Claude – INDEX/BOND excluded from Jules
         const invalidTickers = getInvalidTickersFromWatchlist();
         let indexTickers = [...getIndexSkippedFromWatchlist()];
         const combined = [...new Set([...invalidTickers, ...failedTickers])];
 
-        if (combined.length > 0 && config.groqApiKey) {
-            logger.info(`🔍 Classifying ${combined.length} problematic tickers with Groq...`);
-            const classified = await classifyTickersWithGroq(combined);
+        if (combined.length > 0 && config.anthropicApiKey) {
+            logger.info(`🔍 Classifying ${combined.length} problematic tickers with Claude...`);
+            const classified = await classifyTickers(combined);
             for (const [sym, type] of classified) {
                 if (type === 'INDEX' || type === 'BOND') {
                     if (!indexTickers.includes(sym)) indexTickers.push(sym);
