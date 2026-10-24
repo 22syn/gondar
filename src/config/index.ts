@@ -43,9 +43,9 @@ export const config = {
     // API Keys
     finnhubApiKey: process.env.FINNHUB_API_KEY || '',
     twelveDataApiKey: process.env.TWELVE_DATA_API_KEY || '',
-    groqApiKey: process.env.GROQ_API_KEY || '',
+    anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
     // OpenAI / Perplexity / Gemini keys removed 2026-05-22 with the LLM summary
-    // cleanup. Groq is retained — it powers `classifyTickersWithGroq` (ticker
+    // cleanup. Claude (was Groq until 2026-10) powers `classifyTickers` (ticker
     // type utility, not the dead daily commentary feature).
 
     // Telegram
