@@ -15,8 +15,8 @@
  *   USE_LOCAL_RESULTS=1  — use existing results/*.json
  *   START_DATE=YYYY-MM-DD, END_DATE=YYYY-MM-DD
  *   LOOKBACK_DAYS=30 (default)
- *   NO_LLM=1  — skip Groq
- *   GROQ_API_KEY (required for LLM analysis)
+ *   NO_LLM=1  — skip the Claude narrative
+ *   ANTHROPIC_API_KEY (required for LLM analysis)
  */
 import 'dotenv/config';
 import fs from 'node:fs';
@@ -24,14 +24,16 @@ import path from 'node:path';
 import { execSync } from 'node:child_process';
 import pLimit from 'p-limit';
 import type { StoredScanResult, NewlogicTag } from '../src/types/index.js';
-import { fetchAndCacheWatchlist, getSectorForTicker } from '../src/config/index.js';
+import { config, fetchAndCacheWatchlist, getSectorForTicker } from '../src/config/index.js';
+import { ANALYSIS_MODEL, completeText } from '../src/services/claude.js';
 
 const LOOKBACK_DAYS = parseInt(process.env.LOOKBACK_DAYS ?? '30', 10) || 30;
 const RUN_LIMIT = Math.min(45, Math.ceil(LOOKBACK_DAYS * 1.5));
 const START_DATE = process.env.START_DATE || null;
 const END_DATE = process.env.END_DATE || null;
 const NO_LLM = process.env.NO_LLM === '1' || process.env.NO_LLM === 'true';
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const NARRATIVE_SYSTEM_PROMPT = 'You are a quantitative trading analyst. Respond in Hebrew. Be concise and actionable. Focus on forward returns data.';
+const NARRATIVE_MAX_TOKENS = 4000; // thinking tokens share this cap with the answer
 
 // Forward return windows in trading days
 const FWD_WINDOWS = [3, 5, 10, 20] as const;
@@ -291,31 +293,6 @@ function findScanJsonFiles(resultsDir: string): Array<{ path: string; date: stri
         }
     }
     return pairs.sort((a, b) => a.date.localeCompare(b.date));
-}
-
-// ─── Groq ─────────────────────────────────────────────────────────────────────
-
-async function callGroq(prompt: string): Promise<string | null> {
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) return null;
-    try {
-        const res = await fetch(GROQ_API_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-            body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
-                messages: [
-                    { role: 'system', content: 'You are a quantitative trading analyst. Respond in Hebrew. Be concise and actionable. Focus on forward returns data.' },
-                    { role: 'user', content: prompt },
-                ],
-                max_tokens: 2000,
-                temperature: 0.3,
-            }),
-        });
-        if (!res.ok) { process.stderr.write(`Groq: ${res.status}\n`); return null; }
-        const data = (await res.json()) as { choices?: Array<{ message?: { content?: string } }> };
-        return data.choices?.[0]?.message?.content?.trim() ?? null;
-    } catch (e) { process.stderr.write(`Groq error: ${(e as Error).message}\n`); return null; }
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
@@ -585,14 +562,14 @@ async function main(): Promise<void> {
 
     process.stdout.write(lines.join('\n') + '\n');
 
-    // ─── Groq ─────────────────────────────────────────────────────────────────
+    // ─── Claude ───────────────────────────────────────────────────────────────
 
-    if (NO_LLM || !process.env.GROQ_API_KEY) {
-        if (!NO_LLM) process.stderr.write('\n(GROQ_API_KEY not set — skip LLM)\n');
+    if (NO_LLM || !config.anthropicApiKey) {
+        if (!NO_LLM) process.stderr.write('\n(ANTHROPIC_API_KEY not set — skip LLM)\n');
         return;
     }
 
-    process.stderr.write('\n🤖 Groq analysis...\n');
+    process.stderr.write('\n🤖 Claude analysis...\n');
 
     const top5Setups = scored.slice(0, 5).map((s) => `${s.label}: +5td avg ${pct(s.fwd5avg)}, win ${s.fwd5win.toFixed(0)}%`).join('\n');
     const worstSetup = scored[scored.length - 1];
@@ -634,9 +611,15 @@ Questions:
 Respond in Hebrew, concise and actionable.
 `.trim();
 
-    const narrative = await callGroq(prompt);
+    const narrative = await completeText({
+        model: ANALYSIS_MODEL,
+        system: NARRATIVE_SYSTEM_PROMPT,
+        prompt,
+        maxTokens: NARRATIVE_MAX_TOKENS,
+        effort: 'medium',
+    });
     if (narrative) {
-        process.stdout.write('\n═══ 🤖 Groq — חוקי מסחר ═══\n\n');
+        process.stdout.write('\n═══ 🤖 Claude — חוקי מסחר ═══\n\n');
         process.stdout.write(narrative + '\n');
     }
 }
