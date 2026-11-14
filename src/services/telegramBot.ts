@@ -12,7 +12,7 @@ import { formatRVOL, formatPriceChange } from '../utils/formatters.js';
 import { isGoldTierAlert } from '../utils/championScore.js';
 // LLM summary feature removed 2026-05-22 — Gemini API key was missing in production
 // so the daily LLM commentary block never actually got sent. See decisions-log.md.
-// `classifyTickersWithGroq` (the ticker-type utility) is still imported separately in index.ts.
+// `classifyTickers` (the ticker-type utility) is still imported separately in index.ts.
 import type { MonitorUpdateSummary } from './monitorTracker.js';
 import type { MarketHealth } from './marketData.js';
 import { FRAGILITY_THRESHOLD, CORE3_THRESHOLD, CORE3_WATCH_DISPLAY, CLIMAX_THRESHOLD, type FragilityResult } from './purpleFragility.js';
