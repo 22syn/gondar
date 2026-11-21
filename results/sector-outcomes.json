@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-11-14T16:25:15.134Z",
-  "sourceFile": "precision-analysis-2026-11-14.json",
+  "generatedAt": "2026-11-21T17:09:44.102Z",
+  "sourceFile": "precision-analysis-2026-11-21.json",
   "config": {
     "SECTOR_BLACKLIST_RATE": 0.2,
     "SECTOR_BLACKLIST_MIN_N": 25,
@@ -9,60 +9,88 @@
     "SECTOR_BLACKLIST_HEAVY_BLEED": -0.05
   },
   "perSector": {
-    "Defense&Aerspace": {
-      "alerts": 14,
+    "Finance": {
+      "alerts": 68,
+      "winRate": 0.14705882352941177,
+      "medianPeak21d": 0.027724665391969383,
+      "medianForwardNow": -0.11030110935023774,
+      "blacklisted": true
+    },
+    "gas stations": {
+      "alerts": 7,
       "winRate": 0,
-      "medianPeak21d": -0.0008499583580059422,
-      "medianForwardNow": -0.05762650020129867,
+      "medianPeak21d": 0.010615493446751945,
+      "medianForwardNow": -0.1967381914622307,
       "blacklisted": false
     },
-    "BASIC": {
-      "alerts": 178,
-      "winRate": 0.12921348314606743,
-      "medianPeak21d": 0.03677004616767787,
-      "medianForwardNow": 0.034401959016663985,
-      "blacklisted": false
-    },
-    "ETF - world": {
-      "alerts": 92,
-      "winRate": 0,
-      "medianPeak21d": 0.009539590892319483,
-      "medianForwardNow": -0.041659966038742224,
+    "Software": {
+      "alerts": 125,
+      "winRate": 0.344,
+      "medianPeak21d": 0.05941306818259395,
+      "medianForwardNow": -0.14786579641943465,
       "blacklisted": true
     },
     "ETF - US": {
-      "alerts": 19,
+      "alerts": 9,
       "winRate": 0,
-      "medianPeak21d": 0.0016796628371607003,
-      "medianForwardNow": -0.03404257483516182,
+      "medianPeak21d": -0.000872587045833817,
+      "medianForwardNow": -0.0910116608652376,
       "blacklisted": false
     },
-    "CONSUMER": {
-      "alerts": 7,
-      "winRate": 0,
-      "medianPeak21d": 0.017824023739783312,
-      "medianForwardNow": -0.03723639947517199,
-      "blacklisted": false
+    "Chemicals": {
+      "alerts": 87,
+      "winRate": 0.14942528735632185,
+      "medianPeak21d": 0.02709677419354839,
+      "medianForwardNow": -0.11545899559946127,
+      "blacklisted": true
+    },
+    "BASIC": {
+      "alerts": 215,
+      "winRate": 0.07906976744186046,
+      "medianPeak21d": 0.03716213247660427,
+      "medianForwardNow": -0.020798247340755194,
+      "blacklisted": true
     },
     "commodities": {
-      "alerts": 7,
+      "alerts": 14,
       "winRate": 0,
-      "medianPeak21d": 0,
-      "medianForwardNow": -0.1969139911173048,
+      "medianPeak21d": 0.015987896075453367,
+      "medianForwardNow": -0.12790004085879025,
+      "blacklisted": false
+    },
+    "OIL": {
+      "alerts": 181,
+      "winRate": 0.19889502762430938,
+      "medianPeak21d": 0.04122393901607557,
+      "medianForwardNow": -0.15089287076677593,
+      "blacklisted": true
+    },
+    "Defense&Aerspace": {
+      "alerts": 5,
+      "winRate": 0,
+      "medianPeak21d": -0.007941303667761468,
+      "medianForwardNow": -0.10611325176717423,
       "blacklisted": false
     },
     "Semiconductor": {
       "alerts": 8,
       "winRate": 0,
       "medianPeak21d": -0.005734767025089571,
-      "medianForwardNow": -0.2685782556750299,
+      "medianForwardNow": -0.4204301075268817,
       "blacklisted": false
     },
     "Housing": {
       "alerts": 2,
       "winRate": 0,
       "medianPeak21d": 0.003907394238412243,
-      "medianForwardNow": -0.014885091691497654,
+      "medianForwardNow": -0.04860632614071181,
+      "blacklisted": false
+    },
+    "CONSUMER": {
+      "alerts": 13,
+      "winRate": 0,
+      "medianPeak21d": 0.003587190813737484,
+      "medianForwardNow": -0.04331409913620243,
       "blacklisted": false
     }
   }
